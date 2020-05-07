@@ -35,6 +35,7 @@
 #include <map>
 #include <models/User.hpp>
 #include <models/Guild.hpp>
+#include <atomic>
 #include "Payload.hpp"
 #include "VoiceSocket.hpp"
 
@@ -144,23 +145,23 @@ namespace DiscordBot
             /**
              * @brief Pauses the audio source. Call @see ResumeSpeaking to continue streaming.
              * 
-             * @param channel: The voice channel to pause.
+             * @param guild: The guild to pause.
              */
-            void PauseSpeaking(Channel channel) override {}
+            void PauseSpeaking(Guild guild) override;
 
             /**
              * @brief Resumes the audio source.
              * 
-             * @param channel: The voice channel to resume.
+             * @param guild: The guild to resume.
              */
-            void ResumeSpeaking(Channel channel) override {}
+            void ResumeSpeaking(Guild guild) override;
 
             /**
              * @brief Stops the audio source.
              * 
-             * @param channel: The voice channel to stop.
+             * @param guild: The guild to stop.
              */
-            void StopSpeaking(Channel channel) override {}
+            void StopSpeaking(Guild guild) override;
 
             /**
              * @brief Joins a audio channel.
@@ -172,9 +173,9 @@ namespace DiscordBot
             /**
              * @brief Leaves the audio channel.
              * 
-             * @param channel: The voice channel to leave.
+             * @param guild: The guild to leave the voice channel.
              */
-            void Leave(Channel channel) override;
+            void Leave(Guild guild) override;
 
             /**
              * @brief Sends a message to a given channel.
@@ -183,12 +184,12 @@ namespace DiscordBot
              * @param Text: Text to send;
              * @param TTS: True to enable tts.
              */
-            void SendMessage(Channel channel, const std::string Text, bool TTS = false);
+            void SendMessage(Channel channel, const std::string Text, Embed embed = nullptr, bool TTS = false);
 
             /**
-             * @return Returns the audio source for the given channel. Null if there is no audio source available.
+             * @return Returns the audio source for the given guild. Null if there is no audio source available.
              */
-            AudioSource GetAudioSource(Channel channel) override {}
+            AudioSource GetAudioSource(Guild guild) override;
 
             /**
              * @brief Runs the bot. The call returns if you calls @see Quit().
@@ -199,6 +200,14 @@ namespace DiscordBot
              * @brief Quits the bot. And disconnects all voice states.
              */
             void Quit() override;
+
+            /**
+             * @return Gets the bot user.
+             */
+            User GetBotUser() override
+            {
+                return m_BotUser;
+            }
 
             ~CDiscordClient() {}
         private:
@@ -212,11 +221,11 @@ namespace DiscordBot
             std::shared_ptr<SGateway> m_Gateway;
             ix::WebSocket m_Socket;
             std::thread m_Heartbeat;
-            volatile bool m_Terminate;
-            volatile bool m_HeartACKReceived;
-            volatile bool m_Quit;
+            std::atomic<bool> m_Terminate;
+            std::atomic<bool> m_HeartACKReceived;
+            std::atomic<bool> m_Quit;
             uint32_t m_HeartbeatInterval;
-            volatile uint32_t m_LastSeqNum;
+            std::atomic<uint32_t> m_LastSeqNum;
             std::string m_SessionID;
             User m_BotUser;
 

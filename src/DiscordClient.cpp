@@ -25,6 +25,7 @@
 #include "DiscordClient.hpp"
 #include <ixwebsocket/IXHttpClient.h>
 #include <iostream>
+#include <sodium.h>
 
 #define CLOG_IMPLEMENTATION
 #include <Log.hpp>
@@ -83,15 +84,15 @@ namespace DiscordBot
     /**
      * @brief Leaves the audio channel.
      * 
-     * @param channel: The voice channel to leave.
+     * @param guild: The guild to leave the voice channel.
      */
-    void CDiscordClient::Leave(Channel channel)
+    void CDiscordClient::Leave(Guild guild)
     {
-        if (!channel || channel->GuildID.empty() || channel->ID.empty())
+        if (!guild)
             return;
 
         CJSON json;
-        json.AddPair("guild_id", channel->GuildID);
+        json.AddPair("guild_id", guild->ID);
         json.AddPair("channel_id", nullptr);
         json.AddPair("self_mute", false);
         json.AddPair("self_deaf", false);
@@ -106,7 +107,7 @@ namespace DiscordBot
      * @param Text: Text to send;
      * @param TTS: True to enable tts.
      */
-    void CDiscordClient::SendMessage(Channel channel, const std::string Text, bool TTS)
+    void CDiscordClient::SendMessage(Channel channel, const std::string Text, Embed embed = nullptr, bool TTS)
     {
         if(channel->Type != ChannelTypes::GUILD_TEXT)
             return;
@@ -122,10 +123,37 @@ namespace DiscordBot
         json.AddPair("content", Text);
         json.AddPair("tts", TTS);
 
+        if(embed)
+        {
+            CJSON jembed;
+            jembed.AddPair("title", embed->Title);
+            jembed.AddPair("description", embed->Description);
+
+            if(!embed->URL.empty())
+                jembed.AddPair("url", embed->URL);
+
+            json.AddPair("embed", jembed.Serialize());
+        }
+
         auto res = http.post(std::string(BASE_URL) + "/channels/" + channel->ID + "/messages", json.Serialize(), args);
         if (res->statusCode != 200)
             llog << lerror << "Failed to send message HTTP: " << res->statusCode << " MSG: " << res->errorMsg << lendl;
     }
+
+    /**
+     * @return Returns the audio source for the given guild. Null if there is no audio source available.
+     */
+    AudioSource CDiscordClient::GetAudioSource(Guild guild)
+    {
+        if(!guild)
+            return AudioSource();
+
+        VoiceSockets::iterator IT = m_VoiceSockets.find(guild->ID);
+        if (IT != m_VoiceSockets.end())
+            return IT->second->GetAudioSource();
+
+        return AudioSource();
+    }   
 
     /**
      * @brief Runs the bot. The call returns if you calls @see Quit().
@@ -134,6 +162,13 @@ namespace DiscordBot
     {
         //Needed for windows.
         ix::initNetSystem();
+
+        //Initialize libsodium.
+        if (sodium_init() < 0) 
+        {
+            llog << lerror << "Error to init libsodium" << lendl;
+            return;
+        }
 
         ix::HttpClient http;
         ix::HttpRequestArgsPtr args = ix::HttpRequestArgsPtr(new ix::HttpRequestArgs());
@@ -174,20 +209,21 @@ namespace DiscordBot
      */
     void CDiscordClient::Quit()
     {
-        m_Socket.close();
         m_Terminate = true;
 
         if (m_Heartbeat.joinable())
             m_Heartbeat.join();
 
-        m_Quit = true;
-
+        m_Socket.close();
+        
         if (m_Controller)
         {
             m_Controller->OnDisconnect();
             m_Controller->OnQuit();
             m_Controller = nullptr;
         }
+
+        m_Quit = true;
     }
 
     /**
@@ -211,11 +247,57 @@ namespace DiscordBot
         }
         else
         {
+            Join(channel);
             m_AudioSources[channel->GuildID] = source;
             return true;
         }
 
         return false;
+    }
+
+    /**
+     * @brief Pauses the audio source. Call @see ResumeSpeaking to continue streaming.
+     * 
+     * @param guild: The guild to pause.
+     */
+    void CDiscordClient::PauseSpeaking(Guild guild)
+    {
+        if(!guild)
+            return;
+
+        VoiceSockets::iterator IT = m_VoiceSockets.find(guild->ID);
+        if (IT != m_VoiceSockets.end())
+            IT->second->PauseSpeaking();
+    }
+
+    /**
+     * @brief Resumes the audio source.
+     * 
+     * @param guild: The guild to resume.
+     */
+    void CDiscordClient::ResumeSpeaking(Guild guild) 
+    {
+        if(!guild)
+            return;
+
+        VoiceSockets::iterator IT = m_VoiceSockets.find(guild->ID);
+        if (IT != m_VoiceSockets.end())
+            IT->second->ResumeSpeaking();
+    }
+
+    /**
+     * @brief Stops the audio source.
+     * 
+     * @param guild: The guild to stop.
+     */
+    void CDiscordClient::StopSpeaking(Guild guild)
+    {
+        if(!guild)
+            return;
+
+        VoiceSockets::iterator IT = m_VoiceSockets.find(guild->ID);
+        if (IT != m_VoiceSockets.end())
+            IT->second->StopSpeaking();
     }
 
     /**
@@ -261,154 +343,146 @@ namespace DiscordBot
                         //Gateway Events https://discordapp.com/developers/docs/topics/gateway#commands-and-events-gateway-events
                         switch (Adler32(Pay.T.c_str()))
                         {
-                        case Adler32("READY"):
-                        {
-                            json.ParseObject(Pay.D);
-                            m_SessionID = json.GetValue<std::string>("session_id");
+                            case Adler32("READY"):
+                            {
+                                json.ParseObject(Pay.D);
+                                m_SessionID = json.GetValue<std::string>("session_id");
 
-                            json.ParseObject(json.GetValue<std::string>("user"));
-                            m_BotUser = CreateUser(json);
+                                json.ParseObject(json.GetValue<std::string>("user"));
+                                m_BotUser = CreateUser(json);
 
-                            llog << linfo << "Connected with Discord! " << m_Socket.getUrl() << lendl;
+                                llog << linfo << "Connected with Discord! " << m_Socket.getUrl() << lendl;
 
-                            if (m_Controller)
-                                m_Controller->OnReady();
+                                if (m_Controller)
+                                    m_Controller->OnReady();
+                            }
+                            break;
+
+                            case Adler32("GUILD_CREATE"):
+                            {
+                                json.ParseObject(Pay.D);
+
+                                Guild guild = Guild(new CGuild());
+                                guild->ID = json.GetValue<std::string>("id");
+                                guild->Name = json.GetValue<std::string>("name");
+
+                                //Get all Channels;
+                                std::vector<std::string> Array = json.GetValue<std::vector<std::string>>("channels");
+                                for (auto &&e : Array)
+                                {
+                                    CJSON jChannel;
+                                    jChannel.ParseObject(e);
+
+                                    Channel Tmp = CreateChannel(jChannel);
+                                    Tmp->GuildID = guild->ID;
+                                    guild->Channels[Tmp->ID] = Tmp;
+                                }
+
+                                //Get all members.
+                                Array = json.GetValue<std::vector<std::string>>("members");
+                                for (auto &&e : Array)
+                                {
+                                    CJSON Member;
+                                    Member.ParseObject(e);
+
+                                    GuildMember Tmp = CreateMember(Member);
+
+                                    if (Tmp->UserRef)
+                                        guild->Members[Tmp->UserRef->ID] = Tmp;
+                                }
+
+                                //Get all voice states.
+                                Array = json.GetValue<std::vector<std::string>>("voice_states");
+                                for (auto &&e : Array)
+                                {
+                                    CJSON State;
+                                    State.ParseObject(e);
+
+                                    CreateVoiceState(State, guild);
+                                }
+
+                                m_Guilds[guild->ID] = guild;
+                            }break;
+
+                            case Adler32("GUILD_DELETE"):
+                            {
+                                json.ParseObject(Pay.D);
+
+                                m_VoiceSockets.erase(json.GetValue<std::string>("id"));
+                                m_Guilds.erase(json.GetValue<std::string>("id"));
+
+                                llog << linfo << "GUILD_DELETE" << lendl;
+                            }break;
+
+                            case Adler32("VOICE_STATE_UPDATE"):
+                            {
+                                json.ParseObject(Pay.D);
+                                VoiceState Tmp = CreateVoiceState(json, nullptr);
+
+                                if (m_Controller && Tmp->GuildRef)
+                                {
+                                    if(Tmp->UserRef)
+                                    {
+                                        if(Tmp->UserRef->ID == m_BotUser->ID && !Tmp->ChannelRef)
+                                            m_VoiceSockets.erase(Tmp->GuildRef->ID);
+
+                                        auto IT = Tmp->GuildRef->Members.find(Tmp->UserRef->ID);
+                                        if(IT != Tmp->GuildRef->Members.end())
+                                            m_Controller->OnVoiceStateUpdate(Tmp->GuildRef, IT->second);
+                                    }
+                                }   
+                            }break;
+
+                            case Adler32("VOICE_SERVER_UPDATE"):
+                            {
+                                json.ParseObject(Pay.D);
+                                Guilds::iterator GIT = m_Guilds.find(json.GetValue<std::string>("guild_id"));
+                                if (GIT != m_Guilds.end())
+                                {
+                                    auto UIT = GIT->second->Members.find(m_BotUser->ID);
+                                    if (UIT != GIT->second->Members.end())
+                                    {
+                                        VoiceSocket Socket = VoiceSocket(new CVoiceSocket(json, UIT->second->State->SessionID, m_BotUser->ID));
+                                        Socket->SetOnSpeakFinish(std::bind(&CDiscordClient::OnSpeakFinish, this, std::placeholders::_1));
+                                        m_VoiceSockets[GIT->second->ID] = Socket;
+
+                                        AudioSources::iterator IT = m_AudioSources.find(GIT->second->ID);
+                                        if (IT != m_AudioSources.end())
+                                        {
+                                            Socket->StartSpeaking(IT->second);
+                                            m_AudioSources.erase(IT);
+                                        }
+                                    }
+                                }
+                            }break;
+
+                            case Adler32("MESSAGE_CREATE"):
+                            {
+                                json.ParseObject(Pay.D);
+                                Message msg = CreateMessage(json);
+
+                                if (m_Controller)
+                                    m_Controller->OnMessage(msg);
+                            }break;
+
+                            case Adler32("RESUMED"):
+                            {
+                                llog << linfo << "Resumed" << lendl;
+
+                                if (m_Controller)
+                                    m_Controller->OnResume();
+                            } break;
+
+                            case Adler32("INVALID_SESSION"):
+                            {
+                                if (Pay.D == "true")
+                                    SendResume();
+                                else
+                                    Quit();
+
+                                llog << linfo << "INVALID_SESSION" << lendl;
+                            }break;
                         }
-                        break;
-
-                        case Adler32("GUILD_CREATE"):
-                        {
-                            json.ParseObject(Pay.D);
-
-                            Guild guild = Guild(new CGuild());
-                            guild->ID = json.GetValue<std::string>("id");
-                            guild->Name = json.GetValue<std::string>("name");
-
-                            //Get all Channels;
-                            std::vector<std::string> Array = json.GetValue<std::vector<std::string>>("channels");
-                            for (auto &&e : Array)
-                            {
-                                CJSON jChannel;
-                                jChannel.ParseObject(e);
-
-                                Channel Tmp = CreateChannel(jChannel);
-                                Tmp->GuildID = guild->ID;
-                                guild->Channels[Tmp->ID] = Tmp;
-                            }
-
-                            //Get all members.
-                            Array = json.GetValue<std::vector<std::string>>("members");
-                            for (auto &&e : Array)
-                            {
-                                CJSON Member;
-                                Member.ParseObject(e);
-
-                                GuildMember Tmp = CreateMember(Member);
-
-                                if (Tmp->UserRef)
-                                    guild->Members[Tmp->UserRef->ID] = Tmp;
-                            }
-
-                            //Get all voice states.
-                            Array = json.GetValue<std::vector<std::string>>("voice_states");
-                            for (auto &&e : Array)
-                            {
-                                CJSON State;
-                                State.ParseObject(e);
-
-                                CreateVoiceState(State, guild);
-                            }
-
-                            m_Guilds[guild->ID] = guild;
-                        }break;
-
-                        case Adler32("GUILD_DELETE"):
-                        {
-                            json.ParseObject(Pay.D);
-                            auto IT = m_VoiceSockets.find(json.GetValue<std::string>("id"));
-                            if(IT != m_VoiceSockets.end())
-                                m_VoiceSockets.erase(IT);
-
-                            auto GIT = m_Guilds.find(json.GetValue<std::string>("id"));
-                            if(GIT != m_Guilds.end())
-                                m_Guilds.erase(GIT);
-
-                            llog << linfo << "GUILD_DELETE" << lendl;
-                        }break;
-
-                        case Adler32("VOICE_STATE_UPDATE"):
-                        {
-                            json.ParseObject(Pay.D);
-                            VoiceState Tmp = CreateVoiceState(json, nullptr);
-
-                            if (m_Controller && Tmp->GuildRef)
-                            {
-                                if(Tmp->UserRef)
-                                {
-                                    if(Tmp->UserRef->ID == m_BotUser->ID && !Tmp->ChannelRef)
-                                    {
-                                        auto IT = m_VoiceSockets.find(Tmp->GuildRef->ID);
-                                        if(IT != m_VoiceSockets.end())
-                                            m_VoiceSockets.erase(IT);
-                                    }
-
-                                    auto IT = Tmp->GuildRef->Members.find(Tmp->UserRef->ID);
-                                    if(IT != Tmp->GuildRef->Members.end())
-                                        m_Controller->OnVoiceStateUpdate(IT->second);
-                                }
-                            }   
-                        }break;
-
-                        case Adler32("VOICE_SERVER_UPDATE"):
-                        {
-                            json.ParseObject(Pay.D);
-                            Guilds::iterator GIT = m_Guilds.find(json.GetValue<std::string>("guild_id"));
-                            if (GIT != m_Guilds.end())
-                            {
-                                auto UIT = GIT->second->Members.find(m_BotUser->ID);
-                                if (UIT != GIT->second->Members.end())
-                                {
-                                    VoiceSocket Socket = VoiceSocket(new CVoiceSocket(json, UIT->second->State->SessionID, m_BotUser->ID));
-                                    Socket->SetOnSpeakFinish(std::bind(&CDiscordClient::OnSpeakFinish, this, std::placeholders::_1));
-                                    m_VoiceSockets[GIT->second->ID] = Socket;
-
-                                    AudioSources::iterator IT = m_AudioSources.find(GIT->second->ID);
-                                    if (IT != m_AudioSources.end())
-                                    {
-                                        Socket->StartSpeaking(IT->second);
-                                        m_AudioSources.erase(IT);
-                                    }
-                                }
-                            }
-                        }break;
-
-                        case Adler32("MESSAGE_CREATE"):
-                        {
-                            json.ParseObject(Pay.D);
-                            Message msg = CreateMessage(json);
-
-                            if (m_Controller)
-                                m_Controller->OnMessage(msg);
-                        }break;
-
-                        case Adler32("RESUMED"):
-                        {
-                            llog << linfo << "Resumed" << lendl;
-
-                            if (m_Controller)
-                                m_Controller->OnResume();
-                        } break;
-
-                        case Adler32("INVALID_SESSION"):
-                        {
-                            if (Pay.D == "true")
-                                SendResume();
-                            else
-                                Quit();
-
-                            llog << linfo << "INVALID_SESSION" << lendl;
-                        }break;
-                    }
                 }break;
 
                 case OPCodes::HELLO:

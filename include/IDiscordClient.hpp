@@ -28,6 +28,7 @@
 #include <memory>
 #include <controller/IController.hpp>
 #include <controller/IAudioSource.hpp>
+#include <models/Embed.hpp>
 
 namespace DiscordBot
 {
@@ -127,8 +128,16 @@ namespace DiscordBot
             template<class T, class ...Args, typename std::enable_if<std::is_base_of<IController, T>::value>::type* = nullptr>
             void RegisterController(Args&& ...args)
             {
-                m_Controller = std::unique_ptr<IController>(new T(std::forward<Args...>(args)...));
+                m_Controller = new T(std::forward<Args...>(args)...);
                 m_Controller->Client = this;
+            }
+
+            /**
+             * @return Gets the controller which is associated with the client.
+             */
+            inline Controller GetCurrentController()
+            {
+                return m_Controller;
             }
 
             /**
@@ -144,23 +153,23 @@ namespace DiscordBot
             /**
              * @brief Pauses the audio source. Call @see ResumeSpeaking to continue streaming.
              * 
-             * @param channel: The voice channel to pause.
+             * @param guild: The guild to pause.
              */
-            virtual void PauseSpeaking(Channel channel) = 0;
+            virtual void PauseSpeaking(Guild guild) = 0;
 
             /**
              * @brief Resumes the audio source.
              * 
-             * @param channel: The voice channel to resume.
+             * @param guild: The guild to resume.
              */
-            virtual void ResumeSpeaking(Channel channel) = 0;
+            virtual void ResumeSpeaking(Guild guild) = 0;
 
             /**
              * @brief Stops the audio source.
              * 
-             * @param channel: The voice channel to stop.
+             * @param guild: The guild to stop.
              */
-            virtual void StopSpeaking(Channel channel) = 0;
+            virtual void StopSpeaking(Guild guild) = 0;
 
             /**
              * @brief Joins a audio channel.
@@ -172,9 +181,9 @@ namespace DiscordBot
             /**
              * @brief Leaves the audio channel.
              * 
-             * @param channel: The voice channel to leave.
+             * @param guild: The guild to leave the voice channel.
              */
-            virtual void Leave(Channel channel) = 0;
+            virtual void Leave(Guild guild) = 0;
 
             /**
              * @brief Sends a message to a given channel.
@@ -183,12 +192,12 @@ namespace DiscordBot
              * @param Text: Text to send;
              * @param TTS: True to enable tts.
              */
-            virtual void SendMessage(Channel channel, const std::string Text, bool TTS = false) = 0;
+            virtual void SendMessage(Channel channel, const std::string Text, Embed embed = nullptr, bool TTS = false) = 0;
 
             /**
-             * @return Returns the audio source for the given channel. Null if there is no audio source available.
+             * @return Returns the audio source for the given guild. Null if there is no audio source available.
              */
-            virtual AudioSource GetAudioSource(Channel channel) = 0;
+            virtual AudioSource GetAudioSource(Guild guild) = 0;
 
             /**
              * @brief Runs the bot. The call returns if you calls @see Quit().
@@ -201,6 +210,11 @@ namespace DiscordBot
             virtual void Quit() = 0;
 
             /**
+             * @return Gets the bot user.
+             */
+            virtual User GetBotUser() = 0;
+
+            /**
              * @param Token: Your Discord bot token. Which you have created <a href="https://discordapp.com/developers/applications">here</a>.
              * 
              * @return Returns a new DiscordClient object.
@@ -210,7 +224,7 @@ namespace DiscordBot
             virtual ~IDiscordClient() {}
 
         protected:
-            std::unique_ptr<IController> m_Controller;
+            Controller m_Controller;
     };
 } // namespace DiscordBot
 

@@ -56,16 +56,6 @@ namespace DiscordBot
         public:
             IController() = default;
 
-            template<class T, class ...Args, typename std::enable_if<std::is_base_of<ICommand, T>::value>::type* = nullptr>
-            void RegisterCommand(SCommandDescription Desc, Args ...args)
-            {
-                m_CommandDescs[Desc.Cmd] = Desc;
-                auto Tuple = std::make_tuple(args...);
-
-                CommandExecuter tmp = CommandExecuter(new SCommandExecuter<T, decltype(Tuple)>(Tuple));
-                m_Commands[Desc.Cmd] = tmp;
-            }
-
             /**
              * @brief Called if the handshake with discord is finished.
              */
@@ -74,12 +64,15 @@ namespace DiscordBot
             /** 
              * @brief Called if the voice state of a guild member updates. Eg. move, connect, disconnect.
              * 
+             * @param guild: Guild wich contains the member
              * @param Member: Member which voice states has been updated.
              */
-            virtual void OnVoiceStateUpdate(GuildMember Member) {}
+            virtual void OnVoiceStateUpdate(Guild guild, GuildMember Member) {}
 
             /**
              * @brief Called if a new message was sended. Process the message and call associated commands.
+             * 
+             * @note Integrated help command "Prefix h" or "Prefix help".
              * 
              * @param msg: Message object. See @see ::CMessage for more informations.
              */
@@ -112,6 +105,16 @@ namespace DiscordBot
             virtual ~IController() = default;
 
         protected:
+            template<class T, class ...Args, typename std::enable_if<std::is_base_of<ICommand, T>::value>::type* = nullptr>
+            void RegisterCommand(SCommandDescription Desc, Args ...args)
+            {
+                m_CommandDescs[Desc.Cmd] = Desc;
+                auto Tuple = std::make_tuple(args...);
+
+                CommandExecuter tmp = CommandExecuter(new SCommandExecuter<T, decltype(Tuple)>(Tuple));
+                m_Commands[Desc.Cmd] = tmp;
+            }
+
             /**
              * @brief Called if a new message was sended.
              * 
@@ -171,6 +174,8 @@ namespace DiscordBot
             std::map<std::string, CommandExecuter> m_Commands;
             std::map<std::string, SCommandDescription> m_CommandDescs;
     };
+
+    using Controller = std::shared_ptr<IController>;
 } // namespace DiscordBot
 
 

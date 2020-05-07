@@ -30,11 +30,15 @@
 #include <ixwebsocket/IXWebSocket.h>
 #include <ixwebsocket/IXNetSystem.h>
 #include <ixwebsocket/IXUdpSocket.h>
+#include <atomic>
 
 namespace DiscordBot
 {    
     using OnStopSpeaking = std::function<void(const std::string&)>;
 
+    /**
+     * @brief Manages all voice events. Also encode and encrypts audio. 
+     */
     class CVoiceSocket
     {
         public:
@@ -55,20 +59,59 @@ namespace DiscordBot
                 CLIENT_DISCONNECT       = 13        //server            A client has disconnected from the voice channel
             };
 
+            /**
+             * @param json: JSON from VOICE_SERVER_UPDATE event,
+             * @param SessionID: Session ID of the bot voice state.
+             * @param ClientID: Bot client ID.
+             */
             CVoiceSocket(CJSON &json, const std::string &SessionID, const std::string &ClientID);
 
+            /**
+             * @brief Sets the callback which is called if the audio source finished.
+             */
             void SetOnSpeakFinish(OnStopSpeaking call)
             {
                 m_Callback = call;
             }
 
+            /**
+             * @brief Starts a new audio stream. Stops the old one.
+             * 
+             * @param Source: Audiosource which is send to discord.
+             */
             void StartSpeaking(AudioSource Source);
+
+            /**
+             * @brief Pause the sending of audio.
+             */
             void PauseSpeaking();
+
+            /**
+             * @brief Resumes the sending of audio.
+             */
             void ResumeSpeaking();
+
+            /**
+             * @brief Stops the sending of audio. Raise a OnSpeakFinish event.
+             */
             void StopSpeaking();
+
+            /**
+             * @return Gets the current playing audio source or null.
+             */
+            AudioSource GetAudioSource()
+            {
+                return m_Source;
+            }
 
             ~CVoiceSocket();
         private:
+            static const int FREQUENCY = 48000;     //!< Supported sample rate of Discord.
+            static const int CHANNEL = 2;           //!< Supported channel count of Discord.
+            static const int MILLISECONDS = 20;     //!< Time of samples wich will be send.
+            static const int RTPHEADERSIZE = 12;    //!< Size of the rtp header.
+            static const int NONCESIZE = RTPHEADERSIZE * 2; //!< Size of the key salt.
+
             OnStopSpeaking m_Callback;
 
             std::string m_Token;
@@ -77,16 +120,16 @@ namespace DiscordBot
             ix::WebSocket m_Socket;
             ix::UdpSocket m_UDPSocket;
             std::thread m_Heartbeat;
-            volatile bool m_Terminate;
-            volatile bool m_HeartACKReceived;
+            std::atomic<bool> m_Terminate;
+            std::atomic<bool> m_HeartACKReceived;
             uint32_t m_HeartbeatInterval;
-            volatile uint32_t m_LastSeqNum;
+            std::atomic<uint32_t> m_LastSeqNum;
             std::string m_SessionID;
 
             AudioSource m_Source;
-            volatile bool m_Stop;
-            volatile bool m_Pause;
-            volatile bool m_Reconnect;
+            std::atomic<bool> m_Stop;
+            std::atomic<bool> m_Pause;
+            std::atomic<bool> m_Reconnect;
             std::thread m_Playback;
 
             std::vector<uint8_t> m_SecKey;
@@ -99,7 +142,7 @@ namespace DiscordBot
             void SendOP(OPCodes OP, const std::string &D);
 
             /**
-             * @brief Receives all websocket events from discord. This is the heart of the bot.
+             * @brief Receives all websocket events from discord. This is the heart of the voice.
              */
             void OnWebsocketEvent(const ix::WebSocketMessagePtr& msg);
 
@@ -108,8 +151,14 @@ namespace DiscordBot
              */
             void Heartbeat();
 
+            /**
+             * @brief Encode, encrypt and send audio data.
+             */
             void Playback();
 
+            /**
+             * @brief Informates Discord that the bot begins to speak or is finish with speaking.
+             */
             void SetSpeaking(bool Speak);
     };
 

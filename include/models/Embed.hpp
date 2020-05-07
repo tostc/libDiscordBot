@@ -33,6 +33,12 @@ namespace DiscordBot
     {
         public:
             CEmbed(/* args */) {}
+
+            std::string Title;
+            std::string Description;
+            std::string Type;
+            std::string URL;
+
             ~CEmbed() {}
         private:
         /* data */

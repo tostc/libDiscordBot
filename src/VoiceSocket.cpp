@@ -49,7 +49,9 @@ namespace DiscordBot
     }
 
     /**
-     * @brief Connects to the gateway.
+     * @param json: JSON from VOICE_SERVER_UPDATE event,
+     * @param SessionID: Session ID of the bot voice state.
+     * @param ClientID: Bot client ID.
      */
     CVoiceSocket::CVoiceSocket(CJSON &json, const std::string &SessionID, const std::string &ClientID) : m_Terminate(false), m_HeartACKReceived(false), m_LastSeqNum(-1), m_Stop(true), m_Reconnect(false)
     {
@@ -67,14 +69,24 @@ namespace DiscordBot
         m_Socket.start();
     }
 
+    /**
+     * @brief Starts a new audio stream. Stops the old one.
+     * 
+     * @param Source: Audiosource which is send to discord.
+     */
     void CVoiceSocket::StartSpeaking(AudioSource Source)
     {
+        /*
+            Assign the audio source only, if the connection is not etablished. 
+            This function will called again in the SESSION_DESCIPTION event.
+        */
         if(m_SecKey.empty())
         {
             m_Source = Source;
             return;
         }
 
+        //Stops the old audio source.
         if(!m_Stop)
             StopSpeaking();
 
@@ -83,23 +95,33 @@ namespace DiscordBot
 
         m_Source = Source;
 
+        //We must first begin speaking before we can send audio.
         SetSpeaking(true);
         std::this_thread::sleep_for(std::chrono::milliseconds(100));
         m_Playback = std::thread(&CVoiceSocket::Playback, this);
     }
 
+    /**
+     * @brief Pause the sending of audio.
+     */
     void CVoiceSocket::PauseSpeaking()
     {
         m_Pause = true;
-        SetSpeaking(true);
+        SetSpeaking(false);
     }
 
+    /**
+     * @brief Resumes the sending of audio.
+     */
     void CVoiceSocket::ResumeSpeaking()
     {
         SetSpeaking(true);
         m_Pause = false;
     }
 
+    /**
+     * @brief Stops the sending of audio. Raise a OnSpeakFinish event.
+     */
     void CVoiceSocket::StopSpeaking()
     {
         m_Stop = true;
@@ -107,15 +129,22 @@ namespace DiscordBot
             m_Playback.join();
 
         SetSpeaking(false);
+
+        if(m_Source)
+            m_Callback(m_GuildID);
+
         m_Source = nullptr;
     }
 
+    /**
+     * @brief Informates Discord that the bot begins to speak or is finish with speaking.
+     */
     void CVoiceSocket::SetSpeaking(bool Speak)
     {
         CJSON json;
 
         if(Speak)
-            json.AddPair("speaking", 5);
+            json.AddPair("speaking", 5);    //Speaks with microphone and has priority. See https://discord.com/developers/docs/topics/voice-connections#speaking
         else
             json.AddPair("speaking", 0);
 
@@ -125,18 +154,11 @@ namespace DiscordBot
         SendOP(OPCodes::SPEAKING, json.Serialize());
     }
 
+    /**
+     * @brief Encode, encrypt and send audio data.
+     */
     void CVoiceSocket::Playback()
     {
-        if (sodium_init() < 0) 
-        {
-            llog << lerror << "Error to init libsodium" << lendl;
-            return;
-        }
-
-        const int FREQUENCY = 48000;
-        const int CHANNEL = 2;
-        const int MILLISECONDS = 20;
-
         int err;
         OpusEncoder *Encoder = opus_encoder_create(FREQUENCY, CHANNEL, OPUS_APPLICATION_VOIP, &err);
         if(err)
@@ -145,21 +167,22 @@ namespace DiscordBot
             return;
         }
 
+        //Reserve buffer size for 20 ms.
         size_t Size = FREQUENCY * CHANNEL * MILLISECONDS / 1000;   //20 Milliseconds.
         uint16_t *Buf = new uint16_t[Size];
         uint8_t *OpusBuf = new uint8_t[Size];
 
-        srand(time(nullptr));
-        uint16_t Seq = 0;//rand() % 1024;
-        const int RTPHeaderSize = 12;
-        const int NonceSize = RTPHeaderSize * 2;
+        //RTP Header informations.
+        uint16_t Seq = 0;
         int Timestamp = 0;
 
-        int64_t LastSendTime = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
-        float LastSpeachTime = MILLISECONDS;
+        //Needed for the calculation of the send timeout.
+        int64_t LastSendTime = GetTimeMillis();
+        float LastSpeechTime = MILLISECONDS;
 
         while (!m_Stop)
         {
+            //Pause the audio.
             if(m_Pause)
             {
                 std::this_thread::sleep_for(std::chrono::milliseconds(100));
@@ -172,9 +195,11 @@ namespace DiscordBot
             {
                 ++Seq;
 
-                std::string Data(RTPHeaderSize + OpusSize + crypto_secretbox_MACBYTES, '\0');
+                std::string Data(RTPHEADERSIZE + OpusSize + crypto_secretbox_MACBYTES, '\0');
                 Data[0] = 0x80;
                 Data[1] = 0x78;
+
+                /*-------------------RTP HEADER-------------------*/
 
                 uint16_t SeqBig = Seq;
                 int TimestampBig = Timestamp;
@@ -187,6 +212,7 @@ namespace DiscordBot
                     SSRCBig = ChangeEndianess(SSRCBig);
                 }
                     
+                //Copies the data to the buffer.
                 char *BigC = (char *)&SeqBig;
                 for (char i = 0; i < sizeof(uint16_t); i++)
                     Data[i + 2] = BigC[i];
@@ -199,35 +225,43 @@ namespace DiscordBot
                 for (char i = 0; i < sizeof(int); i++)
                     Data[i + 8] = BigC[i];
 
-                char Nonce[NonceSize];
-                memcpy(Nonce, &Data[0], RTPHeaderSize);
-                memset(Nonce + RTPHeaderSize, 0, RTPHeaderSize);
+                /*-------------------RTP HEADER-------------------*/
+
+                char Nonce[NONCESIZE];
+                memcpy(Nonce, &Data[0], RTPHEADERSIZE);
+                memset(Nonce + RTPHEADERSIZE, 0, RTPHEADERSIZE);
 
                 Timestamp += Ret;
 
-                crypto_secretbox_easy((uint8_t*)Data.data() + RTPHeaderSize, OpusBuf, OpusSize, (uint8_t*)Nonce, m_SecKey.data());
+                //Encrypts the audio.
+                crypto_secretbox_easy((uint8_t*)Data.data() + RTPHEADERSIZE, OpusBuf, OpusSize, (uint8_t*)Nonce, m_SecKey.data());
+
+                //Sends the audio data.
+                ssize_t Sended = 0;
+                while (Sended < Data.size())
+                {
+                    // llog << linfo << "Sended: " << Sended << lendl;
+                    ssize_t Ret = m_UDPSocket.sendto(Data.substr(Sended));
+                    if(Ret == -1)
+                        break;
+
+                    Sended += Ret;
+                }
                 
-                // if(Wait > 0 && Wait <= LastSpeachTime)
-                //     std::this_thread::sleep_for(std::chrono::milliseconds(Wait));
+                /*-------------------TIMEOUT-------------------*/
+                
+                LastSpeechTime = (float)(Ret * 2) / (FREQUENCY * CHANNEL) * 1000.f;
 
-                m_UDPSocket.sendto(Data);
-
-                LastSpeachTime = (float)(Ret * 2) / (FREQUENCY * CHANNEL) * 1000.f;
-
-                // //Speach time.
-                int64_t now = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
+                int64_t now = GetTimeMillis();
                 int64_t TimeDiff = (now - LastSendTime);
-                int Wait = LastSpeachTime - TimeDiff;
+                int Wait = LastSpeechTime - TimeDiff;
 
-                Wait = std::min(Wait, (int)LastSpeachTime);
-
-                // llog << linfo << "Wait: " << (float)Wait << " TimeDiff: " << (float)TimeDiff << " LastSpeachTime: " << LastSpeachTime << lendl;
-
+                Wait = std::min(Wait, (int)LastSpeechTime);
                 std::this_thread::sleep_for(std::chrono::milliseconds(Wait));
 
-                LastSendTime = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count(); //std::chrono:://clock();
-                
-                // std::this_thread::sleep_for(std::chrono::milliseconds((int)LastSpeachTime));
+                /*-------------------TIMEOUT-------------------*/
+
+                LastSendTime = GetTimeMillis(); 
             }
             else
             {
@@ -272,6 +306,9 @@ namespace DiscordBot
         }
     }
 
+    /**
+     * @brief Receives all websocket events from discord. This is the heart of the voice.
+     */
     void CVoiceSocket::OnWebsocketEvent(const ix::WebSocketMessagePtr& msg)
     {
         switch (msg->type)
@@ -337,11 +374,11 @@ namespace DiscordBot
                                 if(IsLittleEndian())
                                     SSRCBig = ChangeEndianess(SSRCBig);
 
-
                                 char *SSRC = (char *)&SSRCBig;
                                 for (char i = 0; i < sizeof(int); i++)
                                     Packet[i + 4] = SSRC[i];
 
+                                //Request IP discovery.
                                 m_UDPSocket.sendto(std::string((char*)Packet, sizeof(Packet)));  
                                 std::thread([this]() mutable
                                 {
@@ -349,7 +386,7 @@ namespace DiscordBot
 
                                     while (true)
                                     {
-                                        ssize_t Ret = m_UDPSocket.recvfrom(&Data[0], Data.size());
+                                        ssize_t Ret = m_UDPSocket.recvfrom((char*)&Data[0], Data.size());
                                         if(Ret > 0)
                                         {
                                             std::string IP; 
@@ -450,6 +487,11 @@ namespace DiscordBot
         }
     }
 
+    int64_t GetTimeMillis()
+    {
+        return std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
+    }
+
     /**
      * @brief Sends a heartbeat.
      */
@@ -470,12 +512,21 @@ namespace DiscordBot
             SendOP(OPCodes::HEARTBEAT, "5");
             m_HeartACKReceived = false;
 
-            std::this_thread::sleep_for(std::chrono::milliseconds(m_HeartbeatInterval));
+            //Terminateable timeout.
+            int64_t Beg = GetTimeMillis();
+            while (((GetTimeMillis() - Beg) < m_HeartbeatInterval) && !m_Terminate)
+                std::this_thread::sleep_for(std::chrono::milliseconds(1));
         }
     }
 
     CVoiceSocket::~CVoiceSocket()
     {
+        StopSpeaking();
+        m_Terminate = true;
+        if(m_Heartbeat.joinable())
+            m_Heartbeat.join();
 
+        m_UDPSocket.close();
+        m_Socket.close();
     }
 } // namespace DiscordBot
