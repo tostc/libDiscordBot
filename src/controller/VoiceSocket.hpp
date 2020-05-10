@@ -111,6 +111,7 @@ namespace DiscordBot
             static const int MILLISECONDS = 20;     //!< Time of samples wich will be send.
             static const int RTPHEADERSIZE = 12;    //!< Size of the rtp header.
             static const int NONCESIZE = RTPHEADERSIZE * 2; //!< Size of the key salt.
+            static const int PACKET_CACHE = 1000 / MILLISECONDS;    //!< Cache Packets for 1 second.
 
             OnStopSpeaking m_Callback;
 

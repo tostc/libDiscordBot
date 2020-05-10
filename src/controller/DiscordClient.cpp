@@ -26,6 +26,7 @@
 #include <ixwebsocket/IXHttpClient.h>
 #include <iostream>
 #include <sodium.h>
+#include "Helper.hpp"
 
 #define CLOG_IMPLEMENTATION
 #include <Log.hpp>
@@ -39,27 +40,38 @@ namespace DiscordBot
      */
     DiscordClient IDiscordClient::Create(const std::string &Token)
     {
+        //Needed for windows.
+        ix::initNetSystem();
+
+        //Initialize libsodium.
+        if (sodium_init() < 0) 
+            llog << lerror << "Error to init libsodium" << lendl;
+
         return DiscordClient(new CDiscordClient(Token));
     }
 
-    /**
-     * @brief Const adler32 implementation to use strings in switch cases.
-     */
-    const static int BASE = 65521;
-    constexpr size_t Adler32(const char *Data)
+    CDiscordClient::CDiscordClient(const std::string &Token) : m_Token(Token), m_Terminate(false), m_HeartACKReceived(false), m_Quit(false), m_LastSeqNum(-1) 
     {
-        size_t S1 = 1 & 0xFFFF;
-        size_t S2 = (1 >> 16) & 0xFFFF;
+        m_EVManger.SubscribeMessage(QUEUE_NEXT_SONG, std::bind(&CDiscordClient::OnMessageReceive, this, std::placeholders::_1));   
+    }
 
-        const char *Beg = Data;
-        while (*Beg)
-        {
-            S1 = (S1 + *Beg) % BASE;
-            S2 = (S2 + S1) % BASE;
-            Beg++;
-        }
+    /**
+     * @brief Joins or leaves a voice channel.
+     */
+    void CDiscordClient::ChangeVoiceState(const std::string &Guild, const std::string &Channel)
+    {
+        CJSON json;
+        json.AddPair("guild_id", Guild);
 
-        return (S2 << 16) + S1;
+        if(!Channel.empty())
+            json.AddPair("channel_id", Channel);
+        else
+            json.AddPair("channel_id", nullptr);
+
+        json.AddPair("self_mute", false);
+        json.AddPair("self_deaf", false);
+
+        SendOP(OPCodes::VOICE_STATE_UPDATE, json.Serialize());
     }
 
     /**
@@ -72,13 +84,7 @@ namespace DiscordBot
         if (!channel || channel->GuildID.empty() || channel->ID.empty())
             return;
 
-        CJSON json;
-        json.AddPair("guild_id", channel->GuildID);
-        json.AddPair("channel_id", channel->ID);
-        json.AddPair("self_mute", false);
-        json.AddPair("self_deaf", false);
-
-        SendOP(OPCodes::VOICE_STATE_UPDATE, json.Serialize());
+        ChangeVoiceState(channel->GuildID, channel->ID);
     }
 
     /**
@@ -91,13 +97,7 @@ namespace DiscordBot
         if (!guild)
             return;
 
-        CJSON json;
-        json.AddPair("guild_id", guild->ID);
-        json.AddPair("channel_id", nullptr);
-        json.AddPair("self_mute", false);
-        json.AddPair("self_deaf", false);
-
-        SendOP(OPCodes::VOICE_STATE_UPDATE, json.Serialize());
+        ChangeVoiceState(guild->ID);
     }
 
     /**
@@ -107,7 +107,7 @@ namespace DiscordBot
      * @param Text: Text to send;
      * @param TTS: True to enable tts.
      */
-    void CDiscordClient::SendMessage(Channel channel, const std::string Text, Embed embed = nullptr, bool TTS)
+    void CDiscordClient::SendMessage(Channel channel, const std::string Text, Embed embed, bool TTS)
     {
         if(channel->Type != ChannelTypes::GUILD_TEXT)
             return;
@@ -132,7 +132,10 @@ namespace DiscordBot
             if(!embed->URL.empty())
                 jembed.AddPair("url", embed->URL);
 
-            json.AddPair("embed", jembed.Serialize());
+            if(!embed->Type.empty())
+                jembed.AddPair("type", embed->Type);
+
+            json.AddJSON("embed", jembed.Serialize());
         }
 
         auto res = http.post(std::string(BASE_URL) + "/channels/" + channel->ID + "/messages", json.Serialize(), args);
@@ -148,6 +151,7 @@ namespace DiscordBot
         if(!guild)
             return AudioSource();
 
+        std::lock_guard<std::mutex> lock(m_VoiceSocketsLock);
         VoiceSockets::iterator IT = m_VoiceSockets.find(guild->ID);
         if (IT != m_VoiceSockets.end())
             return IT->second->GetAudioSource();
@@ -156,20 +160,34 @@ namespace DiscordBot
     }   
 
     /**
+     * @return Returns the music queue for the given guild. Null if there is no music queue available.
+     */
+    MusicQueue CDiscordClient::GetMusicQueue(Guild guild)
+    {
+        if(!guild)
+            return MusicQueue();
+
+        std::lock_guard<std::mutex> lock(m_MusicQueueLock);
+        auto IT = m_MusicQueues.find(guild->ID);
+        if (IT != m_MusicQueues.end())
+            return IT->second;
+
+        return MusicQueue();
+    }
+
+    /**
+     * @return Returns true if a audio source is playing in the given guild.
+     */
+    bool CDiscordClient::IsPlaying(Guild guild)
+    {
+        return GetAudioSource(guild) != nullptr;
+    }
+
+    /**
      * @brief Runs the bot. The call returns if you calls @see Quit().
      */
     void CDiscordClient::Run()
     {
-        //Needed for windows.
-        ix::initNetSystem();
-
-        //Initialize libsodium.
-        if (sodium_init() < 0) 
-        {
-            llog << lerror << "Error to init libsodium" << lendl;
-            return;
-        }
-
         ix::HttpClient http;
         ix::HttpRequestArgsPtr args = ix::HttpRequestArgsPtr(new ix::HttpRequestArgs());
 
@@ -209,12 +227,18 @@ namespace DiscordBot
      */
     void CDiscordClient::Quit()
     {
-        m_Terminate = true;
+        auto IT = m_Guilds.begin();
+        while (IT != m_Guilds.end())
+        {
+            Leave(IT->second);
+            IT++;
+        }
 
+        m_Terminate = true;
         if (m_Heartbeat.joinable())
             m_Heartbeat.join();
 
-        m_Socket.close();
+        m_Socket.stop();
         
         if (m_Controller)
         {
@@ -223,7 +247,65 @@ namespace DiscordBot
             m_Controller = nullptr;
         }
 
+        m_Guilds.clear();
+        m_VoiceSockets.clear();
+        m_AudioSources.clear();
+        m_Users.clear();
+        m_MusicQueues.clear();
         m_Quit = true;
+    }
+
+    /**
+     * @brief Adds a song to the music queue.
+     * 
+     * @param guild: The guild which is associated with the queue.
+     * @param Info: Song informations.
+     */
+    void CDiscordClient::AddToQueue(Guild guild, SongInfo Info)
+    {
+        if(!guild)
+            return;
+
+        std::lock_guard<std::mutex> lock(m_MusicQueueLock);
+
+        auto IT = m_MusicQueues.find(guild->ID);
+        if(IT != m_MusicQueues.end())
+            IT->second->AddSong(Info);
+        else if(m_QueueFactory)
+        {
+            auto Tmp = m_QueueFactory->Create();
+            Tmp->SetGuildID(guild->ID);
+            Tmp->SetOnWaitFinishCallback(std::bind(&CDiscordClient::OnQueueWaitFinish, this, std::placeholders::_1, std::placeholders::_2));
+            Tmp->AddSong(Info);
+            m_MusicQueues[guild->ID] = Tmp;
+        }
+    }
+
+    /**
+     * @brief Connects to the given channel and uses the queue to speak.
+     * 
+     * @param channel: The voice channel to connect to.
+     * 
+     * @return Returns true if the connection succeeded.
+     */
+    bool CDiscordClient::StartSpeaking(Channel channel)
+    {
+        if (!channel || channel->GuildID.empty())
+            return false;
+
+        AudioSource Source;
+
+        std::lock_guard<std::mutex> lock(m_MusicQueueLock);
+        auto IT = m_MusicQueues.find(channel->GuildID);
+        if(IT != m_MusicQueues.end())
+        {
+            if(IT->second->HasNext())
+                Source = IT->second->Next();
+            else
+                IT->second->ClearQueue();
+        }
+
+        return StartSpeaking(channel, Source);
     }
 
     /**
@@ -239,20 +321,19 @@ namespace DiscordBot
         if (!channel || channel->GuildID.empty())
             return false;
 
+        std::lock_guard<std::mutex> lock(m_VoiceSocketsLock);
         VoiceSockets::iterator IT = m_VoiceSockets.find(channel->GuildID);
-        if (IT != m_VoiceSockets.end())
-        {
+        if (IT != m_VoiceSockets.end() && source)
             IT->second->StartSpeaking(source);
-            return true;
-        }
-        else
+        else if(source)
         {
             Join(channel);
+
+            std::lock_guard<std::mutex> lock(m_AudioSourcesLock);
             m_AudioSources[channel->GuildID] = source;
-            return true;
         }
 
-        return false;
+        return true;
     }
 
     /**
@@ -265,6 +346,7 @@ namespace DiscordBot
         if(!guild)
             return;
 
+        std::lock_guard<std::mutex> lock(m_VoiceSocketsLock);
         VoiceSockets::iterator IT = m_VoiceSockets.find(guild->ID);
         if (IT != m_VoiceSockets.end())
             IT->second->PauseSpeaking();
@@ -280,6 +362,7 @@ namespace DiscordBot
         if(!guild)
             return;
 
+        std::lock_guard<std::mutex> lock(m_VoiceSocketsLock);
         VoiceSockets::iterator IT = m_VoiceSockets.find(guild->ID);
         if (IT != m_VoiceSockets.end())
             IT->second->ResumeSpeaking();
@@ -295,9 +378,41 @@ namespace DiscordBot
         if(!guild)
             return;
 
+        std::lock_guard<std::mutex> lock(m_VoiceSocketsLock);
         VoiceSockets::iterator IT = m_VoiceSockets.find(guild->ID);
         if (IT != m_VoiceSockets.end())
             IT->second->StopSpeaking();
+    }
+
+    void CDiscordClient::OnMessageReceive(MessageBase Msg)
+    {
+        switch (Msg->Event)
+        {
+            case QUEUE_NEXT_SONG:
+            {
+                auto Data = std::static_pointer_cast<TMessage<std::string>>(Msg);
+
+                AudioSource Source;
+
+                std::lock_guard<std::mutex> lock(m_MusicQueueLock);
+                auto MQIT = m_MusicQueues.find(Data->Value);
+                if(MQIT != m_MusicQueues.end())
+                {
+                    if(MQIT->second->HasNext())
+                        Source = MQIT->second->Next();
+                    else
+                        MQIT->second->ClearQueue();
+                }
+
+                if(Source)
+                {
+                    std::lock_guard<std::mutex> lock(m_VoiceSocketsLock);
+                    auto IT = m_VoiceSockets.find(Data->Value);
+                    if(IT != m_VoiceSockets.end())
+                        IT->second->StartSpeaking(Source);
+                }
+            }break;
+        }
     }
 
     /**
@@ -408,7 +523,11 @@ namespace DiscordBot
                             {
                                 json.ParseObject(Pay.D);
 
+                                std::lock_guard<std::mutex> lock(m_MusicQueueLock);
+                                std::lock_guard<std::mutex> lock1(m_VoiceSocketsLock);
+
                                 m_VoiceSockets.erase(json.GetValue<std::string>("id"));
+                                m_MusicQueues.erase(json.GetValue<std::string>("id"));
                                 m_Guilds.erase(json.GetValue<std::string>("id"));
 
                                 llog << linfo << "GUILD_DELETE" << lendl;
@@ -424,7 +543,13 @@ namespace DiscordBot
                                     if(Tmp->UserRef)
                                     {
                                         if(Tmp->UserRef->ID == m_BotUser->ID && !Tmp->ChannelRef)
+                                        {
+                                            std::lock_guard<std::mutex> lock(m_MusicQueueLock);
+                                            std::lock_guard<std::mutex> lock1(m_VoiceSocketsLock);
+
                                             m_VoiceSockets.erase(Tmp->GuildRef->ID);
+                                            m_MusicQueues.erase(Tmp->GuildRef->ID);
+                                        }
 
                                         auto IT = Tmp->GuildRef->Members.find(Tmp->UserRef->ID);
                                         if(IT != Tmp->GuildRef->Members.end())
@@ -442,10 +567,26 @@ namespace DiscordBot
                                     auto UIT = GIT->second->Members.find(m_BotUser->ID);
                                     if (UIT != GIT->second->Members.end())
                                     {
+                                        std::lock_guard<std::mutex> lock(m_VoiceSocketsLock);
                                         VoiceSocket Socket = VoiceSocket(new CVoiceSocket(json, UIT->second->State->SessionID, m_BotUser->ID));
                                         Socket->SetOnSpeakFinish(std::bind(&CDiscordClient::OnSpeakFinish, this, std::placeholders::_1));
                                         m_VoiceSockets[GIT->second->ID] = Socket;
 
+                                        //Creates a music queue for the server.
+                                        if(m_QueueFactory)
+                                        {
+                                            std::lock_guard<std::mutex> lock(m_MusicQueueLock);
+                                            if(m_MusicQueues.find(GIT->second->ID) == m_MusicQueues.end())
+                                            {
+                                                MusicQueue MQ = m_QueueFactory->Create();
+                                                MQ->SetGuildID(GIT->second->ID);
+                                                MQ->SetOnWaitFinishCallback(std::bind(&CDiscordClient::OnQueueWaitFinish, this, std::placeholders::_1, std::placeholders::_2));
+                                                m_MusicQueues[GIT->second->ID] = MQ;
+                                            }
+                                        }
+
+                                        //Plays the queued audiosource.
+                                        std::lock_guard<std::mutex> lock1(m_AudioSourcesLock);
                                         AudioSources::iterator IT = m_AudioSources.find(GIT->second->ID);
                                         if (IT != m_AudioSources.end())
                                         {
@@ -531,10 +672,12 @@ namespace DiscordBot
             //Start a reconnect.
             if (!m_HeartACKReceived)
             {
-                m_Socket.close();
+                m_Socket.stop();
 
                 m_Users.clear();
                 m_Guilds.clear();
+
+                std::lock_guard<std::mutex> lock(m_VoiceSocketsLock);
                 m_VoiceSockets.clear();
 
                 if (m_Controller)
@@ -548,7 +691,12 @@ namespace DiscordBot
             SendOP(OPCodes::HEARTBEAT, m_LastSeqNum != -1 ? std::to_string(m_LastSeqNum) : "");
             m_HeartACKReceived = false;
 
-            std::this_thread::sleep_for(std::chrono::milliseconds(m_HeartbeatInterval));
+            // Terminateable timeout.
+            int64_t Beg = GetTimeMillis();
+            while (((GetTimeMillis() - Beg) < m_HeartbeatInterval) && !m_Terminate)
+                std::this_thread::sleep_for(std::chrono::milliseconds(1));
+
+            // std::this_thread::sleep_for(std::chrono::milliseconds(m_HeartbeatInterval));
         }
     }
 
@@ -609,10 +757,26 @@ namespace DiscordBot
     {
         if(m_Controller)
         {
+            m_EVManger.PostMessage(QUEUE_NEXT_SONG, Guild);
+
             auto IT = m_Guilds.find(Guild);
             if(IT != m_Guilds.end())
                 m_Controller->OnEndSpeaking(IT->second);
         }
+    }
+
+    void CDiscordClient::OnQueueWaitFinish(const std::string &Guild, AudioSource Source)
+    {
+        if(!Source)
+        {
+            m_EVManger.PostMessage(QUEUE_NEXT_SONG, Guild);
+            return;
+        }
+
+        std::lock_guard<std::mutex> lock(m_VoiceSocketsLock);
+        VoiceSockets::iterator IT = m_VoiceSockets.find(Guild);
+        if(IT != m_VoiceSockets.end())
+            IT->second->StartSpeaking(Source);
     }
 
     User CDiscordClient::CreateUser(CJSON &json)

@@ -88,23 +88,31 @@ namespace DiscordBot
                         if(Pos != std::string::npos)
                         {
                             std::string Params = trim(msg->Content.substr(Pos));
-
-                            Pos = 0;
-                            size_t Beg = 0;
-                            while (true)                        
+                            if(IT->second.ParamDelimiter.empty())
+                                ctx->Params.push_back(Params);
+                            else
                             {
-                                Pos = Params.find(IT->second.ParamDelimiter, Pos);
-                                if(Pos == std::string::npos)
-                                    break;
+                                Pos = 0;
+                                size_t Beg = 0;
+                                while (true)                        
+                                {
+                                    Pos = Params.find(IT->second.ParamDelimiter, Pos);
+                                    ctx->Params.push_back(trim(Params.substr(Beg, Pos)));
 
-                                ctx->Params.push_back(trim(Params.substr(Beg, Pos)));
-                                Beg = Pos = Params.find_first_not_of(IT->second.ParamDelimiter, Pos + 1);
-                            }   
+                                    if(Pos == std::string::npos)
+                                        break;
+
+                                    Beg = Pos = Params.find_first_not_of(IT->second.ParamDelimiter, Pos + 1);
+                                }   
+                            }
                         }
 
-                        //Execute the command.
+                        //Executes the command.
                         if(ctx->Params.size() == IT->second.ParamCount || IT->second.ParamCount == -1)
-                            m_Commands[Cmd]->Execute(ctx);
+                        {
+                            auto Command = m_Commands[Cmd]->Create();
+                            Command->OnExecute(ctx);
+                        }
                     }
                 }
             }

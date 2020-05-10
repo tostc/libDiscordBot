@@ -15,10 +15,12 @@ ADD_LIBRARY(ixwebsocket STATIC IMPORTED)
 SET_TARGET_PROPERTIES(ixwebsocket PROPERTIES IMPORTED_LOCATION "${PROJECT_SOURCE_DIR}/externals/IXWebSocket/lib/libixwebsocket.a")
 
 set(SRCS
-    "${PROJECT_SOURCE_DIR}/src/DiscordClient.cpp"
-    "${PROJECT_SOURCE_DIR}/src/VoiceSocket.cpp"
+    "${PROJECT_SOURCE_DIR}/src/controller/DiscordClient.cpp"
+    "${PROJECT_SOURCE_DIR}/src/controller/VoiceSocket.cpp"
     "${PROJECT_SOURCE_DIR}/src/controller/ICommand.cpp"
-    "${PROJECT_SOURCE_DIR}/src/controller/IController.cpp")
+    "${PROJECT_SOURCE_DIR}/src/controller/IController.cpp"
+    "${PROJECT_SOURCE_DIR}/src/controller/IMusicQueue.cpp")
 
-add_executable(${PROJECT_NAME} main.cpp ${SRCS})
+add_library(${PROJECT_NAME} SHARED ${SRCS})
+# add_executable(${PROJECT_NAME} main.cpp ${SRCS})
 TARGET_LINK_LIBRARIES(${PROJECT_NAME} ixwebsocket sodium opus ${OPENSSL_CRYPTO_LIBRARIES} ${OPENSSL_SSL_LIBRARIES} ${OPENSSL_LIBRARIES} pthread z)

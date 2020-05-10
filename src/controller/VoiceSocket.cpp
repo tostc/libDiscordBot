@@ -23,30 +23,18 @@
  */
 
 #include "VoiceSocket.hpp"
-#include "Payload.hpp"
+#include "../model/Payload.hpp"
 #include <Log.hpp>
 #include <opus/opus.h>
 #include <sodium.h>
 #include <time.h>
 #include <stdlib.h>
+#include <queue>
+#include "Helper.hpp"
 
 namespace DiscordBot
 {
-    bool IsLittleEndian()
-    {
-        short t = 1;
-        return ((char*)&t)[0];
-    }
-
-    short ChangeEndianess(short Val)
-    {
-        return ((Val << 8) & 0xFF00) | ((Val >> 8) & 0xFF);
-    }
-
-    int ChangeEndianess(int Val)
-    {
-        return ((Val << 24) & 0xFF000000) | ((Val >> 24) & 0xFF) | ((Val << 8) & 0x00FF0000) | ((Val >> 8) & 0xFF00);
-    }
+    const int CVoiceSocket::MILLISECONDS;
 
     /**
      * @param json: JSON from VOICE_SERVER_UPDATE event,
@@ -180,6 +168,50 @@ namespace DiscordBot
         int64_t LastSendTime = GetTimeMillis();
         float LastSpeechTime = MILLISECONDS;
 
+        std::mutex DataQueueLock;
+        std::queue<std::string> DataQueue;
+        std::atomic<bool> Terminate(false);
+        bool EncodingFinish = false;
+
+        //Send logic.
+        auto SenderLambda = [this, &DataQueueLock, &DataQueue, &Terminate]() mutable
+        {
+            while (!Terminate)
+            {
+                int64_t Before = GetTimeMillis();
+                std::queue<std::string> Queue;
+                {
+                    std::lock_guard<std::mutex> lock(DataQueueLock);
+                    std::swap( DataQueue, Queue );
+                }
+
+                while(!Queue.empty())
+                {
+                    auto Data = Queue.front();
+                    Queue.pop();
+
+                    ssize_t Sended = 0;
+                    while (Sended < Data.size())
+                    {
+                        // llog << linfo << "Sended: " << Sended << lendl;
+                        ssize_t SendRet = m_UDPSocket.sendto(Data.substr(Sended));
+                        if(SendRet == -1)
+                            break;
+
+                        Sended += SendRet;
+                    }
+
+                    int64_t Wait = GetTimeMillis() - Before;
+                    Wait = Wait < 0 ? MILLISECONDS : Wait;
+                    Before += MILLISECONDS;
+
+                    std::this_thread::sleep_for(std::chrono::milliseconds(MILLISECONDS - Wait));
+                }
+            }
+        };
+
+        std::thread Sender;
+
         while (!m_Stop)
         {
             //Pause the audio.
@@ -189,90 +221,97 @@ namespace DiscordBot
                 continue;
             }
 
-            uint32_t Ret = m_Source->OnRead(Buf, Size / 2);
-            opus_int32 OpusSize = opus_encode(Encoder, (opus_int16*)Buf, Size / 2, OpusBuf, Size);
-            if(OpusSize > 0)
+            bool Wait = false;
+
             {
-                ++Seq;
-
-                std::string Data(RTPHEADERSIZE + OpusSize + crypto_secretbox_MACBYTES, '\0');
-                Data[0] = 0x80;
-                Data[1] = 0x78;
-
-                /*-------------------RTP HEADER-------------------*/
-
-                uint16_t SeqBig = Seq;
-                int TimestampBig = Timestamp;
-                int SSRCBig = m_SSRC;
-
-                if(IsLittleEndian())
-                {
-                    SeqBig = ChangeEndianess(SeqBig);
-                    TimestampBig = ChangeEndianess(TimestampBig);
-                    SSRCBig = ChangeEndianess(SSRCBig);
-                }
-                    
-                //Copies the data to the buffer.
-                char *BigC = (char *)&SeqBig;
-                for (char i = 0; i < sizeof(uint16_t); i++)
-                    Data[i + 2] = BigC[i];
-
-                BigC = (char *)&TimestampBig;
-                for (char i = 0; i < sizeof(int); i++)
-                    Data[i + 4] = BigC[i];
-
-                BigC = (char *)&SSRCBig;
-                for (char i = 0; i < sizeof(int); i++)
-                    Data[i + 8] = BigC[i];
-
-                /*-------------------RTP HEADER-------------------*/
-
-                char Nonce[NONCESIZE];
-                memcpy(Nonce, &Data[0], RTPHEADERSIZE);
-                memset(Nonce + RTPHEADERSIZE, 0, RTPHEADERSIZE);
-
-                Timestamp += Ret;
-
-                //Encrypts the audio.
-                crypto_secretbox_easy((uint8_t*)Data.data() + RTPHEADERSIZE, OpusBuf, OpusSize, (uint8_t*)Nonce, m_SecKey.data());
-
-                //Sends the audio data.
-                ssize_t Sended = 0;
-                while (Sended < Data.size())
-                {
-                    // llog << linfo << "Sended: " << Sended << lendl;
-                    ssize_t Ret = m_UDPSocket.sendto(Data.substr(Sended));
-                    if(Ret == -1)
-                        break;
-
-                    Sended += Ret;
-                }
-                
-                /*-------------------TIMEOUT-------------------*/
-                
-                LastSpeechTime = (float)(Ret * 2) / (FREQUENCY * CHANNEL) * 1000.f;
-
-                int64_t now = GetTimeMillis();
-                int64_t TimeDiff = (now - LastSendTime);
-                int Wait = LastSpeechTime - TimeDiff;
-
-                Wait = std::min(Wait, (int)LastSpeechTime);
-                std::this_thread::sleep_for(std::chrono::milliseconds(Wait));
-
-                /*-------------------TIMEOUT-------------------*/
-
-                LastSendTime = GetTimeMillis(); 
+                std::lock_guard<std::mutex> lock(DataQueueLock);
+                if(DataQueue.size() >= PACKET_CACHE)
+                    Wait = true;
             }
-            else
-            {
-                llog << lerror << "Error during encoding opus data." << lendl;
-                break;
-            }    
 
-            if(Ret < (Size / 2))
+            if(Wait)
             {
-                llog << linfo << "Finish playing." << lendl;
-                break;
+                if(!Sender.joinable())
+                    Sender = std::thread(SenderLambda);
+
+                std::this_thread::sleep_for(std::chrono::milliseconds(MILLISECONDS * 2));
+                continue;
+            }
+
+            if(!EncodingFinish)
+            {
+                uint32_t Ret = m_Source->OnRead(Buf, Size / 2);
+                opus_int32 OpusSize = opus_encode(Encoder, (opus_int16*)Buf, Size / 2, OpusBuf, Size);
+                if(OpusSize > 2)
+                {
+                    ++Seq;
+                    std::string Data(RTPHEADERSIZE + OpusSize + crypto_secretbox_MACBYTES, '\0');
+                    Data[0] = 0x80;
+                    Data[1] = 0x78;
+
+                    /*-------------------RTP HEADER-------------------*/
+
+                    uint16_t SeqBig = Seq;
+                    int TimestampBig = Timestamp;
+                    int SSRCBig = m_SSRC;
+
+                    if(IsLittleEndian())
+                    {
+                        SeqBig = ChangeEndianess(SeqBig);
+                        TimestampBig = ChangeEndianess(TimestampBig);
+                        SSRCBig = ChangeEndianess(SSRCBig);
+                    }
+                        
+                    //Copies the data to the buffer.
+                    char *BigC = (char *)&SeqBig;
+                    for (char i = 0; i < sizeof(uint16_t); i++)
+                        Data[i + 2] = BigC[i];
+
+                    BigC = (char *)&TimestampBig;
+                    for (char i = 0; i < sizeof(int); i++)
+                        Data[i + 4] = BigC[i];
+
+                    BigC = (char *)&SSRCBig;
+                    for (char i = 0; i < sizeof(int); i++)
+                        Data[i + 8] = BigC[i];
+
+                    /*-------------------RTP HEADER-------------------*/
+
+                    char Nonce[NONCESIZE];
+                    memcpy(Nonce, &Data[0], RTPHEADERSIZE);
+                    memset(Nonce + RTPHEADERSIZE, 0, RTPHEADERSIZE);
+
+                    Timestamp += Ret;
+
+                    //Encrypts the audio.
+                    crypto_secretbox_easy((uint8_t*)Data.data() + RTPHEADERSIZE, OpusBuf, OpusSize, (uint8_t*)Nonce, m_SecKey.data());
+
+                    {
+                        std::lock_guard<std::mutex> lock(DataQueueLock);
+                        DataQueue.push(Data);
+                    }
+                }
+                else if(OpusSize == -1)
+                {
+                    llog << lerror << "Error during encoding opus data." << lendl;
+                    break;
+                }  
+                else
+                    llog << linfo << "DTX" << lendl;
+
+                if(Ret < (Size / 2))
+                    EncodingFinish = true;  
+            }
+            else if(!Sender.joinable())
+                Sender = std::thread(SenderLambda);
+
+            {
+                std::lock_guard<std::mutex> lock(DataQueueLock);
+                if(DataQueue.empty())
+                {
+                    llog << linfo << "Finish playing. Seq: " << Seq << lendl;
+                    break;
+                }
             }
         }
 
@@ -281,6 +320,10 @@ namespace DiscordBot
 
         opus_encoder_destroy(Encoder);
         SetSpeaking(false);
+
+        Terminate = true;
+        if(Sender.joinable())
+            Sender.join();
 
         m_Callback(m_GuildID);
         m_Source = nullptr;
@@ -487,11 +530,6 @@ namespace DiscordBot
         }
     }
 
-    int64_t GetTimeMillis()
-    {
-        return std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
-    }
-
     /**
      * @brief Sends a heartbeat.
      */
@@ -503,7 +541,7 @@ namespace DiscordBot
             if(!m_HeartACKReceived)
             {
                 m_Reconnect = true;
-                m_Socket.close();
+                m_Socket.stop();
                 m_Socket.start();
                 m_Terminate = true;
                 break;
@@ -527,6 +565,6 @@ namespace DiscordBot
             m_Heartbeat.join();
 
         m_UDPSocket.close();
-        m_Socket.close();
+        m_Socket.stop();
     }
 } // namespace DiscordBot

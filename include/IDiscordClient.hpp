@@ -29,6 +29,8 @@
 #include <controller/IController.hpp>
 #include <controller/IAudioSource.hpp>
 #include <models/Embed.hpp>
+#include <controller/IMusicQueue.hpp>
+#include <controller/Factory.hpp>
 
 namespace DiscordBot
 {
@@ -126,10 +128,22 @@ namespace DiscordBot
              * @tparam ...Args: Arguments which are passed to the constructer of the controller. 
              */
             template<class T, class ...Args, typename std::enable_if<std::is_base_of<IController, T>::value>::type* = nullptr>
-            void RegisterController(Args&& ...args)
+            inline void RegisterController(Args&& ...args)
             {
-                m_Controller = new T(std::forward<Args...>(args)...);
+                m_Controller = Controller(new T(std::forward<Args...>(args)...));
                 m_Controller->Client = this;
+            }
+
+            /**
+             * @brief Registers a music queue template for this client. This queue type will created for each connected voice server and handles the audio.
+             * 
+             * @tparam ...Args: Arguments which are passed to the constructer of the music queue. 
+             */
+            template<class T, class ...Args, typename std::enable_if<std::is_base_of<IMusicQueue, T>::value>::type* = nullptr>
+            inline void RegisterMusicQueue(Args&& ...args)
+            {
+                auto Tuple = std::make_tuple(args...);
+                m_QueueFactory = Factory(new CFactory<IMusicQueue, T, decltype(Tuple)>(Tuple));
             }
 
             /**
@@ -139,6 +153,23 @@ namespace DiscordBot
             {
                 return m_Controller;
             }
+
+            /**
+             * @brief Adds a song to the music queue.
+             * 
+             * @param guild: The guild which is associated with the queue.
+             * @param Info: Song informations.
+             */
+            virtual void AddToQueue(Guild guild, SongInfo Info) = 0;
+
+            /**
+             * @brief Connects to the given channel and uses the queue to speak.
+             * 
+             * @param channel: The voice channel to connect to.
+             * 
+             * @return Returns true if the connection succeeded.
+             */
+            virtual bool StartSpeaking(Channel channel) = 0;
 
             /**
              * @brief Connects to the given channel and uses the source to speak.
@@ -200,6 +231,16 @@ namespace DiscordBot
             virtual AudioSource GetAudioSource(Guild guild) = 0;
 
             /**
+             * @return Returns the music queue for the given guild. Null if there is no music queue available.
+             */
+            virtual MusicQueue GetMusicQueue(Guild guild) = 0;
+
+            /**
+             * @return Returns true if a audio source is playing in the given guild.
+             */
+            virtual bool IsPlaying(Guild guild) = 0;
+
+            /**
              * @brief Runs the bot. The call returns if you calls @see Quit().
              */
             virtual void Run() = 0;
@@ -225,6 +266,9 @@ namespace DiscordBot
 
         protected:
             Controller m_Controller;
+
+            using Factory = std::shared_ptr<IFactory<IMusicQueue>>;
+            Factory m_QueueFactory;
     };
 } // namespace DiscordBot
 

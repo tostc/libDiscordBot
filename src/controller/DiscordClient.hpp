@@ -36,7 +36,8 @@
 #include <models/User.hpp>
 #include <models/Guild.hpp>
 #include <atomic>
-#include "Payload.hpp"
+#include "MessageManager.hpp"
+#include "../model/Payload.hpp"
 #include "VoiceSocket.hpp"
 
 namespace DiscordBot
@@ -130,7 +131,24 @@ namespace DiscordBot
                 }
             };
 
-            CDiscordClient(const std::string &Token) : m_Token(Token), m_Terminate(false), m_HeartACKReceived(false), m_Quit(false), m_LastSeqNum(-1) {}
+            CDiscordClient(const std::string &Token);
+
+            /**
+             * @brief Adds a song to the music queue.
+             * 
+             * @param guild: The guild which is associated with the queue.
+             * @param Info: Song informations.
+             */
+            void AddToQueue(Guild guild, SongInfo Info) override;
+
+            /**
+             * @brief Connects to the given channel and uses the queue to speak.
+             * 
+             * @param channel: The voice channel to connect to.
+             * 
+             * @return Returns true if the connection succeeded.
+             */
+            bool StartSpeaking(Channel channel) override;
 
             /**
              * @brief Connects to the given channel and uses the source to speak.
@@ -192,6 +210,16 @@ namespace DiscordBot
             AudioSource GetAudioSource(Guild guild) override;
 
             /**
+             * @return Returns the music queue for the given guild. Null if there is no music queue available.
+             */
+            MusicQueue GetMusicQueue(Guild guild) override;
+
+            /**
+             * @return Returns true if a audio source is playing in the given guild.
+             */
+            bool IsPlaying(Guild guild) override;
+
+            /**
              * @brief Runs the bot. The call returns if you calls @see Quit().
              */
             void Run() override;
@@ -211,11 +239,23 @@ namespace DiscordBot
 
             ~CDiscordClient() {}
         private:
+            enum
+            {
+                QUEUE_NEXT_SONG
+            };
+
             const char *BASE_URL = "https://discordapp.com/api";
             using Users = std::map<std::string, User>;
             using Guilds = std::map<std::string, Guild>;
             using VoiceSockets = std::map<std::string, VoiceSocket>;
             using AudioSources = std::map<std::string, AudioSource>;
+            using MusicQueues = std::map<std::string, MusicQueue>;
+
+            CMessageManager m_EVManger;
+
+            std::mutex m_MusicQueueLock;
+            std::mutex m_AudioSourcesLock;
+            std::mutex m_VoiceSocketsLock;
 
             std::string m_Token;
             std::shared_ptr<SGateway> m_Gateway;
@@ -239,6 +279,18 @@ namespace DiscordBot
             VoiceSockets m_VoiceSockets;
 
             AudioSources m_AudioSources;
+
+            MusicQueues m_MusicQueues;
+
+            /**
+             * @brief Joins or leaves a voice channel.
+             */
+            void ChangeVoiceState(const std::string &Guild, const std::string &Channel = "");
+
+            /**
+             * @brief Handles async. Messages.
+             */
+            void OnMessageReceive(MessageBase Msg);
 
             /**
              * @brief Receives all websocket events from discord. This is the heart of the bot.
@@ -269,6 +321,8 @@ namespace DiscordBot
              * @brief Called from voice socket if a audio source finished.
              */
             void OnSpeakFinish(const std::string &Guild);
+
+            void OnQueueWaitFinish(const std::string &Guild, AudioSource Source);
 
             User CreateUser(CJSON &json);
             GuildMember CreateMember(CJSON &json);

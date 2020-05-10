@@ -28,6 +28,7 @@
 #include <models/Message.hpp>
 #include <controller/ICommand.hpp>
 #include <tuple>
+#include <controller/Factory.hpp>
 
 namespace DiscordBot
 {
@@ -106,12 +107,13 @@ namespace DiscordBot
 
         protected:
             template<class T, class ...Args, typename std::enable_if<std::is_base_of<ICommand, T>::value>::type* = nullptr>
-            void RegisterCommand(SCommandDescription Desc, Args ...args)
+            inline void RegisterCommand(SCommandDescription Desc, Args ...args)
             {
                 m_CommandDescs[Desc.Cmd] = Desc;
                 auto Tuple = std::make_tuple(args...);
 
-                CommandExecuter tmp = CommandExecuter(new SCommandExecuter<T, decltype(Tuple)>(Tuple));
+                Factory tmp = Factory(new CFactory<ICommand, T, decltype(Tuple)>(Tuple));
+                // CommandExecuter tmp = CommandExecuter(new SCommandExecuter<T, decltype(Tuple)>(Tuple));
                 m_Commands[Desc.Cmd] = tmp;
             }
 
@@ -127,51 +129,51 @@ namespace DiscordBot
             std::string Prefix;     //!< Command prefix.
 
         private:
-            struct ICommandExecuter
-            {
-                public:
-                    virtual void Execute(CommandContext ctx) = 0;
-            };
+            // struct ICommandExecuter
+            // {
+            //     public:
+            //         virtual void Execute(CommandContext ctx) = 0;
+            // };
 
-            template<class T, class Tuple>
-            struct SCommandExecuter : public ICommandExecuter
-            {
-                public:
-                    SCommandExecuter(Tuple Params) : m_Params(Params) {}
+            // template<class T, class Tuple>
+            // struct SCommandExecuter : public ICommandExecuter
+            // {
+            //     public:
+            //         SCommandExecuter(Tuple Params) : m_Params(Params) {}
 
-                    void Execute(CommandContext ctx)
-                    {
-                        ImplExecute(typename gen<std::tuple_size<Tuple>::value>::Seq(), ctx);
-                    }
-                private:
-                    template <int...>
-                    struct seq
-                    {
-                    };
+            //         void Execute(CommandContext ctx)
+            //         {
+            //             ImplExecute(typename gen<std::tuple_size<Tuple>::value>::Seq(), ctx);
+            //         }
+            //     private:
+            //         template <int...>
+            //         struct seq
+            //         {
+            //         };
 
-                    template <int N, int... S>
-                    struct gen : public gen<N - 1, N - 1, S...>
-                    {
-                    };
+            //         template <int N, int... S>
+            //         struct gen : public gen<N - 1, N - 1, S...>
+            //         {
+            //         };
 
-                    template <int... S>
-                    struct gen<0, S...>
-                    {
-                        using Seq = seq<S...>;
-                    };
+            //         template <int... S>
+            //         struct gen<0, S...>
+            //         {
+            //             using Seq = seq<S...>;
+            //         };
 
-                    template <int... S>
-                    void ImplExecute(seq<S...>, CommandContext ctx)
-                    {
-                        T cmd(std::get<S>(m_Params)...);
-                        cmd.OnExecute(ctx);
-                    }
+            //         template <int... S>
+            //         void ImplExecute(seq<S...>, CommandContext ctx)
+            //         {
+            //             T cmd(std::get<S>(m_Params)...);
+            //             cmd.OnExecute(ctx);
+            //         }
 
-                    Tuple m_Params;
-            };
+            //         Tuple m_Params;
+            // };
 
-            using CommandExecuter = std::shared_ptr<ICommandExecuter>;
-            std::map<std::string, CommandExecuter> m_Commands;
+            using Factory = std::shared_ptr<IFactory<ICommand>>;
+            std::map<std::string, Factory> m_Commands;
             std::map<std::string, SCommandDescription> m_CommandDescs;
     };
 
