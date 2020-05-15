@@ -1,0 +1,16 @@
+[submodule "externals/CLog"]
+	path = externals/CLog
+	url = https://github.com/tostc/CLog
+[submodule "externals/CJSON"]
+	path = externals/CJSON
+	url = https://github.com/tostc/CJSON
+[submodule "externals/IXWebSocket"]
+	path = externals/IXWebSocket
+	url = https://github.com/machinezone/IXWebSocket
+[submodule "externals/opus"]
+	path = externals/opus
+	url = https://github.com/xiph/opus
+[submodule "externals/libsodium"]
+	path = externals/libsodium
+	url = https://github.com/jedisct1/libsodium
+	branch = stable

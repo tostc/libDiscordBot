@@ -27,6 +27,7 @@
 
 #include <memory>
 #include <map>
+#include <string>
 #include <models/User.hpp>
 #include <models/Channel.hpp>
 #include <models/GuildMember.hpp>

@@ -26,6 +26,7 @@
 #define USER_HPP
 
 #include <memory>
+#include <string>
 
 namespace DiscordBot
 {

@@ -28,6 +28,7 @@
 #include <models/GuildMember.hpp>
 #include <models/Channel.hpp>
 #include <models/Guild.hpp>
+#include <string>
 
 namespace DiscordBot
 {

@@ -28,6 +28,7 @@
 #include <models/User.hpp>
 #include <models/VoiceState.hpp>
 #include <vector>
+#include <string>
 
 namespace DiscordBot
 {

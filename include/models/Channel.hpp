@@ -28,6 +28,7 @@
 #include <memory>
 #include <vector>
 #include <models/User.hpp>
+#include <string>
 
 namespace DiscordBot
 {

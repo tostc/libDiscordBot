@@ -28,6 +28,7 @@
 #include <memory>
 #include <models/Channel.hpp>
 #include <models/User.hpp>
+#include <string>
 
 namespace DiscordBot
 {

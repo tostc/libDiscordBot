@@ -25,6 +25,7 @@
 #ifndef ICONTROLLER_HPP
 #define ICONTROLLER_HPP
 
+#include <string>
 #include <models/Message.hpp>
 #include <controller/ICommand.hpp>
 #include <tuple>
