@@ -14,3 +14,7 @@
 	path = externals/libsodium
 	url = https://github.com/jedisct1/libsodium
 	branch = stable
+[submodule "externals/mbedtls"]
+	path = externals/mbedtls
+	url = https://github.com/ARMmbed/mbedtls
+	branch = master

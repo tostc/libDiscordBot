@@ -112,7 +112,11 @@ namespace DiscordBot
         if(channel->Type != ChannelTypes::GUILD_TEXT)
             return;
 
+        ix::SocketTLSOptions DisabledTrust;
+        DisabledTrust.caFile = "NONE";
+
         ix::HttpClient http;
+        http.setTLSOptions(DisabledTrust);
         ix::HttpRequestArgsPtr args = ix::HttpRequestArgsPtr(new ix::HttpRequestArgs());
 
         //Add the bot token.
@@ -188,7 +192,11 @@ namespace DiscordBot
      */
     void CDiscordClient::Run()
     {
+        ix::SocketTLSOptions DisabledTrust;
+        DisabledTrust.caFile = "NONE";
+
         ix::HttpClient http;
+        http.setTLSOptions(DisabledTrust);
         ix::HttpRequestArgsPtr args = ix::HttpRequestArgsPtr(new ix::HttpRequestArgs());
 
         //Add the bot token.
@@ -210,6 +218,7 @@ namespace DiscordBot
             }
 
             //Connects to discords websocket.
+            m_Socket.setTLSOptions(DisabledTrust);
             m_Socket.setUrl(m_Gateway->URL + "/?v=6&encoding=json");
             m_Socket.setOnMessageCallback(std::bind(&CDiscordClient::OnWebsocketEvent, this, std::placeholders::_1));
             m_Socket.start();

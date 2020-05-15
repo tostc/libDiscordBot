@@ -9,7 +9,7 @@ First you need following softwares and librarys.
 
 - cmake
 - C++ compiler which supports C++14
-- openssl
+
 ### Build
 The build process is simple just run cmake inside the project root directory or a build folder.
 ```
@@ -24,6 +24,7 @@ cmake ..
 - [IXWebSocket](https://github.com/machinezone/IXWebSocket)
 - [CJSON](https://github.com/tostc/CJSON)
 - [CLog](https://github.com/tostc/CLog)
+- [mbedtls](https://github.com/ARMmbed/mbedtls)
 
 ## License
 This library is under the [MIT License](LICENSE.txt)

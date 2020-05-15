@@ -52,6 +52,10 @@ namespace DiscordBot
         size_t Pos = URL.find(":");
         URL = URL.substr(0, Pos);
 
+        ix::SocketTLSOptions DisabledTrust;
+        DisabledTrust.caFile = "NONE";
+
+        m_Socket.setTLSOptions(DisabledTrust);
         m_Socket.setUrl("wss://" + URL + "/?v=4");
         m_Socket.setOnMessageCallback(std::bind(&CVoiceSocket::OnWebsocketEvent, this, std::placeholders::_1));
         m_Socket.start();
