@@ -13,7 +13,7 @@ This is the development version of the library. You might encounter bugs/errors,
 * Implementing commands is now way easier!
 
 ### Prerequisites
-First you need following softwares and libraries.
+First you need following software and libraries.
 
 * Cmake
 * Any C++ compiler which supports C++14
