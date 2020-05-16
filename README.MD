@@ -1,5 +1,6 @@
 # libDiscordBot
 Simple to use Discord bot library to create fast a bot. (WIP)
+Discord server: https://discord.gg/KDa6MKy
 
 ## Note
 This is the development version of the library. There are bugs unstable API and maybe the project won't build.
