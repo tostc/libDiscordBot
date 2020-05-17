@@ -1,31 +1,47 @@
+# Work In Progress (WIP)
 # libDiscordBot
-Simple to use Discord bot library to create fast a bot. (WIP)
-Discord server: https://discord.gg/KDa6MKy
+LibDiscordBot is an easy-to-use C++ Discord bot library that you can use to quickly create a bot. 
 
-## Note
-This is the development version of the library. There are bugs unstable API and maybe the project won't build.
+![Discord Logo](https://discord.com/assets/fc0b01fe10a0b8c602fb0106d8189d9b.png)
+
+# Read me!
+This is the development version of the library. You might encounter bugs/errors, the API is probably broken, and the project might not build.
+
+## Features
+* Send and read messages
+* Stream music (it has a playlist API)
+* Implementing commands is now way easier!
 
 ### Prerequisites
-First you need following softwares and librarys.
+First you need following software and libraries.
 
-- cmake
-- C++ compiler which supports C++14
+* Cmake
+* Any C++ compiler which supports C++14
 
 ## Getting Started
 These instructions will help you compile and use the library to build your own bot.
 
 1. Cloning the repository:
 
-```git clone --recurse-submodules -j8 -b development --single-branch https://github.com/tostc/libDiscordBot.git```
-
-2. Building the project:
-```cd ProjectRoot
-mkdir build
-cd build/
-cmake ..
+```
+git clone --recurse-submodules -j8 -b development --single-branch https://github.com/tostc/libDiscordBot.git
 ```
 
-## Libs
+2. Building the project:
+```
+cd libDiscordBot/
+mkdir build
+cd build/
+cmake ../
+```
+
+## Checklist
+- [ ] Role Management
+- [ ] Message Management
+- [ ] Events
+
+## Libraries
+* There's no need to manually install each of these if you used the command in the "Cloning the repository: " step.
 - [opus](https://github.com/xiph/opus)
 - [sodium](https://github.com/jedisct1/libsodium)
 - [IXWebSocket](https://github.com/machinezone/IXWebSocket)
