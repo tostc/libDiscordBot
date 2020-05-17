@@ -2,7 +2,7 @@
 # libDiscordBot
 LibDiscordBot is an easy-to-use C++ Discord bot library that you can use to quickly create a bot. 
 
-Discord server: https://discord.gg/KDa6MKy
+![Discord Logo](https://discord.com/assets/fc0b01fe10a0b8c602fb0106d8189d9b.png)
 
 # Read me!
 This is the development version of the library. You might encounter bugs/errors, the API is probably broken, and the project might not build.
