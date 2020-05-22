@@ -22,64 +22,31 @@
  * SOFTWARE.
  */
 
-#ifndef FACTORY_HPP
-#define FACTORY_HPP
+#ifndef EMBED_HPP
+#define EMBED_HPP
 
 #include <memory>
-#include <tuple>
-#include <config.h>
+#include <string>
 
 namespace DiscordBot
 {
-    template<class Base>
-    class DISCORDBOT_EXPORT IFactory
+    class CEmbed
     {
         public:
-            IFactory() {}
+            CEmbed(/* args */) {}
 
-            virtual std::shared_ptr<Base> Create() = 0;
+            std::string Title;
+            std::string Description;
+            std::string Type;
+            std::string URL;
 
-            ~IFactory() {}
-    };
-
-    template<class Base, class Derive, class Tuple>
-    class DISCORDBOT_EXPORT CFactory : public IFactory<Base>
-    {
-        public:
-            CFactory(Tuple Params) : m_Params(Params) {}
-
-            std::shared_ptr<Base> Create() override
-            {
-                return ImplCreate(typename gen<std::tuple_size<Tuple>::value>::Seq());
-            }
-
-            ~CFactory() {}
+            ~CEmbed() {}
         private:
-            template <int...>
-            struct seq
-            {
-            };
-
-            template <int N, int... S>
-            struct gen : public gen<N - 1, N - 1, S...>
-            {
-            };
-
-            template <int... S>
-            struct gen<0, S...>
-            {
-                using Seq = seq<S...>;
-            };
-
-            template <int... S>
-            std::shared_ptr<Base> ImplCreate(seq<S...>)
-            {
-                return std::shared_ptr<Base>(new Derive(std::get<S>(m_Params)...));
-            }
-
-            Tuple m_Params;
+        /* data */
     };
+
+    using Embed = std::shared_ptr<CEmbed>;
 } // namespace DiscordBot
 
 
-#endif //FACTORY_HPP
+#endif //EMBED_HPP

@@ -27,6 +27,7 @@
 
 #include <stdint.h>
 #include <chrono>
+#include <algorithm>
 
 namespace DiscordBot
 {
@@ -48,6 +49,13 @@ namespace DiscordBot
         }
 
         return (S2 << 16) + S1;
+    }
+
+    inline std::string ToLower(std::string Str)
+    {
+        std::transform(Str.begin(), Str.end(), Str.begin(), tolower);
+
+        return Str; 
     }
 
     inline int64_t GetTimeMillis()

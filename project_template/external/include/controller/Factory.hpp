@@ -27,12 +27,11 @@
 
 #include <memory>
 #include <tuple>
-#include <config.h>
 
 namespace DiscordBot
 {
     template<class Base>
-    class DISCORDBOT_EXPORT IFactory
+    class IFactory
     {
         public:
             IFactory() {}
@@ -43,7 +42,7 @@ namespace DiscordBot
     };
 
     template<class Base, class Derive, class Tuple>
-    class DISCORDBOT_EXPORT CFactory : public IFactory<Base>
+    class CFactory : public IFactory<Base>
     {
         public:
             CFactory(Tuple Params) : m_Params(Params) {}

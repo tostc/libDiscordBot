@@ -31,7 +31,6 @@
 #include <models/Embed.hpp>
 #include <controller/IMusicQueue.hpp>
 #include <controller/Factory.hpp>
-#include <config.h>
 
 namespace DiscordBot
 {
@@ -109,10 +108,8 @@ namespace DiscordBot
         //- MESSAGE_REACTION_REMOVE_ALL
         //- MESSAGE_REACTION_REMOVE_EMOJI
 
-        DIRECT_MESSAGE_TYPING = (1 << 14),
+        DIRECT_MESSAGE_TYPING = (1 << 14)
         //- TYPING_START
-
-        DEFAULTS = GUILDS | GUILD_VOICE_STATES | GUILD_MESSAGES | DIRECT_MESSAGES
     };
 
     inline Intent operator |(Intent lhs, Intent rhs)  
@@ -120,7 +117,7 @@ namespace DiscordBot
         return static_cast<Intent>(static_cast<unsigned>(lhs) |static_cast<unsigned>(rhs));
     }  
 
-    class DISCORDBOT_EXPORT IDiscordClient
+    class IDiscordClient
     {
         public:
             IDiscordClient(/* args */) {}
@@ -206,16 +203,6 @@ namespace DiscordBot
             virtual void StopSpeaking(Guild guild) = 0;
 
             /**
-             * @brief Removes a song from the queue by its index.
-             */
-            virtual void RemoveSong(Channel channel, size_t Index) = 0;
-
-            /**
-             * @brief Removes a song from the queue by its title or part of the title.
-             */
-            virtual void RemoveSong(Channel channel, const std::string &Name) = 0;
-
-            /**
              * @brief Joins a audio channel.
              * 
              * @param channel: The voice channel to join.
@@ -273,15 +260,7 @@ namespace DiscordBot
              * 
              * @return Returns a new DiscordClient object.
              */
-            static DISCORDBOT_EXPORT DiscordClient Create(const std::string &Token, Intent Intents = Intent::DEFAULTS);
-
-            /**
-             * @return Returns the Version of the library.
-             */
-            static inline std::string GetVersion()
-            {
-                return std::string(VERSION);
-            }
+            static DiscordClient Create(const std::string &Token);
 
             virtual ~IDiscordClient() {}
 

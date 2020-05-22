@@ -31,6 +31,7 @@
 #include <ixwebsocket/IXNetSystem.h>
 #include <ixwebsocket/IXUdpSocket.h>
 #include <atomic>
+#include "MessageManager.hpp"
 
 namespace DiscordBot
 {    
@@ -113,6 +114,12 @@ namespace DiscordBot
             static const int NONCESIZE = RTPHEADERSIZE * 2; //!< Size of the key salt.
             static const int PACKET_CACHE = 1000 / MILLISECONDS;    //!< Cache Packets for 1 second.
 
+            enum
+            {
+                RESUME
+            };
+
+            CMessageManager m_EVManager;
             OnStopSpeaking m_Callback;
 
             std::string m_Token;
@@ -136,6 +143,11 @@ namespace DiscordBot
             std::vector<uint8_t> m_SecKey;
 
             uint32_t m_SSRC;
+
+            /**
+             * @brief Handles async. Messages.
+             */
+            void OnMessageReceive(MessageBase Msg);
 
             /**
              * @brief Builds and sends a payload object.

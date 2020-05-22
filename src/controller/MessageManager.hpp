@@ -32,6 +32,7 @@
 #include <functional>
 #include <atomic>
 #include <memory>
+#include "Helper.hpp"
 
 namespace DiscordBot
 {
@@ -42,6 +43,8 @@ namespace DiscordBot
 
             size_t Event;         //!< User defined Messagetype.
             bool Handled;           //!< True if the message doesn't need to propagate.
+            int Timeout;
+            int64_t CreateddMs;
 
             virtual ~IMessageBase() {}
     };
@@ -90,7 +93,7 @@ namespace DiscordBot
             }
 
             template<class T>
-            void PostMessage(size_t Event, T Value)
+            void PostMessage(size_t Event, T Value, int Timeout = 0)
             {
                 using Message = std::shared_ptr<TMessage<T>>;
                 std::lock_guard<std::mutex> lock(m_QueueLock);
@@ -98,6 +101,8 @@ namespace DiscordBot
                 Message Msg = Message(new TMessage<T>());
                 Msg->Value = Value;
                 Msg->Event = Event;
+                Msg->Timeout = Timeout;
+                Msg->CreateddMs = GetTimeMillis();
 
                 m_Queue.push(std::static_pointer_cast<IMessageBase>(Msg));
             }
@@ -114,14 +119,21 @@ namespace DiscordBot
             {
                 while (!m_Terminated)
                 {
-                    std::lock_guard<std::mutex> lock(m_QueueLock);
-                    if(!m_Queue.empty() && m_Queue.size() > 0)
                     {
-                        MessageBase Data = m_Queue.front();
-                        m_Queue.pop();
+                        std::lock_guard<std::mutex> lock(m_QueueLock);
+                        if(!m_Queue.empty() && m_Queue.size() > 0)
+                        {
+                            MessageBase Data = m_Queue.front();
+                            m_Queue.pop();
 
-                        SendMessage(Data);
+                            if(GetTimeMillis() - Data->CreateddMs > Data->Timeout)
+                                SendMessage(Data);
+                            else
+                                m_Queue.push(Data);
+                        }
                     }
+
+                    std::this_thread::sleep_for(std::chrono::milliseconds(100));
                 }
             }
 

@@ -27,7 +27,6 @@
 
 #include <models/Message.hpp>
 #include <functional>
-#include <config.h>
 
 namespace DiscordBot
 {
@@ -51,7 +50,7 @@ namespace DiscordBot
     /**
      * @brief Interface to handle commands.
      */
-    class DISCORDBOT_EXPORT ICommand
+    class ICommand
     {
         public:
             using OnExecuteCommand = std::function<void(CommandContext)>;

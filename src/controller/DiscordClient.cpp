@@ -38,7 +38,7 @@ namespace DiscordBot
      * 
      * @return Returns a new DiscordClient object.
      */
-    DiscordClient IDiscordClient::Create(const std::string &Token)
+    DiscordClient IDiscordClient::Create(const std::string &Token, Intent Intents)
     {
         //Needed for windows.
         ix::initNetSystem();
@@ -47,12 +47,14 @@ namespace DiscordBot
         if (sodium_init() < 0) 
             llog << lerror << "Error to init libsodium" << lendl;
 
-        return DiscordClient(new CDiscordClient(Token));
+        return DiscordClient(new CDiscordClient(Token, Intents));
     }
 
-    CDiscordClient::CDiscordClient(const std::string &Token) : m_Token(Token), m_Terminate(false), m_HeartACKReceived(false), m_Quit(false), m_LastSeqNum(-1) 
+    CDiscordClient::CDiscordClient(const std::string &Token, Intent Intents) : m_Intents(Intents), m_Token(Token), m_Terminate(false), m_HeartACKReceived(false), m_Quit(false), m_LastSeqNum(-1) 
     {
-        m_EVManger.SubscribeMessage(QUEUE_NEXT_SONG, std::bind(&CDiscordClient::OnMessageReceive, this, std::placeholders::_1));   
+        m_EVManger.SubscribeMessage(QUEUE_NEXT_SONG, std::bind(&CDiscordClient::OnMessageReceive, this, std::placeholders::_1));  
+        m_EVManger.SubscribeMessage(RESUME, std::bind(&CDiscordClient::OnMessageReceive, this, std::placeholders::_1));  
+        m_EVManger.SubscribeMessage(RECONNECT, std::bind(&CDiscordClient::OnMessageReceive, this, std::placeholders::_1));   
     }
 
     /**
@@ -393,6 +395,34 @@ namespace DiscordBot
             IT->second->StopSpeaking();
     }
 
+    /**
+     * @brief Removes a song from the queue by its index.
+     */
+    void CDiscordClient::RemoveSong(Channel channel, size_t Index)
+    {
+        if (!channel || channel->GuildID.empty())
+            return;
+
+        std::lock_guard<std::mutex> lock(m_MusicQueueLock);
+        auto IT = m_MusicQueues.find(channel->GuildID);
+        if(IT != m_MusicQueues.end())
+            IT->second->RemoveSong(Index);
+    }
+
+    /**
+     * @brief Removes a song from the queue by its title or part of the title.
+     */
+    void CDiscordClient::RemoveSong(Channel channel, const std::string &Name)
+    {
+        if (!channel || channel->GuildID.empty())
+            return;
+
+        std::lock_guard<std::mutex> lock(m_MusicQueueLock);
+        auto IT = m_MusicQueues.find(channel->GuildID);
+        if(IT != m_MusicQueues.end())
+            IT->second->RemoveSong(Name);
+    }
+
     void CDiscordClient::OnMessageReceive(MessageBase Msg)
     {
         switch (Msg->Event)
@@ -420,6 +450,11 @@ namespace DiscordBot
                     if(IT != m_VoiceSockets.end())
                         IT->second->StartSpeaking(Source);
                 }
+            }break;
+
+            case RESUME:
+            {
+                m_Socket.start();
             }break;
         }
     }
@@ -692,8 +727,9 @@ namespace DiscordBot
                 if (m_Controller)
                     m_Controller->OnDisconnect();
 
-                m_Socket.start();
                 m_Terminate = true;
+                m_EVManger.PostMessage(RESUME, 0, 100);
+
                 break;
             }
 
@@ -739,7 +775,7 @@ namespace DiscordBot
         id.Properties["$os"] = "linux";
         id.Properties["$browser"] = "linux";
         id.Properties["$device"] = "linux";
-        id.Intents = Intent::GUILDS | Intent::GUILD_VOICE_STATES | Intent::GUILD_MESSAGES | Intent::DIRECT_MESSAGES;
+        id.Intents = m_Intents;
 
         CJSON json;
         SendOP(OPCodes::IDENTIFY, json.Serialize(id));

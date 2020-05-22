@@ -22,64 +22,42 @@
  * SOFTWARE.
  */
 
-#ifndef FACTORY_HPP
-#define FACTORY_HPP
+#ifndef VOICESTATE_HPP
+#define VOICESTATE_HPP
 
 #include <memory>
-#include <tuple>
-#include <config.h>
+#include <models/Channel.hpp>
+#include <models/User.hpp>
+#include <string>
 
 namespace DiscordBot
 {
-    template<class Base>
-    class DISCORDBOT_EXPORT IFactory
+    class CGuild;
+    using Guild = std::shared_ptr<CGuild>;
+
+    class CVoiceState
     {
         public:
-            IFactory() {}
+            CVoiceState() : Deaf(false), Mute(false), SelfDeaf(false), SelfMute(false), SelfStream(false), Supress(false) {}
 
-            virtual std::shared_ptr<Base> Create() = 0;
+            Guild GuildRef;
+            Channel ChannelRef;
+            User UserRef;
+            std::string SessionID;
+            bool Deaf;
+            bool Mute;
+            bool SelfDeaf;
+            bool SelfMute;
+            bool SelfStream;
+            bool Supress;
 
-            ~IFactory() {}
-    };
-
-    template<class Base, class Derive, class Tuple>
-    class DISCORDBOT_EXPORT CFactory : public IFactory<Base>
-    {
-        public:
-            CFactory(Tuple Params) : m_Params(Params) {}
-
-            std::shared_ptr<Base> Create() override
-            {
-                return ImplCreate(typename gen<std::tuple_size<Tuple>::value>::Seq());
-            }
-
-            ~CFactory() {}
+            ~CVoiceState() {}
         private:
-            template <int...>
-            struct seq
-            {
-            };
-
-            template <int N, int... S>
-            struct gen : public gen<N - 1, N - 1, S...>
-            {
-            };
-
-            template <int... S>
-            struct gen<0, S...>
-            {
-                using Seq = seq<S...>;
-            };
-
-            template <int... S>
-            std::shared_ptr<Base> ImplCreate(seq<S...>)
-            {
-                return std::shared_ptr<Base>(new Derive(std::get<S>(m_Params)...));
-            }
-
-            Tuple m_Params;
+            /* data */
     };
+
+    using VoiceState = std::shared_ptr<CVoiceState>;
 } // namespace DiscordBot
 
 
-#endif //FACTORY_HPP
+#endif //VOICESTATE_HPP

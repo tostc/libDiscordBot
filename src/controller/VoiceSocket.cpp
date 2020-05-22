@@ -25,7 +25,7 @@
 #include "VoiceSocket.hpp"
 #include "../model/Payload.hpp"
 #include <Log.hpp>
-#include <opus/opus.h>
+#include <opus.h>
 #include <sodium.h>
 #include <time.h>
 #include <stdlib.h>
@@ -43,6 +43,8 @@ namespace DiscordBot
      */
     CVoiceSocket::CVoiceSocket(CJSON &json, const std::string &SessionID, const std::string &ClientID) : m_Terminate(false), m_HeartACKReceived(false), m_LastSeqNum(-1), m_Stop(true), m_Reconnect(false)
     {
+        m_EVManager.SubscribeMessage(RESUME, std::bind(&CVoiceSocket::OnMessageReceive, this, std::placeholders::_1));   
+
         m_Token = json.GetValue<std::string>("token");
         m_GuildID = json.GetValue<std::string>("guild_id");
         m_SessionID = SessionID;
@@ -136,7 +138,7 @@ namespace DiscordBot
         CJSON json;
 
         if(Speak)
-            json.AddPair("speaking", 5);    //Speaks with microphone and has priority. See https://discord.com/developers/docs/topics/voice-connections#speaking
+            json.AddPair("speaking", 1);    //Speaks with microphone. See https://discord.com/developers/docs/topics/voice-connections#speaking
         else
             json.AddPair("speaking", 0);
 
@@ -331,6 +333,20 @@ namespace DiscordBot
 
         m_Callback(m_GuildID);
         m_Source = nullptr;
+    }
+
+    /**
+     * @brief Handles async. Messages.
+     */
+    void CVoiceSocket::OnMessageReceive(MessageBase Msg)
+    {
+        switch (Msg->Event)
+        {
+            case RESUME:
+            {
+                m_Socket.start();
+            }break;
+        }
     }
 
     /**
@@ -546,8 +562,9 @@ namespace DiscordBot
             {
                 m_Reconnect = true;
                 m_Socket.stop();
-                m_Socket.start();
                 m_Terminate = true;
+
+                m_EVManager.PostMessage(RESUME, 0, 100);
                 break;
             }
 

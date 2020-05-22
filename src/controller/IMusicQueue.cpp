@@ -23,6 +23,8 @@
  */
 
 #include <controller/IMusicQueue.hpp>
+#include <algorithm>
+#include "Helper.hpp"
 
 namespace DiscordBot
 {
@@ -49,7 +51,12 @@ namespace DiscordBot
     void IMusicQueue::RemoveSong(size_t Index)
     {
         std::lock_guard<std::mutex> lock(m_QueueLock);
+        if(Index >= m_Queue.size())
+            return;
 
+        auto Info = m_Queue[Index];
+        m_Queue.erase(m_Queue.begin() + Index);
+        OnRemove(Info, Index);
     }
 
     /**
@@ -60,6 +67,18 @@ namespace DiscordBot
     void IMusicQueue::RemoveSong(std::string Name)
     {
         std::lock_guard<std::mutex> lock(m_QueueLock);
+        auto IT = std::find_if(m_Queue.begin(), m_Queue.end(), [Name](SongInfo Info) {
+            return ToLower(Info->Name).find(ToLower(Name)) != std::string::npos;
+        });
+
+        if(IT != m_Queue.end())
+        {
+            auto Info = *IT;
+            size_t Pos = IT - m_Queue.begin();
+            m_Queue.erase(IT);
+
+            OnRemove(Info, Pos);
+        }
     }
 
     /**

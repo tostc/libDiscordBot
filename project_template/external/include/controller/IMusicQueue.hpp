@@ -32,7 +32,6 @@
 #include <mutex>
 #include <atomic>
 #include <functional>
-#include <config.h>
 
 namespace DiscordBot
 {
@@ -41,7 +40,7 @@ namespace DiscordBot
     /**
      * @brief Thread safe music queue interface.
      */
-    class DISCORDBOT_EXPORT IMusicQueue
+    class IMusicQueue
     {
         public:
             IMusicQueue() : m_NeedWait(false), m_QueueIndex(0), m_QueueSize(0) {}

@@ -30,7 +30,6 @@
 #include <controller/ICommand.hpp>
 #include <tuple>
 #include <controller/Factory.hpp>
-#include <config.h>
 
 namespace DiscordBot
 {
@@ -52,7 +51,7 @@ namespace DiscordBot
      * 
      * @note All callbacks can called from different threads.
      */
-    class DISCORDBOT_EXPORT IController
+    class IController
     {
         friend IDiscordClient;
 

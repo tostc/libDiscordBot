@@ -40,6 +40,8 @@
 #include "../model/Payload.hpp"
 #include "VoiceSocket.hpp"
 
+#undef SendMessage
+
 namespace DiscordBot
 {
     class CDiscordClient : public IDiscordClient
@@ -131,7 +133,7 @@ namespace DiscordBot
                 }
             };
 
-            CDiscordClient(const std::string &Token);
+            CDiscordClient(const std::string &Token, Intent Intents);
 
             /**
              * @brief Adds a song to the music queue.
@@ -182,6 +184,16 @@ namespace DiscordBot
             void StopSpeaking(Guild guild) override;
 
             /**
+             * @brief Removes a song from the queue by its index.
+             */
+            void RemoveSong(Channel channel, size_t Index) override;
+
+            /**
+             * @brief Removes a song from the queue by its title or part of the title.
+             */
+            void RemoveSong(Channel channel, const std::string &Name) override;
+
+            /**
              * @brief Joins a audio channel.
              * 
              * @param channel: The voice channel to join.
@@ -202,7 +214,7 @@ namespace DiscordBot
              * @param Text: Text to send;
              * @param TTS: True to enable tts.
              */
-            void SendMessage(Channel channel, const std::string Text, Embed embed = nullptr, bool TTS = false);
+            void SendMessage(Channel channel, const std::string Text, Embed embed = nullptr, bool TTS = false) override;
 
             /**
              * @return Returns the audio source for the given guild. Null if there is no audio source available.
@@ -241,7 +253,9 @@ namespace DiscordBot
         private:
             enum
             {
-                QUEUE_NEXT_SONG
+                QUEUE_NEXT_SONG,
+                RESUME,
+                RECONNECT
             };
 
             const char *BASE_URL = "https://discordapp.com/api";
@@ -252,6 +266,7 @@ namespace DiscordBot
             using MusicQueues = std::map<std::string, MusicQueue>;
 
             CMessageManager m_EVManger;
+            Intent m_Intents;
 
             std::mutex m_MusicQueueLock;
             std::mutex m_AudioSourcesLock;
