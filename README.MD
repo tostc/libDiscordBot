@@ -17,8 +17,10 @@ This is the development version of the library. You might encounter bugs/errors,
 ### Prerequisites
 First you need following software and libraries.
 
-* Cmake
-* Any C++ compiler which supports C++14
+* cmake
+* C++ compiler which supports C++14
+    * Compiles with clang and gcc under Linux.
+    * Compiles with Visual Studio 2019 under Windows.
 
 ## Getting Started
 These instructions will help you compile and use the library to build your own bot.
