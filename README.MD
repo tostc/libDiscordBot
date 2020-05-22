@@ -28,7 +28,7 @@ These instructions will help you compile and use the library to build your own b
 1. Cloning the repository:
 
 ```
-git clone --recurse-submodules -j8 -b development --single-branch https://github.com/tostc/libDiscordBot.git
+git clone --recurse-submodules -j8 --single-branch https://github.com/tostc/libDiscordBot.git
 ```
 
 2. Building the project:
