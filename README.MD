@@ -32,6 +32,7 @@ git clone --recurse-submodules -j8 --single-branch https://github.com/tostc/libD
 ```
 
 2. Building the project:
+
 ```
 cd libDiscordBot/
 mkdir build
@@ -39,10 +40,20 @@ cd build/
 cmake ../
 ```
 
+For Linux execute following command inside the build directory
+```
+make
+```
+
+For Windows open the *.sln file inside the build directory
+
+3. Copy and rename the project_template directory somewhere to get starting. Follow the introduction inside the README.MD of the template.
+
 ## Checklist
-- [ ] Role Management
-- [ ] Message Management
-- [ ] Events
+- [ ] Administration
+- [ ] Rights management(with Roles)
+- [ ] Wrap all Discord objects
+- [ ] Wrap all Discord events
 
 ## Libraries
 * There's no need to manually install each of these if you used the command in the "Cloning the repository: " step.
