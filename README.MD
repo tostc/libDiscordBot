@@ -50,6 +50,10 @@ For Windows open the *.sln file inside the build directory
 
 3. Copy and rename the project_template directory somewhere to get starting. Follow the introduction inside the README.MD of the template.
 
+### First bot
+
+Please visit the [wiki page](https://github.com/tostc/libDiscordBot/wiki/Your-first-bot).
+
 ## Checklist
 - [ ] Administration
 - [ ] Rights management(with Roles)
