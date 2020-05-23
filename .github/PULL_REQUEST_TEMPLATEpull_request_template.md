@@ -1,12 +1,3 @@
----
-name: pull request template
-about: Creates a default pull request
-title: ''
-labels: ''
-assignees: ''
-
----
-
 ## Kind of pull request
 
 - [ ] Added feature
