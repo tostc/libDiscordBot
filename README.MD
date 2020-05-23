@@ -6,8 +6,8 @@ libDiscordBot is an easy-to-use C++ Discord bot library that you can use to quic
 
 ![Discord Logo](https://discord.com/assets/fc0b01fe10a0b8c602fb0106d8189d9b.png)
 
-# Read me!
-This is the development version of the library. You might encounter bugs/errors, the API is probably broken, and the project might not build.
+## Feeling adventurous?
+  You can clone the development branch if you want the latest and probably buggy stuff. This is not recommended for productivity programs.
 
 ## Features
 * Send and read messages
@@ -17,7 +17,7 @@ This is the development version of the library. You might encounter bugs/errors,
 ### Prerequisites
 First you need following software and libraries.
 
-* cmake
+* CMake
 * C++ compiler which supports C++14
     * Compiles with clang and gcc under Linux.
     * Compiles with Visual Studio 2019 under Windows.
@@ -30,6 +30,7 @@ These instructions will help you compile and use the library to build your own b
 ```
 git clone --recurse-submodules -j8 --single-branch https://github.com/tostc/libDiscordBot.git
 ```
+side note: if you want to clone a specfic branch, you can include `-b *name of the branch you want to clone*` anywhere in the command (obviously, only after `git clone`).
 
 2. Building the project:
 
