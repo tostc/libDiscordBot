@@ -17,7 +17,7 @@ libDiscordBot is an easy-to-use C++ Discord bot library that you can use to quic
 ### Prerequisites
 First you need following software and libraries.
 
-* Cmake
+* CMake
 * C++ compiler which supports C++14
     * Compiles with clang and gcc under Linux.
     * Compiles with Visual Studio 2019 under Windows.
