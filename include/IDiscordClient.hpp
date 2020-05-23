@@ -126,7 +126,7 @@ namespace DiscordBot
             IDiscordClient(/* args */) {}
 
             /**
-             * @brief Registers a controller for this client. This controller receives all events of the client. See @see ::IController for more informations.
+             * @brief Registers a controller for this client. This controller receives all events of the client. See @see IController for more informations.
              * 
              * @tparam ...Args: Arguments which are passed to the constructer of the controller. 
              */
