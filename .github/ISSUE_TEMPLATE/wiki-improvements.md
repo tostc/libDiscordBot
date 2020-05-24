@@ -2,7 +2,7 @@
 name: Wiki improvements
 about: Describe the improvement for the wiki
 title: ''
-labels: ''
+labels: wiki
 assignees: ''
 
 ---
