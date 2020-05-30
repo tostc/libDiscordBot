@@ -31,10 +31,12 @@
 #include <IDiscordClient.hpp>
 #include <ixwebsocket/IXWebSocket.h>
 #include <ixwebsocket/IXNetSystem.h>
+#include <ixwebsocket/IXHttpClient.h>
 #include <thread>
 #include <map>
 #include <models/User.hpp>
 #include <models/Guild.hpp>
+#include <models/Role.hpp>
 #include <atomic>
 #include "MessageManager.hpp"
 #include "../model/Payload.hpp"
@@ -275,6 +277,8 @@ namespace DiscordBot
             std::string m_Token;
             std::shared_ptr<SGateway> m_Gateway;
             ix::WebSocket m_Socket;
+            ix::HttpClient m_HTTPClient;
+
             std::thread m_Heartbeat;
             std::atomic<bool> m_Terminate;
             std::atomic<bool> m_HeartACKReceived;
@@ -340,10 +344,11 @@ namespace DiscordBot
             void OnQueueWaitFinish(const std::string &Guild, AudioSource Source);
 
             User CreateUser(CJSON &json);
-            GuildMember CreateMember(CJSON &json);
+            GuildMember CreateMember(CJSON &json, Guild guild);
             VoiceState CreateVoiceState(CJSON &json, Guild guild);
             Channel CreateChannel(CJSON &json);
             Message CreateMessage(CJSON &json);
+            Role CreateRole(CJSON &json);
     };
 } // namespace DiscordBot
 

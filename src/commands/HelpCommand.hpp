@@ -22,39 +22,27 @@
  * SOFTWARE.
  */
 
-#ifndef GUILDMEMBER_HPP
-#define GUILDMEMBER_HPP
+#ifndef HELPCOMMAND_HPP
+#define HELPCOMMAND_HPP
 
-#include <models/User.hpp>
-#include <models/VoiceState.hpp>
-#include <vector>
-#include <string>
-#include <models/Role.hpp>
+#include <controller/ICommand.hpp>
+#include <controller/IController.hpp>
 
 namespace DiscordBot
 {
-    class CGuildMember
+    class CHelpCommand : public ICommand
     {
         public:
-            CGuildMember(/* args */) : Deaf(false), Mute(false) {}
+            CHelpCommand(IController *controller, IDiscordClient *client);
+            ~CHelpCommand() {}
 
-            User UserRef;
-            std::string Nick;
-            std::vector<Role> Roles;
-            std::string JoinedAt;
-            std::string PremiumSince;
-            bool Deaf;
-            bool Mute;
-
-            VoiceState State;
-
-            ~CGuildMember() {}
         private:
-            /* data */
-    };
+            void Help(CommandContext ctx);
 
-    using GuildMember = std::shared_ptr<CGuildMember>;
+            IController *m_Controller;
+            IDiscordClient *m_Client;
+    };
 } // namespace DiscordBot
 
 
-#endif //GUILDMEMBER_HPP
+#endif //HELPCOMMAND_HPP

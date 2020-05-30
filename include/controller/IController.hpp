@@ -30,6 +30,7 @@
 #include <controller/ICommand.hpp>
 #include <tuple>
 #include <controller/Factory.hpp>
+#include <controller/ICommandsConfig.hpp>
 #include <config.h>
 
 namespace DiscordBot
@@ -54,10 +55,8 @@ namespace DiscordBot
      */
     class DISCORDBOT_EXPORT IController
     {
-        friend IDiscordClient;
-
         public:
-            IController() = default;
+            IController(IDiscordClient *client);
 
             /**
              * @brief Called if the handshake with discord is finished.
@@ -105,6 +104,19 @@ namespace DiscordBot
              */
             virtual void OnQuit() {}
 
+            /**
+             * @return Gets the command prefix.
+             */
+            inline std::string GetPrefix()
+            {
+                return Prefix;
+            }
+
+            /**
+             * @return Gets all commands for a member. Only commands which the member can execute will be return.
+             */
+            std::vector<SCommandDescription> GetCommands(Guild guild, GuildMember member);
+
             virtual ~IController() = default;
 
         protected:
@@ -129,51 +141,9 @@ namespace DiscordBot
     
             IDiscordClient *Client;
             std::string Prefix;     //!< Command prefix.
+            CommandsConfig CmdsConfig;  //!< Member to save and load the config for the different commands.
 
         private:
-            // struct ICommandExecuter
-            // {
-            //     public:
-            //         virtual void Execute(CommandContext ctx) = 0;
-            // };
-
-            // template<class T, class Tuple>
-            // struct SCommandExecuter : public ICommandExecuter
-            // {
-            //     public:
-            //         SCommandExecuter(Tuple Params) : m_Params(Params) {}
-
-            //         void Execute(CommandContext ctx)
-            //         {
-            //             ImplExecute(typename gen<std::tuple_size<Tuple>::value>::Seq(), ctx);
-            //         }
-            //     private:
-            //         template <int...>
-            //         struct seq
-            //         {
-            //         };
-
-            //         template <int N, int... S>
-            //         struct gen : public gen<N - 1, N - 1, S...>
-            //         {
-            //         };
-
-            //         template <int... S>
-            //         struct gen<0, S...>
-            //         {
-            //             using Seq = seq<S...>;
-            //         };
-
-            //         template <int... S>
-            //         void ImplExecute(seq<S...>, CommandContext ctx)
-            //         {
-            //             T cmd(std::get<S>(m_Params)...);
-            //             cmd.OnExecute(ctx);
-            //         }
-
-            //         Tuple m_Params;
-            // };
-
             using Factory = std::shared_ptr<IFactory<ICommand>>;
             std::map<std::string, Factory> m_Commands;
             std::map<std::string, SCommandDescription> m_CommandDescs;

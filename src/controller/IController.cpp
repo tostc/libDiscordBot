@@ -24,6 +24,8 @@
 
 #include <controller/IController.hpp>
 #include <IDiscordClient.hpp>
+#include "../commands/HelpCommand.hpp"
+#include "JSONCmdsConfig.hpp"
 
 namespace DiscordBot
 {
@@ -39,6 +41,15 @@ namespace DiscordBot
             str = str.erase(Pos + 1);
 
         return str;
+    }
+
+    IController::IController(IDiscordClient *client) : Client(client), Prefix("!")
+    {
+        //Default config
+        CmdsConfig = CommandsConfig(new CJSONCmdsConfig());
+
+        RegisterCommand<CHelpCommand>({"h", "Prints a help dialog", 0, ""}, this, Client);
+        RegisterCommand<CHelpCommand>({"help", "Prints a help dialog", 0, ""}, this, Client);
     }
 
     /**
@@ -59,60 +70,40 @@ namespace DiscordBot
                 size_t Pos = msg->Content.find_first_of(' ', Prefix.size());
                 std::string Cmd = msg->Content.substr(Prefix.size(), Pos - Prefix.size());
 
-                //TODO: Make builtin Command.
-                if(Cmd == "h" || Cmd == "help")
+                auto IT = m_CommandDescs.find(Cmd);
+                if(IT != m_CommandDescs.end())
                 {
-                    std::string Dialog;
-                    const int BufferSize = 200;
-                    char Buf[BufferSize];
+                    CommandContext ctx = CommandContext(new CCommandContext());
+                    ctx->Msg = msg;
+                    ctx->Command = Cmd;
 
-                    auto IT = m_CommandDescs.begin();
-                    while (IT != m_CommandDescs.end())
+                    if(Pos != std::string::npos)
                     {
-                        int Size = snprintf(Buf, BufferSize, "%s%-20s%2s-%2s%s", Prefix.c_str(), IT->second.Cmd.c_str(), "", "", IT->second.Description.c_str());
-                        Dialog += std::string(Buf, Buf + Size) + '\n';
-                        IT++;
+                        std::string Params = trim(msg->Content.substr(Pos));
+                        if(IT->second.ParamDelimiter.empty())
+                            ctx->Params.push_back(Params);
+                        else
+                        {
+                            Pos = 0;
+                            size_t Beg = 0;
+                            while (true)                        
+                            {
+                                Pos = Params.find(IT->second.ParamDelimiter, Pos);
+                                ctx->Params.push_back(trim(Params.substr(Beg, Pos)));
+
+                                if(Pos == std::string::npos)
+                                    break;
+
+                                Beg = Pos = Params.find_first_not_of(IT->second.ParamDelimiter, Pos + 1);
+                            }   
+                        }
                     }
 
-                    Client->SendMessage(msg->ChannelRef, "```\n" + Dialog + "```");
-                }
-                else
-                {
-                    auto IT = m_CommandDescs.find(Cmd);
-                    if(IT != m_CommandDescs.end())
+                    //Executes the command.
+                    if(ctx->Params.size() == IT->second.ParamCount || IT->second.ParamCount == -1)
                     {
-                        CommandContext ctx = CommandContext(new CCommandContext());
-                        ctx->Msg = msg;
-                        ctx->Command = Cmd;
-
-                        if(Pos != std::string::npos)
-                        {
-                            std::string Params = trim(msg->Content.substr(Pos));
-                            if(IT->second.ParamDelimiter.empty())
-                                ctx->Params.push_back(Params);
-                            else
-                            {
-                                Pos = 0;
-                                size_t Beg = 0;
-                                while (true)                        
-                                {
-                                    Pos = Params.find(IT->second.ParamDelimiter, Pos);
-                                    ctx->Params.push_back(trim(Params.substr(Beg, Pos)));
-
-                                    if(Pos == std::string::npos)
-                                        break;
-
-                                    Beg = Pos = Params.find_first_not_of(IT->second.ParamDelimiter, Pos + 1);
-                                }   
-                            }
-                        }
-
-                        //Executes the command.
-                        if(ctx->Params.size() == IT->second.ParamCount || IT->second.ParamCount == -1)
-                        {
-                            auto Command = m_Commands[Cmd]->Create();
-                            Command->OnExecute(ctx);
-                        }
+                        auto Command = m_Commands[Cmd]->Create();
+                        Command->OnExecute(ctx);
                     }
                 }
             }

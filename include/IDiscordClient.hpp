@@ -133,8 +133,7 @@ namespace DiscordBot
             template<class T, class ...Args, typename std::enable_if<std::is_base_of<IController, T>::value>::type* = nullptr>
             inline void RegisterController(Args&& ...args)
             {
-                m_Controller = Controller(new T(std::forward<Args...>(args)...));
-                m_Controller->Client = this;
+                m_Controller = Controller(new T(this, std::forward<Args...>(args)...));
             }
 
             /**

@@ -29,6 +29,7 @@
 #include <vector>
 #include <models/User.hpp>
 #include <string>
+#include <models/Role.hpp>
 
 namespace DiscordBot
 {
@@ -48,10 +49,10 @@ namespace DiscordBot
         public:
             CPermissionOverwrites() {}
 
-            std::string ID;
-            std::string Type;
-            int Allow;
-            int Deny;
+            std::string ID;     //!< User or role id
+            std::string Type;   //!< role or user
+            Permission Allow;
+            Permission Deny;
 
             ~CPermissionOverwrites() {}
     };
