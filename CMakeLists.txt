@@ -120,7 +120,10 @@ set(SRCS
     "${PROJECT_SOURCE_DIR}/src/controller/VoiceSocket.cpp"
     "${PROJECT_SOURCE_DIR}/src/controller/ICommand.cpp"
     "${PROJECT_SOURCE_DIR}/src/controller/IController.cpp"
-    "${PROJECT_SOURCE_DIR}/src/controller/IMusicQueue.cpp")
+    "${PROJECT_SOURCE_DIR}/src/controller/IMusicQueue.cpp"
+    "${PROJECT_SOURCE_DIR}/src/controller/JSONCmdsConfig.cpp"
+    "${PROJECT_SOURCE_DIR}/src/commands/RightsCommand.cpp"
+    "${PROJECT_SOURCE_DIR}/src/commands/HelpCommand.cpp")
 
 add_library(${PROJECT_NAME} SHARED ${SRCS})
 add_dependencies(${PROJECT_NAME} IXWebSocket_build)

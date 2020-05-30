@@ -42,7 +42,16 @@ namespace DiscordBot
 
     void CJSONCmdsConfig::AddRoles(const std::string &Guild, const std::string &Command, const std::vector<std::string> &Roles)
     {
-        m_Database[Guild][Command].insert(m_Database[Guild][Command].end(), Roles.begin(), Roles.end());
+        // m_Database[Guild][Command].insert(m_Database[Guild][Command].end(), Roles.begin(), Roles.end());
+
+        std::vector<std::string> &DBRoles = m_Database[Guild][Command];
+        for (auto &&e : Roles)
+        {
+            auto IT = std::find(DBRoles.begin(), DBRoles.end(), e);
+            if(IT == DBRoles.end())
+                DBRoles.push_back(e);
+        }
+
         SaveDB();
     }
 
@@ -64,8 +73,11 @@ namespace DiscordBot
         auto GIT = m_Database.find(Guild);
         if (GIT != m_Database.end())
         {
-            GIT->second.erase(Command);
-            SaveDB();
+            if(GIT->second.find(Command) != GIT->second.end())
+            {
+                GIT->second.erase(Command);
+                SaveDB();
+            }
         }
     }
 
@@ -85,7 +97,11 @@ namespace DiscordBot
                 });
 
                 DBRoles.erase(IT, DBRoles.end());
-                SaveDB();
+
+                if(DBRoles.empty())
+                    DeleteCommand(Guild, Command);
+                else
+                    SaveDB();
             }
         }
     }

@@ -343,6 +343,8 @@ namespace DiscordBot
 
             void OnQueueWaitFinish(const std::string &Guild, AudioSource Source);
 
+            GuildMember GetMember(Guild guild, const std::string &UserID);
+
             User CreateUser(CJSON &json);
             GuildMember CreateMember(CJSON &json, Guild guild);
             VoiceState CreateVoiceState(CJSON &json, Guild guild);

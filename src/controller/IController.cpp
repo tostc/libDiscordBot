@@ -25,6 +25,7 @@
 #include <controller/IController.hpp>
 #include <IDiscordClient.hpp>
 #include "../commands/HelpCommand.hpp"
+#include "../commands/RightsCommand.hpp"
 #include "JSONCmdsConfig.hpp"
 
 namespace DiscordBot
@@ -48,8 +49,64 @@ namespace DiscordBot
         //Default config
         CmdsConfig = CommandsConfig(new CJSONCmdsConfig());
 
-        RegisterCommand<CHelpCommand>({"h", "Prints a help dialog", 0, ""}, this, Client);
-        RegisterCommand<CHelpCommand>({"help", "Prints a help dialog", 0, ""}, this, Client);
+        RegisterCommand<CHelpCommand>({"h", "Prints a help dialog", 0, "", AccessMode::EVERYBODY}, this, Client);
+        RegisterCommand<CHelpCommand>({"help", "Prints a help dialog", 0, "", AccessMode::EVERYBODY}, this, Client);
+
+        RegisterCommand<CRightsCommand>({"setr", "Sets roles which can use a given command. E.g. Commandname Rolename/-s", -1, " ", AccessMode::OWNER}, this, Client);
+        RegisterCommand<CRightsCommand>({"remover", "Removes roles from a command. E.g. Commandname Rolename/-s", -1, " ", AccessMode::OWNER}, this, Client);
+        RegisterCommand<CRightsCommand>({"resetr", "Removes all roles off a command.", 1, " ", AccessMode::OWNER}, this, Client);
+        RegisterCommand<CRightsCommand>({"getr", "Gets all roles for the command.", 1, " ", AccessMode::OWNER}, this, Client);
+    }
+
+    /**
+     * @return Gets all commands for a member. Only commands which the member can execute will be return.
+     */
+    std::vector<SCommandDescription> IController::GetCommands(Guild guild, GuildMember member)
+    {
+        std::vector<SCommandDescription> Ret;
+        if(!CmdsConfig)
+            return Ret;
+
+        for (auto &&e : m_CommandDescs)
+        {
+            if(CanAccess(guild, member, e.first))
+                Ret.push_back(e.second);
+        }
+
+        return Ret;
+    }
+
+    /**
+     * @return Returns true if the user can access the command.
+     */
+    bool IController::CanAccess(Guild guild, GuildMember member, const std::string &Cmd)
+    {
+        //TODO: I don't like this mess.
+
+        if(!guild)
+            return m_CommandDescs[Cmd].Mode == AccessMode::EVERYBODY;
+
+        if (guild->Owner->UserRef->ID == member->UserRef->ID)
+            return true;        
+
+        std::vector<std::string> RoleIDs = CmdsConfig->GetRoles(guild->ID, Cmd);
+        if(RoleIDs.empty())
+            return m_CommandDescs[Cmd].Mode == AccessMode::EVERYBODY;
+        else
+        {
+            for (auto &&Id : RoleIDs)
+            {
+                auto IT = std::find_if(member->Roles.begin(), member->Roles.end(), [Id](Role r)
+                {
+                    return Id == r->ID;
+                });
+
+                if(IT != member->Roles.end())
+                    return true;
+            }
+        }
+
+        return false;
     }
 
     /**
@@ -73,6 +130,9 @@ namespace DiscordBot
                 auto IT = m_CommandDescs.find(Cmd);
                 if(IT != m_CommandDescs.end())
                 {
+                    if(!CanAccess(msg->GuildRef, msg->Member, Cmd))
+                        return;
+
                     CommandContext ctx = CommandContext(new CCommandContext());
                     ctx->Msg = msg;
                     ctx->Command = Cmd;
@@ -89,7 +149,7 @@ namespace DiscordBot
                             while (true)                        
                             {
                                 Pos = Params.find(IT->second.ParamDelimiter, Pos);
-                                ctx->Params.push_back(trim(Params.substr(Beg, Pos)));
+                                ctx->Params.push_back(trim(Params.substr(Beg, Pos - Beg)));
 
                                 if(Pos == std::string::npos)
                                     break;

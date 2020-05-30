@@ -112,7 +112,7 @@ namespace DiscordBot
         DIRECT_MESSAGE_TYPING = (1 << 14),
         //- TYPING_START
 
-        DEFAULTS = GUILDS | GUILD_VOICE_STATES | GUILD_MESSAGES | DIRECT_MESSAGES
+        DEFAULTS = GUILDS | GUILD_VOICE_STATES | GUILD_MESSAGES | DIRECT_MESSAGES | GUILD_MEMBERS
     };
 
     inline Intent operator |(Intent lhs, Intent rhs)  

@@ -38,6 +38,16 @@ namespace DiscordBot
     class IDiscordClient;
 
     /**
+     * @brief Access modes for commands.
+     */
+    enum class AccessMode
+    {
+        OWNER,          //!< This command can only be accessed by the owner.
+        ROLE,           //!< This command can only be accessed by a given role.
+        EVERYBODY       //!< Free for all.
+    };
+
+    /**
      * @brief Describes the command.
      */
     struct SCommandDescription
@@ -46,6 +56,7 @@ namespace DiscordBot
         std::string Description;    //!< Command description. Shows in the help dialog.
         int ParamCount;             //!< Expected parameter count.
         std::string ParamDelimiter; //!< Delimiter for multiple parameters.
+        AccessMode Mode;            //!< Access mode for this command. This is the default mode for a new server. The owner can access all commands. @see AccessMode
     };
 
     /**
@@ -113,6 +124,20 @@ namespace DiscordBot
             }
 
             /**
+             * @return Gets the commands config.
+             */
+            inline CommandsConfig GetCmdConfig()
+            {
+                return CmdsConfig;
+            }
+
+            inline bool CommandExists(const std::string &Cmd)
+            {
+                auto IT = m_CommandDescs.find(Cmd);
+                return IT != m_CommandDescs.end();
+            }
+
+            /**
              * @return Gets all commands for a member. Only commands which the member can execute will be return.
              */
             std::vector<SCommandDescription> GetCommands(Guild guild, GuildMember member);
@@ -144,6 +169,11 @@ namespace DiscordBot
             CommandsConfig CmdsConfig;  //!< Member to save and load the config for the different commands.
 
         private:
+            /**
+             * @return Returns true if the user can access the command.
+             */
+            bool CanAccess(Guild guild, GuildMember member, const std::string &Cmd);
+
             using Factory = std::shared_ptr<IFactory<ICommand>>;
             std::map<std::string, Factory> m_Commands;
             std::map<std::string, SCommandDescription> m_CommandDescs;
