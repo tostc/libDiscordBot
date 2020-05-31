@@ -64,7 +64,7 @@ Please visit the [wiki page](https://github.com/tostc/libDiscordBot/wiki/Your-fi
 - Built In help command
 - Built In rights management system for commands.
 - Audio streaming
-- Playlist api
+- Playlist API
 - Easy to use API
 - Member and Guild management
 
