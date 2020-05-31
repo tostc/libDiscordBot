@@ -50,6 +50,10 @@ For Windows open the *.sln file inside the build directory
 
 3. Copy and rename the project_template directory somewhere to get starting. Follow the introduction inside the README.MD of the template.
 
+### First bot
+
+Please visit the [wiki page](https://github.com/tostc/libDiscordBot/wiki/Your-first-bot).
+
 ## Checklist
 - [ ] Administration
 - [x] Rights management(with Roles)
@@ -63,10 +67,6 @@ For Windows open the *.sln file inside the build directory
 - Playlist api
 - Easy to use API
 - Member and Guild management
-
-### First bot
-
-Please visit the [wiki page](https://github.com/tostc/libDiscordBot/wiki/Your-first-bot).
 
 ## Libraries
 * There's no need to manually install each of these if you used the command in the "Cloning the repository: " step.
