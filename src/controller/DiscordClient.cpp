@@ -191,7 +191,7 @@ namespace DiscordBot
     }
 
     /**
-     * @brief Runs the bot. The call returns if you calls @see Quit().
+     * @brief Runs the bot. The call returns if you calls Quit(). @see Quit()
      */
     void CDiscordClient::Run()
     {
@@ -343,7 +343,7 @@ namespace DiscordBot
     }
 
     /**
-     * @brief Pauses the audio source. Call @see ResumeSpeaking to continue streaming.
+     * @brief Pauses the audio source. @see ResumeSpeaking to continue streaming.
      * 
      * @param guild: The guild to pause.
      */
@@ -497,6 +497,7 @@ namespace DiscordBot
                         //Gateway Events https://discordapp.com/developers/docs/topics/gateway#commands-and-events-gateway-events
                         switch (Adler32(Pay.T.c_str()))
                         {
+                            //Called after the handshake is completed.
                             case Adler32("READY"):
                             {
                                 json.ParseObject(Pay.D);
@@ -511,6 +512,8 @@ namespace DiscordBot
                                     m_Controller->OnReady();
                             }
                             break;
+
+                            /*------------------------GUILDS Intent------------------------*/
 
                             case Adler32("GUILD_CREATE"):
                             {
@@ -586,6 +589,25 @@ namespace DiscordBot
                                 llog << linfo << "GUILD_DELETE" << lendl;
                             }break;
 
+                            /*------------------------GUILDS Intent------------------------*/
+
+                            /*------------------------GUILD_MEMBERS Intent------------------------*/
+                            //ATTENTION: NEEDS "Server Members Intent" ACTIVATED TO WORK, OTHERWISE THE BOT FAIL TO CONNECT AND A ERROR IS WRITTEN TO THE CONSOLE!!!
+
+                            case Adler32("GUILD_MEMBER_ADD"):
+                            {
+                                CJSON Member;
+                                Member.ParseObject(Pay.D);
+
+                                std::string GuildID = Member.GetValue<std::string>("guild_id");
+                                
+                                Guild guild = m_Guilds[GuildID];
+                                GuildMember Tmp = CreateMember(Member, guild);
+
+                                if(m_Controller)
+                                    m_Controller->OnMemberAdd(guild, Tmp);
+                            }break;
+
                             case Adler32("GUILD_MEMBER_UPDATE"):
                             {
                                 json.ParseObject(Pay.D);
@@ -607,6 +629,9 @@ namespace DiscordBot
 
                                     IT->second->Nick = Nick;
                                     IT->second->PremiumSince = Premium;
+
+                                    if(m_Controller)
+                                        m_Controller->OnMemberUpdate(guild, IT->second);
                                 }
                             }break;
 
@@ -619,7 +644,16 @@ namespace DiscordBot
                                 std::string UserID = json.GetValue<std::string>("id");
 
                                 Guild guild = m_Guilds[GuildID];
-                                guild->Members.erase(UserID);
+
+                                auto IT = guild->Members.find(UserID);
+                                if(IT != guild->Members.end())
+                                {
+                                    GuildMember member = IT->second;
+                                    guild->Members.erase(IT);
+
+                                    if(m_Controller)
+                                        m_Controller->OnMemberRemove(guild, member);
+                                }                                
 
                                 if(m_Users.find(UserID) != m_Users.end())
                                 {
@@ -627,6 +661,10 @@ namespace DiscordBot
                                         m_Users.erase(UserID);
                                 }
                             }break;
+
+                            /*------------------------GUILD_MEMBERS Intent------------------------*/
+
+                            /*------------------------GUILD_VOICE_STATES Intent------------------------*/
 
                             case Adler32("VOICE_STATE_UPDATE"):
                             {
@@ -653,6 +691,9 @@ namespace DiscordBot
                                 }   
                             }break;
 
+                            /*------------------------GUILD_VOICE_STATES Intent------------------------*/
+
+                            //Called if your bot joins a voice channel.
                             case Adler32("VOICE_SERVER_UPDATE"):
                             {
                                 json.ParseObject(Pay.D);
@@ -692,6 +733,8 @@ namespace DiscordBot
                                 }
                             }break;
 
+                            /*------------------------GUILD_MESSAGES Intent------------------------*/
+
                             case Adler32("MESSAGE_CREATE"):
                             {
                                 json.ParseObject(Pay.D);
@@ -701,6 +744,9 @@ namespace DiscordBot
                                     m_Controller->OnMessage(msg);
                             }break;
 
+                            /*------------------------GUILD_MESSAGES Intent------------------------*/
+
+                            //Called if a session resumed.
                             case Adler32("RESUMED"):
                             {
                                 llog << linfo << "Resumed" << lendl;
@@ -709,6 +755,7 @@ namespace DiscordBot
                                     m_Controller->OnResume();
                             } break;
 
+                            //Something is wrong.
                             case Adler32("INVALID_SESSION"):
                             {
                                 if (Pay.D == "true")

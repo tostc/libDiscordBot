@@ -47,6 +47,8 @@ namespace DiscordBot
         EVERYBODY       //!< Free for all.
     };
 
+    DISCORDBOT_EXPORT std::string AccessModeToString(AccessMode Mode);
+
     /**
      * @brief Describes the command.
      */
@@ -77,17 +79,51 @@ namespace DiscordBot
             /** 
              * @brief Called if the voice state of a guild member updates. Eg. move, connect, disconnect.
              * 
-             * @param guild: Guild wich contains the member
+             * @param guild: Guild which contains the member
              * @param Member: Member which voice states has been updated.
+             * 
+             * @note The GUILD_VOICE_STATES intent needs to be set to receive this event. This intent is set by default. @see Intent
              */
             virtual void OnVoiceStateUpdate(Guild guild, GuildMember Member) {}
+
+            /** 
+             * @brief Called if a guild member joins.
+             * 
+             * @param guild: Guild which contains the member
+             * @param Member: Member which has been join.
+             * 
+             * @note The GUILD_MEMBERS intent needs to be set to receive this event. Also you must activate "Server Members Intent" under the bot section of your Discord Application (Website).This intent is set by default. @see Intent
+             */
+            virtual void OnMemberAdd(Guild guild, GuildMember Member) {}
+
+            /** 
+             * @brief Called if a guild member updates. E.g. Nick, premium support, roles
+             * 
+             * @param guild: Guild which contains the member
+             * @param Member: Member which has been updated.
+             * 
+             * @note The GUILD_MEMBERS intent needs to be set to receive this event. Also you must activate "Server Members Intent" under the bot section of your Discord Application (Website).This intent is set by default. @see Intent
+             */
+            virtual void OnMemberUpdate(Guild guild, GuildMember Member) {}
+
+            /** 
+             * @brief Called if a guild member leaves a guild. E.g. Ban, kick, leave
+             * 
+             * @param guild: Guild which had contains the member
+             * @param Member: Member which leaves
+             * 
+             * @note The GUILD_MEMBERS intent needs to be set to receive this event. Also you must activate "Server Members Intent" under the bot section of your Discord Application (Website).This intent is set by default. @see Intent
+             */
+            virtual void OnMemberRemove(Guild guild, GuildMember Member) {}
 
             /**
              * @brief Called if a new message was sended. Process the message and call associated commands.
              * 
              * @note Integrated help command "Prefix h" or "Prefix help".
              * 
-             * @param msg: Message object. See @see ::CMessage for more informations.
+             * @param msg: Message object. @see CMessage for more informations.
+             * 
+             * @note The GUILD_MESSAGES intent needs to be set to receive this event. This intent is set by default. @see Intent
              */
             void OnMessage(Message msg);
 
@@ -137,6 +173,11 @@ namespace DiscordBot
                 return IT != m_CommandDescs.end();
             }
 
+            inline AccessMode GetAccessMode(const std::string &Cmd)
+            {
+                return m_CommandDescs[Cmd].Mode;
+            }
+
             /**
              * @return Gets all commands for a member. Only commands which the member can execute will be return.
              */
@@ -152,21 +193,20 @@ namespace DiscordBot
                 auto Tuple = std::make_tuple(args...);
 
                 Factory tmp = Factory(new CFactory<ICommand, T, decltype(Tuple)>(Tuple));
-                // CommandExecuter tmp = CommandExecuter(new SCommandExecuter<T, decltype(Tuple)>(Tuple));
                 m_Commands[Desc.Cmd] = tmp;
             }
 
             /**
              * @brief Called if a new message was sended.
              * 
-             * @param msg: Message object. See @see ::CMessage for more informations.
+             * @param msg: Message object. @see CMessage for more informations.
              * @param Handled: Set to true if no command which is associated with the message should called.
              */
             virtual void OnMessage(Message msg, bool &Handled) {}
     
             IDiscordClient *Client;
             std::string Prefix;     //!< Command prefix.
-            CommandsConfig CmdsConfig;  //!< Member to save and load the config for the different commands.
+            CommandsConfig CmdsConfig;  //!< Member to save and load the config for the different commands. @see ICommandsConfig for more informations
 
         private:
             /**

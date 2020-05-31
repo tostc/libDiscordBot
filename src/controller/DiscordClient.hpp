@@ -165,7 +165,7 @@ namespace DiscordBot
             bool StartSpeaking(Channel channel, AudioSource source) override;
 
             /**
-             * @brief Pauses the audio source. Call @see ResumeSpeaking to continue streaming.
+             * @brief Pauses the audio source. @see ResumeSpeaking to continue streaming.
              * 
              * @param guild: The guild to pause.
              */
@@ -234,7 +234,7 @@ namespace DiscordBot
             bool IsPlaying(Guild guild) override;
 
             /**
-             * @brief Runs the bot. The call returns if you calls @see Quit().
+             * @brief Runs the bot. The call returns if you calls Quit(). @see Quit()
              */
             void Run() override;
 

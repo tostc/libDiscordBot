@@ -30,6 +30,29 @@
 
 namespace DiscordBot
 {
+    std::string AccessModeToString(AccessMode Mode)
+    {
+        switch (Mode)
+        {
+            case AccessMode::OWNER:
+            {
+                return "OWNER";
+            }break;
+
+            case AccessMode::ROLE:
+            {
+                return "ROLE";
+            }break;
+
+            case AccessMode::EVERYBODY:
+            {
+                return "EVERYBODY";
+            }break;
+        }
+
+        return "UNKNOWN";
+    }
+
     //Trims a string.
     inline std::string trim(std::string str)
     {
@@ -54,7 +77,7 @@ namespace DiscordBot
 
         RegisterCommand<CRightsCommand>({"setr", "Sets roles which can use a given command. E.g. Commandname Rolename/-s", -1, " ", AccessMode::OWNER}, this, Client);
         RegisterCommand<CRightsCommand>({"remover", "Removes roles from a command. E.g. Commandname Rolename/-s", -1, " ", AccessMode::OWNER}, this, Client);
-        RegisterCommand<CRightsCommand>({"resetr", "Removes all roles off a command.", 1, " ", AccessMode::OWNER}, this, Client);
+        RegisterCommand<CRightsCommand>({"resetr", "Removes all roles of a command.", 1, " ", AccessMode::OWNER}, this, Client);
         RegisterCommand<CRightsCommand>({"getr", "Gets all roles for the command.", 1, " ", AccessMode::OWNER}, this, Client);
     }
 
@@ -112,7 +135,11 @@ namespace DiscordBot
     /**
      * @brief Called if a new message was sended. Process the message and call associated commands.
      * 
-     * @param msg: Message object. See @see ::CMessage for more informations.
+     * @note Integrated help command "Prefix h" or "Prefix help".
+     * 
+     * @param msg: Message object. @see CMessage for more informations.
+     * 
+     * @note The GUILD_MESSAGES intent needs to be set to receive this event. This intent is set by default. @see Intent
      */
     void IController::OnMessage(Message msg)
     {

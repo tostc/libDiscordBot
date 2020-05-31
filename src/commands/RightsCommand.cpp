@@ -111,6 +111,9 @@ namespace DiscordBot
                     Msg += IT->second->Name;
             }
 
+            if(Msg.empty())
+                Msg = AccessModeToString(m_Controller->GetAccessMode(Cmd));
+
             m_Client->SendMessage(ctx->Msg->ChannelRef, Cmd + " = [" + Msg + "]");
         }
     }

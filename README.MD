@@ -51,9 +51,17 @@ For Windows open the *.sln file inside the build directory
 
 ## Checklist
 - [ ] Administration
-- [ ] Rights management(with Roles)
+- [x] Rights management(with Roles)
 - [ ] Wrap all Discord objects
 - [ ] Wrap all Discord events
+
+## Features
+- Built In help command
+- Built In rights management system for commands.
+- Audio streaming
+- Playlist api
+- Easy to use API
+- Member and Guild management
 
 ## Libraries
 * There's no need to manually install each of these if you used the command in the "Cloning the repository: " step.
