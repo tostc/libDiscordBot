@@ -24,9 +24,35 @@
 
 #include <controller/IController.hpp>
 #include <IDiscordClient.hpp>
+#include "../commands/HelpCommand.hpp"
+#include "../commands/RightsCommand.hpp"
+#include "JSONCmdsConfig.hpp"
 
 namespace DiscordBot
 {
+    std::string AccessModeToString(AccessMode Mode)
+    {
+        switch (Mode)
+        {
+            case AccessMode::OWNER:
+            {
+                return "OWNER";
+            }break;
+
+            case AccessMode::ROLE:
+            {
+                return "ROLE";
+            }break;
+
+            case AccessMode::EVERYBODY:
+            {
+                return "EVERYBODY";
+            }break;
+        }
+
+        return "UNKNOWN";
+    }
+
     //Trims a string.
     inline std::string trim(std::string str)
     {
@@ -41,10 +67,79 @@ namespace DiscordBot
         return str;
     }
 
+    IController::IController(IDiscordClient *client) : Client(client), Prefix("!")
+    {
+        //Default config
+        CmdsConfig = CommandsConfig(new CJSONCmdsConfig());
+
+        RegisterCommand<CHelpCommand>({"h", "Prints a help dialog", 0, "", AccessMode::EVERYBODY}, this, Client);
+        RegisterCommand<CHelpCommand>({"help", "Prints a help dialog", 0, "", AccessMode::EVERYBODY}, this, Client);
+
+        RegisterCommand<CRightsCommand>({"setr", "Sets roles which can use a given command. E.g. Commandname Rolename/-s", -1, " ", AccessMode::OWNER}, this, Client);
+        RegisterCommand<CRightsCommand>({"remover", "Removes roles from a command. E.g. Commandname Rolename/-s", -1, " ", AccessMode::OWNER}, this, Client);
+        RegisterCommand<CRightsCommand>({"resetr", "Removes all roles of a command.", 1, " ", AccessMode::OWNER}, this, Client);
+        RegisterCommand<CRightsCommand>({"getr", "Gets all roles for the command.", 1, " ", AccessMode::OWNER}, this, Client);
+    }
+
+    /**
+     * @return Gets all commands for a member. Only commands which the member can execute will be return.
+     */
+    std::vector<SCommandDescription> IController::GetCommands(Guild guild, GuildMember member)
+    {
+        std::vector<SCommandDescription> Ret;
+        if(!CmdsConfig)
+            return Ret;
+
+        for (auto &&e : m_CommandDescs)
+        {
+            if(CanAccess(guild, member, e.first))
+                Ret.push_back(e.second);
+        }
+
+        return Ret;
+    }
+
+    /**
+     * @return Returns true if the user can access the command.
+     */
+    bool IController::CanAccess(Guild guild, GuildMember member, const std::string &Cmd)
+    {
+        //TODO: I don't like this mess.
+
+        if(!guild)
+            return m_CommandDescs[Cmd].Mode == AccessMode::EVERYBODY;
+
+        if (guild->Owner->UserRef->ID == member->UserRef->ID)
+            return true;        
+
+        std::vector<std::string> RoleIDs = CmdsConfig->GetRoles(guild->ID, Cmd);
+        if(RoleIDs.empty())
+            return m_CommandDescs[Cmd].Mode == AccessMode::EVERYBODY;
+        else
+        {
+            for (auto &&Id : RoleIDs)
+            {
+                auto IT = std::find_if(member->Roles.begin(), member->Roles.end(), [Id](Role r)
+                {
+                    return Id == r->ID;
+                });
+
+                if(IT != member->Roles.end())
+                    return true;
+            }
+        }
+
+        return false;
+    }
+
     /**
      * @brief Called if a new message was sended. Process the message and call associated commands.
      * 
-     * @param msg: Message object. See @see ::CMessage for more informations.
+     * @note Integrated help command "Prefix h" or "Prefix help".
+     * 
+     * @param msg: Message object. @see CMessage for more informations.
+     * 
+     * @note The GUILD_MESSAGES intent needs to be set to receive this event. This intent is set by default. @see Intent
      */
     void IController::OnMessage(Message msg)
     {
@@ -59,60 +154,43 @@ namespace DiscordBot
                 size_t Pos = msg->Content.find_first_of(' ', Prefix.size());
                 std::string Cmd = msg->Content.substr(Prefix.size(), Pos - Prefix.size());
 
-                //TODO: Make builtin Command.
-                if(Cmd == "h" || Cmd == "help")
+                auto IT = m_CommandDescs.find(Cmd);
+                if(IT != m_CommandDescs.end())
                 {
-                    std::string Dialog;
-                    const int BufferSize = 200;
-                    char Buf[BufferSize];
+                    if(!CanAccess(msg->GuildRef, msg->Member, Cmd))
+                        return;
 
-                    auto IT = m_CommandDescs.begin();
-                    while (IT != m_CommandDescs.end())
+                    CommandContext ctx = CommandContext(new CCommandContext());
+                    ctx->Msg = msg;
+                    ctx->Command = Cmd;
+
+                    if(Pos != std::string::npos)
                     {
-                        int Size = snprintf(Buf, BufferSize, "%s%-20s%2s-%2s%s", Prefix.c_str(), IT->second.Cmd.c_str(), "", "", IT->second.Description.c_str());
-                        Dialog += std::string(Buf, Buf + Size) + '\n';
-                        IT++;
+                        std::string Params = trim(msg->Content.substr(Pos));
+                        if(IT->second.ParamDelimiter.empty())
+                            ctx->Params.push_back(Params);
+                        else
+                        {
+                            Pos = 0;
+                            size_t Beg = 0;
+                            while (true)                        
+                            {
+                                Pos = Params.find(IT->second.ParamDelimiter, Pos);
+                                ctx->Params.push_back(trim(Params.substr(Beg, Pos - Beg)));
+
+                                if(Pos == std::string::npos)
+                                    break;
+
+                                Beg = Pos = Params.find_first_not_of(IT->second.ParamDelimiter, Pos + 1);
+                            }   
+                        }
                     }
 
-                    Client->SendMessage(msg->ChannelRef, "```\n" + Dialog + "```");
-                }
-                else
-                {
-                    auto IT = m_CommandDescs.find(Cmd);
-                    if(IT != m_CommandDescs.end())
+                    //Executes the command.
+                    if(ctx->Params.size() == IT->second.ParamCount || IT->second.ParamCount == -1)
                     {
-                        CommandContext ctx = CommandContext(new CCommandContext());
-                        ctx->Msg = msg;
-                        ctx->Command = Cmd;
-
-                        if(Pos != std::string::npos)
-                        {
-                            std::string Params = trim(msg->Content.substr(Pos));
-                            if(IT->second.ParamDelimiter.empty())
-                                ctx->Params.push_back(Params);
-                            else
-                            {
-                                Pos = 0;
-                                size_t Beg = 0;
-                                while (true)                        
-                                {
-                                    Pos = Params.find(IT->second.ParamDelimiter, Pos);
-                                    ctx->Params.push_back(trim(Params.substr(Beg, Pos)));
-
-                                    if(Pos == std::string::npos)
-                                        break;
-
-                                    Beg = Pos = Params.find_first_not_of(IT->second.ParamDelimiter, Pos + 1);
-                                }   
-                            }
-                        }
-
-                        //Executes the command.
-                        if(ctx->Params.size() == IT->second.ParamCount || IT->second.ParamCount == -1)
-                        {
-                            auto Command = m_Commands[Cmd]->Create();
-                            Command->OnExecute(ctx);
-                        }
+                        auto Command = m_Commands[Cmd]->Create();
+                        Command->OnExecute(ctx);
                     }
                 }
             }

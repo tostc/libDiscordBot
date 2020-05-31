@@ -23,7 +23,6 @@
  */
 
 #include "DiscordClient.hpp"
-#include <ixwebsocket/IXHttpClient.h>
 #include <iostream>
 #include <sodium.h>
 #include "Helper.hpp"
@@ -55,6 +54,13 @@ namespace DiscordBot
         m_EVManger.SubscribeMessage(QUEUE_NEXT_SONG, std::bind(&CDiscordClient::OnMessageReceive, this, std::placeholders::_1));  
         m_EVManger.SubscribeMessage(RESUME, std::bind(&CDiscordClient::OnMessageReceive, this, std::placeholders::_1));  
         m_EVManger.SubscribeMessage(RECONNECT, std::bind(&CDiscordClient::OnMessageReceive, this, std::placeholders::_1));   
+
+        //Disable client side checking.
+        ix::SocketTLSOptions DisabledTrust;
+        DisabledTrust.caFile = "NONE";
+
+        m_HTTPClient.setTLSOptions(DisabledTrust);
+        m_Socket.setTLSOptions(DisabledTrust);
     }
 
     /**
@@ -114,11 +120,6 @@ namespace DiscordBot
         if(channel->Type != ChannelTypes::GUILD_TEXT)
             return;
 
-        ix::SocketTLSOptions DisabledTrust;
-        DisabledTrust.caFile = "NONE";
-
-        ix::HttpClient http;
-        http.setTLSOptions(DisabledTrust);
         ix::HttpRequestArgsPtr args = ix::HttpRequestArgsPtr(new ix::HttpRequestArgs());
 
         //Add the bot token.
@@ -144,7 +145,7 @@ namespace DiscordBot
             json.AddJSON("embed", jembed.Serialize());
         }
 
-        auto res = http.post(std::string(BASE_URL) + "/channels/" + channel->ID + "/messages", json.Serialize(), args);
+        auto res = m_HTTPClient.post(std::string(BASE_URL) + "/channels/" + channel->ID + "/messages", json.Serialize(), args);
         if (res->statusCode != 200)
             llog << lerror << "Failed to send message HTTP: " << res->statusCode << " MSG: " << res->errorMsg << lendl;
     }
@@ -190,22 +191,17 @@ namespace DiscordBot
     }
 
     /**
-     * @brief Runs the bot. The call returns if you calls @see Quit().
+     * @brief Runs the bot. The call returns if you calls Quit(). @see Quit()
      */
     void CDiscordClient::Run()
     {
-        ix::SocketTLSOptions DisabledTrust;
-        DisabledTrust.caFile = "NONE";
-
-        ix::HttpClient http;
-        http.setTLSOptions(DisabledTrust);
         ix::HttpRequestArgsPtr args = ix::HttpRequestArgsPtr(new ix::HttpRequestArgs());
 
         //Add the bot token.
         args->extraHeaders["Authorization"] = "Bot " + m_Token;
 
         //Requests the gateway endpoint for bots.
-        auto res = http.get(BASE_URL + std::string("/gateway/bot"), args);
+        auto res = m_HTTPClient.get(BASE_URL + std::string("/gateway/bot"), args);
         if (res->statusCode == 200)
         {
             try
@@ -220,7 +216,6 @@ namespace DiscordBot
             }
 
             //Connects to discords websocket.
-            m_Socket.setTLSOptions(DisabledTrust);
             m_Socket.setUrl(m_Gateway->URL + "/?v=6&encoding=json");
             m_Socket.setOnMessageCallback(std::bind(&CDiscordClient::OnWebsocketEvent, this, std::placeholders::_1));
             m_Socket.start();
@@ -348,7 +343,7 @@ namespace DiscordBot
     }
 
     /**
-     * @brief Pauses the audio source. Call @see ResumeSpeaking to continue streaming.
+     * @brief Pauses the audio source. @see ResumeSpeaking to continue streaming.
      * 
      * @param guild: The guild to pause.
      */
@@ -502,6 +497,7 @@ namespace DiscordBot
                         //Gateway Events https://discordapp.com/developers/docs/topics/gateway#commands-and-events-gateway-events
                         switch (Adler32(Pay.T.c_str()))
                         {
+                            //Called after the handshake is completed.
                             case Adler32("READY"):
                             {
                                 json.ParseObject(Pay.D);
@@ -517,6 +513,8 @@ namespace DiscordBot
                             }
                             break;
 
+                            /*------------------------GUILDS Intent------------------------*/
+
                             case Adler32("GUILD_CREATE"):
                             {
                                 json.ParseObject(Pay.D);
@@ -525,8 +523,19 @@ namespace DiscordBot
                                 guild->ID = json.GetValue<std::string>("id");
                                 guild->Name = json.GetValue<std::string>("name");
 
+                                //Get all Roles;
+                                std::vector<std::string> Array = json.GetValue<std::vector<std::string>>("roles");
+                                for (auto &&e : Array)
+                                {
+                                    CJSON jRole;
+                                    jRole.ParseObject(e);
+
+                                    Role Tmp = CreateRole(jRole);
+                                    guild->Roles[Tmp->ID] = Tmp;
+                                }
+
                                 //Get all Channels;
-                                std::vector<std::string> Array = json.GetValue<std::vector<std::string>>("channels");
+                                Array = json.GetValue<std::vector<std::string>>("channels");
                                 for (auto &&e : Array)
                                 {
                                     CJSON jChannel;
@@ -544,10 +553,10 @@ namespace DiscordBot
                                     CJSON Member;
                                     Member.ParseObject(e);
 
-                                    GuildMember Tmp = CreateMember(Member);
+                                    GuildMember Tmp = CreateMember(Member, guild);
 
-                                    if (Tmp->UserRef)
-                                        guild->Members[Tmp->UserRef->ID] = Tmp;
+                                    // if (Tmp->UserRef)
+                                    //     guild->Members[Tmp->UserRef->ID] = Tmp;
                                 }
 
                                 //Get all voice states.
@@ -560,6 +569,9 @@ namespace DiscordBot
                                     CreateVoiceState(State, guild);
                                 }
 
+                                //Gets the owner object.
+                                std::string OwnerID = json.GetValue<std::string>("owner_id");
+                                guild->Owner = GetMember(guild, OwnerID);
                                 m_Guilds[guild->ID] = guild;
                             }break;
 
@@ -576,6 +588,83 @@ namespace DiscordBot
 
                                 llog << linfo << "GUILD_DELETE" << lendl;
                             }break;
+
+                            /*------------------------GUILDS Intent------------------------*/
+
+                            /*------------------------GUILD_MEMBERS Intent------------------------*/
+                            //ATTENTION: NEEDS "Server Members Intent" ACTIVATED TO WORK, OTHERWISE THE BOT FAIL TO CONNECT AND A ERROR IS WRITTEN TO THE CONSOLE!!!
+
+                            case Adler32("GUILD_MEMBER_ADD"):
+                            {
+                                CJSON Member;
+                                Member.ParseObject(Pay.D);
+
+                                std::string GuildID = Member.GetValue<std::string>("guild_id");
+                                
+                                Guild guild = m_Guilds[GuildID];
+                                GuildMember Tmp = CreateMember(Member, guild);
+
+                                if(m_Controller)
+                                    m_Controller->OnMemberAdd(guild, Tmp);
+                            }break;
+
+                            case Adler32("GUILD_MEMBER_UPDATE"):
+                            {
+                                json.ParseObject(Pay.D);
+                                std::string GuildID = json.GetValue<std::string>("guild_id");
+                                std::string Premium = json.GetValue<std::string>("premium_since");
+                                std::string Nick = json.GetValue<std::string>("nick");
+                                std::vector<std::string> Array = json.GetValue<std::vector<std::string>>("roles");
+
+                                json.ParseObject(json.GetValue<std::string>("user"));
+                                std::string UserID = json.GetValue<std::string>("id");
+
+                                Guild guild = m_Guilds[GuildID];
+                                auto IT = guild->Members.find(UserID);
+                                if(IT != guild->Members.end())
+                                {
+                                    IT->second->Roles.clear();
+                                    for (auto &&e : Array)
+                                        IT->second->Roles.push_back(guild->Roles[e]);                               
+
+                                    IT->second->Nick = Nick;
+                                    IT->second->PremiumSince = Premium;
+
+                                    if(m_Controller)
+                                        m_Controller->OnMemberUpdate(guild, IT->second);
+                                }
+                            }break;
+
+                            case Adler32("GUILD_MEMBER_REMOVE"):
+                            {
+                                json.ParseObject(Pay.D);
+                                std::string GuildID = json.GetValue<std::string>("guild_id");
+
+                                json.ParseObject(json.GetValue<std::string>("user"));
+                                std::string UserID = json.GetValue<std::string>("id");
+
+                                Guild guild = m_Guilds[GuildID];
+
+                                auto IT = guild->Members.find(UserID);
+                                if(IT != guild->Members.end())
+                                {
+                                    GuildMember member = IT->second;
+                                    guild->Members.erase(IT);
+
+                                    if(m_Controller)
+                                        m_Controller->OnMemberRemove(guild, member);
+                                }                                
+
+                                if(m_Users.find(UserID) != m_Users.end())
+                                {
+                                    if(m_Users[UserID].use_count() == 1)
+                                        m_Users.erase(UserID);
+                                }
+                            }break;
+
+                            /*------------------------GUILD_MEMBERS Intent------------------------*/
+
+                            /*------------------------GUILD_VOICE_STATES Intent------------------------*/
 
                             case Adler32("VOICE_STATE_UPDATE"):
                             {
@@ -602,6 +691,9 @@ namespace DiscordBot
                                 }   
                             }break;
 
+                            /*------------------------GUILD_VOICE_STATES Intent------------------------*/
+
+                            //Called if your bot joins a voice channel.
                             case Adler32("VOICE_SERVER_UPDATE"):
                             {
                                 json.ParseObject(Pay.D);
@@ -641,6 +733,8 @@ namespace DiscordBot
                                 }
                             }break;
 
+                            /*------------------------GUILD_MESSAGES Intent------------------------*/
+
                             case Adler32("MESSAGE_CREATE"):
                             {
                                 json.ParseObject(Pay.D);
@@ -650,6 +744,9 @@ namespace DiscordBot
                                     m_Controller->OnMessage(msg);
                             }break;
 
+                            /*------------------------GUILD_MESSAGES Intent------------------------*/
+
+                            //Called if a session resumed.
                             case Adler32("RESUMED"):
                             {
                                 llog << linfo << "Resumed" << lendl;
@@ -658,6 +755,7 @@ namespace DiscordBot
                                     m_Controller->OnResume();
                             } break;
 
+                            //Something is wrong.
                             case Adler32("INVALID_SESSION"):
                             {
                                 if (Pay.D == "true")
@@ -773,8 +871,8 @@ namespace DiscordBot
         SIdentify id;
         id.Token = m_Token;
         id.Properties["$os"] = "linux";
-        id.Properties["$browser"] = "linux";
-        id.Properties["$device"] = "linux";
+        id.Properties["$browser"] = "libDiscordBot";
+        id.Properties["$device"] = "libDiscordBot";
         id.Intents = m_Intents;
 
         CJSON json;
@@ -824,6 +922,43 @@ namespace DiscordBot
             IT->second->StartSpeaking(Source);
     }
 
+    GuildMember CDiscordClient::GetMember(Guild guild, const std::string &UserID)
+    {
+        auto UserIT = guild->Members.find(UserID);
+        GuildMember Ret;
+
+        if(UserIT != guild->Members.end())
+            Ret = UserIT->second;
+        else
+        {
+            ix::HttpRequestArgsPtr args = ix::HttpRequestArgsPtr(new ix::HttpRequestArgs());
+
+            //Add the bot token.
+            args->extraHeaders["Authorization"] = "Bot " + m_Token;
+
+            auto res = m_HTTPClient.get(std::string(BASE_URL) + "/guilds/" + guild->ID + "/members/" + UserID, args);
+            if (res->statusCode != 200)
+                llog << lerror << "Failed to receive owner info HTTP: " << res->statusCode << " MSG: " << res->errorMsg << lendl;
+            else
+            {
+                try
+                {    
+                    CJSON JOwner;
+                    JOwner.ParseObject(res->payload);
+
+                    Ret = CreateMember(JOwner, guild);
+                }
+                catch (const CJSONException &e)
+                {
+                    llog << lerror << "Failed to parse owner JSON Enumtype: " << GetEnumName(e.GetErrType()) << " what(): " << e.what() << lendl;
+                    return nullptr;
+                }
+            }
+        }
+
+        return Ret;
+    }
+
     User CDiscordClient::CreateUser(CJSON &json)
     {
         User Ret = User(new CUser());
@@ -847,7 +982,7 @@ namespace DiscordBot
         return Ret;
     }
 
-    GuildMember CDiscordClient::CreateMember(CJSON &json)
+    GuildMember CDiscordClient::CreateMember(CJSON &json, Guild guild)
     {
         GuildMember Ret = GuildMember(new CGuildMember());
         std::string UserInfo = json.GetValue<std::string>("user");
@@ -868,11 +1003,22 @@ namespace DiscordBot
 
         Ret->UserRef = member;
         Ret->Nick = json.GetValue<std::string>("nick");
-        Ret->Roles = json.GetValue<std::vector<std::string>>("roles");
         Ret->JoinedAt = json.GetValue<std::string>("joined_at");
         Ret->PremiumSince = json.GetValue<std::string>("premium_since");
         Ret->Deaf = json.GetValue<bool>("deaf");
         Ret->Mute = json.GetValue<bool>("mute");
+
+        //Adds the roles
+        auto Array = json.GetValue<std::vector<std::string>>("roles");
+        for (auto &&e : Array)
+        {
+            auto RIT = guild->Roles.find(e);
+            if(RIT != guild->Roles.end())
+                Ret->Roles.push_back(RIT->second);
+        }
+
+        if (Ret->UserRef)
+            guild->Members[Ret->UserRef->ID] = Ret;
 
         return Ret;
     }
@@ -914,9 +1060,7 @@ namespace DiscordBot
                     CJSON JMember;
                     JMember.ParseObject(json.GetValue<std::string>("member"));
 
-                    Member = CreateMember(JMember);
-                    if (Member->UserRef)
-                        Ret->GuildRef->Members[Member->UserRef->ID] = Member;
+                    Member = CreateMember(JMember, Ret->GuildRef);
                 }
                 catch (const CJSONException &e)
                 {
@@ -964,8 +1108,8 @@ namespace DiscordBot
 
             ov->ID = jov.GetValue<std::string>("id");
             ov->Type = jov.GetValue<std::string>("type");
-            ov->Allow = jov.GetValue<int>("allow");
-            ov->Deny = jov.GetValue<int>("deny");
+            ov->Allow = (Permission)jov.GetValue<int>("allow");
+            ov->Deny = (Permission)jov.GetValue<int>("deny");
 
             Ret->Overwrites.push_back(ov);
         }
@@ -1023,6 +1167,7 @@ namespace DiscordBot
         {
             channel = Channel(new CChannel());
             channel->ID = json.GetValue<std::string>("channel_id");
+            channel->Type = ChannelTypes::GUILD_TEXT;
         }
 
         Ret->ID = json.GetValue<std::string>("id");
@@ -1049,6 +1194,8 @@ namespace DiscordBot
                 auto MIT = Ret->GuildRef->Members.find(Ret->Author->ID);
                 if (MIT != Ret->GuildRef->Members.end())
                     Ret->Member = MIT->second;
+                else
+                    Ret->Member = GetMember(Ret->GuildRef, Ret->Author->ID);
             }
         }
 
@@ -1091,5 +1238,21 @@ namespace DiscordBot
         }
 
         return Ret;
+    }
+
+    Role CDiscordClient::CreateRole(CJSON &json)
+    {
+        Role ret = Role(new CRole());
+
+        ret->ID = json.GetValue<std::string>("id");
+        ret->Name = json.GetValue<std::string>("name");
+        ret->Color = json.GetValue<uint32_t>("color");
+        ret->Hoist = json.GetValue<bool>("hoist");
+        ret->Position = json.GetValue<int>("position");
+        ret->Permissions = (Permission)json.GetValue<uint32_t>("permissions");
+        ret->Managed = json.GetValue<bool>("managed");
+        ret->Mentionable = json.GetValue<bool>("mentionable");
+
+        return ret;
     }
 } // namespace DiscordBot

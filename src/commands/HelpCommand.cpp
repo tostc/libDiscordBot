@@ -22,39 +22,30 @@
  * SOFTWARE.
  */
 
-#ifndef GUILDMEMBER_HPP
-#define GUILDMEMBER_HPP
-
-#include <models/User.hpp>
-#include <models/VoiceState.hpp>
-#include <vector>
-#include <string>
-#include <models/Role.hpp>
+#include "HelpCommand.hpp"
+#include <IDiscordClient.hpp>
 
 namespace DiscordBot
 {
-    class CGuildMember
+    CHelpCommand::CHelpCommand(IController *controller, IDiscordClient *client) : m_Controller(controller), m_Client(client)
     {
-        public:
-            CGuildMember(/* args */) : Deaf(false), Mute(false) {}
+        RegisterCommandHandler("h", std::bind(&CHelpCommand::Help, this, std::placeholders::_1));
+        RegisterCommandHandler("help", std::bind(&CHelpCommand::Help, this, std::placeholders::_1));
+    }
 
-            User UserRef;
-            std::string Nick;
-            std::vector<Role> Roles;
-            std::string JoinedAt;
-            std::string PremiumSince;
-            bool Deaf;
-            bool Mute;
+    void CHelpCommand::Help(CommandContext ctx)
+    {
+        std::string Dialog;
+        const int BufferSize = 200;
+        char Buf[BufferSize];
 
-            VoiceState State;
+        auto Cmds = m_Controller->GetCommands(ctx->Msg->GuildRef, ctx->Msg->Member);
+        for (auto &&e : Cmds)
+        {
+            int Size = snprintf(Buf, BufferSize, "%s%-20s%2s-%2s%s", m_Controller->GetPrefix().c_str(), e.Cmd.c_str(), "", "", e.Description.c_str());
+            Dialog += std::string(Buf, Buf + Size) + '\n';
+        }
 
-            ~CGuildMember() {}
-        private:
-            /* data */
-    };
-
-    using GuildMember = std::shared_ptr<CGuildMember>;
+        m_Client->SendMessage(ctx->Msg->ChannelRef, "```\n" + Dialog + "```");
+    }
 } // namespace DiscordBot
-
-
-#endif //GUILDMEMBER_HPP

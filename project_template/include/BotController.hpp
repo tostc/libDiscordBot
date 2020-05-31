@@ -8,7 +8,7 @@ using namespace DiscordBot;
 class CBotController : public IController
 {
     public:
-        CBotController();
+        CBotController(IDiscordClient *client) : IController(client) {}
 
         void OnReady() override;
 

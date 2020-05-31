@@ -31,6 +31,7 @@
 #include <models/User.hpp>
 #include <models/Channel.hpp>
 #include <models/GuildMember.hpp>
+#include <models/Role.hpp>
 
 namespace DiscordBot
 {
@@ -42,8 +43,11 @@ namespace DiscordBot
             std::string ID;
             std::string Name;
 
+            GuildMember Owner;
+
             std::map<std::string, GuildMember> Members;
             std::map<std::string, Channel> Channels; 
+            std::map<std::string, Role> Roles;
 
             ~CGuild() {}
         private:

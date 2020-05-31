@@ -1,9 +1,9 @@
 cmake_minimum_required(VERSION 3.3.0)
-project(discordbot VERSION 1.0.0 LANGUAGES CXX)
+project(discordbot VERSION 2.0.0 LANGUAGES CXX)
 
 include(${CMAKE_ROOT}/Modules/ExternalProject.cmake)
 
-set(VERSION_SUFFIX "-prealpha")
+set(VERSION_SUFFIX "-alpha")
 
 set(PROJECT_LIBRARY_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR})
 set(PROJECT_ARCHIVE_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR})
@@ -103,6 +103,7 @@ endif(NOT WIN32)
 message(${PROJECT_VERSION})
 
 configure_file("${PROJECT_SOURCE_DIR}/include/config.h.in" config.h @ONLY) 
+configure_file("${PROJECT_SOURCE_DIR}/docs/Doxyfile.in" Doxyfile @ONLY) 
 
 include_directories("${PROJECT_BINARY_DIR}"
                     "${PROJECT_SOURCE_DIR}/externals/IXWebSocket"
@@ -120,7 +121,10 @@ set(SRCS
     "${PROJECT_SOURCE_DIR}/src/controller/VoiceSocket.cpp"
     "${PROJECT_SOURCE_DIR}/src/controller/ICommand.cpp"
     "${PROJECT_SOURCE_DIR}/src/controller/IController.cpp"
-    "${PROJECT_SOURCE_DIR}/src/controller/IMusicQueue.cpp")
+    "${PROJECT_SOURCE_DIR}/src/controller/IMusicQueue.cpp"
+    "${PROJECT_SOURCE_DIR}/src/controller/JSONCmdsConfig.cpp"
+    "${PROJECT_SOURCE_DIR}/src/commands/RightsCommand.cpp"
+    "${PROJECT_SOURCE_DIR}/src/commands/HelpCommand.cpp")
 
 add_library(${PROJECT_NAME} SHARED ${SRCS})
 add_dependencies(${PROJECT_NAME} IXWebSocket_build)

@@ -22,39 +22,33 @@
  * SOFTWARE.
  */
 
-#ifndef GUILDMEMBER_HPP
-#define GUILDMEMBER_HPP
+#ifndef RIGHTSCOMMAND_HPP
+#define RIGHTSCOMMAND_HPP
 
-#include <models/User.hpp>
-#include <models/VoiceState.hpp>
-#include <vector>
-#include <string>
-#include <models/Role.hpp>
+#include <controller/ICommand.hpp>
+#include <controller/IController.hpp>
 
 namespace DiscordBot
 {
-    class CGuildMember
+    class CRightsCommand : public ICommand
     {
         public:
-            CGuildMember(/* args */) : Deaf(false), Mute(false) {}
+            CRightsCommand(IController *controller, IDiscordClient *client);
+            ~CRightsCommand() {}
 
-            User UserRef;
-            std::string Nick;
-            std::vector<Role> Roles;
-            std::string JoinedAt;
-            std::string PremiumSince;
-            bool Deaf;
-            bool Mute;
-
-            VoiceState State;
-
-            ~CGuildMember() {}
         private:
-            /* data */
-    };
+            IController *m_Controller;
+            IDiscordClient *m_Client;
 
-    using GuildMember = std::shared_ptr<CGuildMember>;
+            void SetRoles(CommandContext ctx);
+            void RemoveRoles(CommandContext ctx);
+            void RemoveAllRoles(CommandContext ctx);
+            void GetRoles(CommandContext ctx);
+
+            std::string GetRoleID(Guild guild, const std::string &RoleName);
+            bool SplitParams(CommandContext ctx, std::string &Cmd, std::vector<std::string> &RoleIDs);
+    };
 } // namespace DiscordBot
 
 
-#endif //GUILDMEMBER_HPP
+#endif //RIGHTSCOMMAND_HPP

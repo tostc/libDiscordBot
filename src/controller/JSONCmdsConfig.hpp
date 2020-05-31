@@ -22,39 +22,32 @@
  * SOFTWARE.
  */
 
-#ifndef GUILDMEMBER_HPP
-#define GUILDMEMBER_HPP
+#ifndef JSONCMDSCONFIG_HPP
+#define JSONCMDSCONFIG_HPP
 
-#include <models/User.hpp>
-#include <models/VoiceState.hpp>
-#include <vector>
-#include <string>
-#include <models/Role.hpp>
+#include <controller/ICommandsConfig.hpp>
+#include <JSON.hpp>
 
 namespace DiscordBot
 {
-    class CGuildMember
+    class CJSONCmdsConfig : public ICommandsConfig
     {
         public:
-            CGuildMember(/* args */) : Deaf(false), Mute(false) {}
+            CJSONCmdsConfig();
 
-            User UserRef;
-            std::string Nick;
-            std::vector<Role> Roles;
-            std::string JoinedAt;
-            std::string PremiumSince;
-            bool Deaf;
-            bool Mute;
+            void AddRoles(const std::string &Guild, const std::string &Command, const std::vector<std::string> &Roles) override;
+            std::vector<std::string> GetRoles(const std::string &Guild, const std::string &Command) override;
+            void DeleteCommand(const std::string &Guild, const std::string &Command) override;
+            void RemoveRoles(const std::string &Guild, const std::string &Command, const std::vector<std::string> &Roles) override;
 
-            VoiceState State;
-
-            ~CGuildMember() {}
+            ~CJSONCmdsConfig() {}
         private:
-            /* data */
-    };
+            void SaveDB();
 
-    using GuildMember = std::shared_ptr<CGuildMember>;
+            using Database = std::map<std::string, std::map<std::string, std::vector<std::string>>>;
+            Database m_Database;
+    };
 } // namespace DiscordBot
 
 
-#endif //GUILDMEMBER_HPP
+#endif //JSONCMDSCONFIG_HPP

@@ -112,7 +112,7 @@ namespace DiscordBot
         DIRECT_MESSAGE_TYPING = (1 << 14),
         //- TYPING_START
 
-        DEFAULTS = GUILDS | GUILD_VOICE_STATES | GUILD_MESSAGES | DIRECT_MESSAGES
+        DEFAULTS = GUILDS | GUILD_VOICE_STATES | GUILD_MESSAGES | DIRECT_MESSAGES | GUILD_MEMBERS
     };
 
     inline Intent operator |(Intent lhs, Intent rhs)  
@@ -126,20 +126,21 @@ namespace DiscordBot
             IDiscordClient(/* args */) {}
 
             /**
-             * @brief Registers a controller for this client. This controller receives all events of the client. See @see ::IController for more informations.
+             * @brief Registers a controller for this client. This controller receives all events of the client. @see IController for more informations.
              * 
+             * @tparam T: Derived class of IController
              * @tparam ...Args: Arguments which are passed to the constructer of the controller. 
              */
             template<class T, class ...Args, typename std::enable_if<std::is_base_of<IController, T>::value>::type* = nullptr>
             inline void RegisterController(Args&& ...args)
             {
-                m_Controller = Controller(new T(std::forward<Args...>(args)...));
-                m_Controller->Client = this;
+                m_Controller = Controller(new T(this, std::forward<Args...>(args)...));
             }
 
             /**
              * @brief Registers a music queue template for this client. This queue type will created for each connected voice server and handles the audio.
              * 
+             * @tparam T: Derived class of IMusicQueue
              * @tparam ...Args: Arguments which are passed to the constructer of the music queue. 
              */
             template<class T, class ...Args, typename std::enable_if<std::is_base_of<IMusicQueue, T>::value>::type* = nullptr>
@@ -185,7 +186,7 @@ namespace DiscordBot
             virtual bool StartSpeaking(Channel channel, AudioSource source) = 0;
 
             /**
-             * @brief Pauses the audio source. Call @see ResumeSpeaking to continue streaming.
+             * @brief Pauses the audio source. @see ResumeSpeaking to continue streaming.
              * 
              * @param guild: The guild to pause.
              */
@@ -254,7 +255,7 @@ namespace DiscordBot
             virtual bool IsPlaying(Guild guild) = 0;
 
             /**
-             * @brief Runs the bot. The call returns if you calls @see Quit().
+             * @brief Runs the bot. The call returns if you calls Quit(). @see Quit()
              */
             virtual void Run() = 0;
 
