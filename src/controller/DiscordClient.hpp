@@ -219,6 +219,15 @@ namespace DiscordBot
             void SendMessage(Channel channel, const std::string Text, Embed embed = nullptr, bool TTS = false) override;
 
             /**
+             * @brief Sends a message to a given user.
+             * 
+             * @param user: Userwhich will receive the message.
+             * @param Text: Text to send;
+             * @param TTS: True to enable tts.
+             */
+            void SendMessage(User user, const std::string Text, Embed embed = nullptr, bool TTS = false) override;
+
+            /**
              * @return Returns the audio source for the given guild. Null if there is no audio source available.
              */
             AudioSource GetAudioSource(Guild guild) override;
