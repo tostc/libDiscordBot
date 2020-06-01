@@ -117,7 +117,7 @@ namespace DiscordBot
      */
     void CDiscordClient::SendMessage(Channel channel, const std::string Text, Embed embed, bool TTS)
     {
-        if(channel->Type != ChannelTypes::GUILD_TEXT)
+        if(channel->Type != ChannelTypes::GUILD_TEXT && channel->Type != ChannelTypes::DM)
             return;
 
         ix::HttpRequestArgsPtr args = ix::HttpRequestArgsPtr(new ix::HttpRequestArgs());
@@ -148,6 +148,36 @@ namespace DiscordBot
         auto res = m_HTTPClient.post(std::string(BASE_URL) + "/channels/" + channel->ID + "/messages", json.Serialize(), args);
         if (res->statusCode != 200)
             llog << lerror << "Failed to send message HTTP: " << res->statusCode << " MSG: " << res->errorMsg << lendl;
+    }
+
+    /**
+     * @brief Sends a message to a given user.
+     * 
+     * @param user: Userwhich will receive the message.
+     * @param Text: Text to send;
+     * @param TTS: True to enable tts.
+     */
+    void CDiscordClient::SendMessage(User user, const std::string Text, Embed embed, bool TTS)
+    {
+        CJSON json;
+        json.AddPair("recipient_id", user->ID);
+
+        ix::HttpRequestArgsPtr args = ix::HttpRequestArgsPtr(new ix::HttpRequestArgs());
+
+        //Add the bot token.
+        args->extraHeaders["Authorization"] = "Bot " + m_Token;
+        args->extraHeaders["Content-Type"] = "application/json";
+
+        auto res = m_HTTPClient.post(std::string(BASE_URL) + "/users/@me/channels", json.Serialize(), args);
+        if (res->statusCode != 200)
+            llog << lerror << "Failed to send message HTTP: " << res->statusCode << " MSG: " << res->errorMsg << lendl;
+        else
+        {
+            json.ParseObject(res->payload);
+            Channel c = CreateChannel(json);
+
+            SendMessage(c, Text, embed, TTS);
+        }
     }
 
     /**
@@ -1167,7 +1197,7 @@ namespace DiscordBot
         {
             channel = Channel(new CChannel());
             channel->ID = json.GetValue<std::string>("channel_id");
-            channel->Type = ChannelTypes::GUILD_TEXT;
+            channel->Type = ChannelTypes::DM;
         }
 
         Ret->ID = json.GetValue<std::string>("id");
