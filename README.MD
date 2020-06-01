@@ -68,6 +68,10 @@ Please visit the [wiki page](https://github.com/tostc/libDiscordBot/wiki/Your-fi
 - Easy to use API
 - Member and Guild management
 
+## Applications which uses libDiscordBot
+
+Send a pull request or open an issue if you like to add your application here.
+
 ## Libraries
 * There's no need to manually install each of these if you used the command in the "Cloning the repository: " step.
 - [opus](https://github.com/xiph/opus)
