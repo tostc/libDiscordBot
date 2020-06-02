@@ -10,9 +10,12 @@ libDiscordBot is an easy-to-use C++ Discord bot library that you can use to quic
   You can clone the development branch if you want the latest and probably buggy stuff. This is not recommended for productivity programs.
 
 ## Features
-* Send and read messages
-* Stream music (it has a playlist API)
-* Implementing commands is now way easier!
+- Built In help command
+- Built In rights management system for commands.
+- Audio streaming
+- Playlist API
+- Easy to use API
+- Member and Guild management
 
 ### Prerequisites
 First you need following software and libraries.
@@ -60,17 +63,11 @@ Please visit the [wiki page](https://github.com/tostc/libDiscordBot/wiki/Your-fi
 - [ ] Wrap all Discord objects
 - [ ] Wrap all Discord events
 
-## Features
-- Built In help command
-- Built In rights management system for commands.
-- Audio streaming
-- Playlist API
-- Easy to use API
-- Member and Guild management
-
 ## Applications which uses libDiscordBot
 
 Send a pull request or open an issue if you like to add your application here.
+
+- [NightcoreBot](https://github.com/tostc/NightcoreBot) Discord music bot which turns all music to nightcore. Perfect for all nighcore lovers. 
 
 ## Libraries
 * There's no need to manually install each of these if you used the command in the "Cloning the repository: " step.
