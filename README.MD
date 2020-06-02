@@ -67,7 +67,7 @@ Please visit the [wiki page](https://github.com/tostc/libDiscordBot/wiki/Your-fi
 
 Send a pull request or open an issue if you like to add your application here.
 
-- [NightcoreBot](https://github.com/tostc/NightcoreBot) Discord music bot which turns all music to nightcore. Perfect for all nighcore lovers. 
+- [NightcoreBot](https://github.com/tostc/NightcoreBot) - Discord music bot which turns all music to nightcore. Perfect for all nighcore lovers. 
 
 ## Libraries
 * There's no need to manually install each of these if you used the command in the "Cloning the repository: " step.
