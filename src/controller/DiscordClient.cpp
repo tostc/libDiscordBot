@@ -481,6 +481,12 @@ namespace DiscordBot
             {
                 m_Socket.start();
             }break;
+
+            case RECONNECT:
+            {
+                m_SessionID.clear();
+                m_Socket.start();
+            }break;
         }
     }
 
@@ -791,7 +797,14 @@ namespace DiscordBot
                                 if (Pay.D == "true")
                                     SendResume();
                                 else
-                                    Quit();
+                                {
+                                    //TODO: Maybe deadlock. Let's find out.
+                                    llog << linfo << "INVALID_SESSION CLOSE SOCKET" << lendl;
+                                    m_Socket.close();
+                                    llog << linfo << "INVALID_SESSION SOCKET CLOSED" << lendl;
+                                    m_EVManger.PostMessage(RECONNECT, 0, 5000);
+                                }
+                                    //Quit();
 
                                 llog << linfo << "INVALID_SESSION" << lendl;
                             }break;
