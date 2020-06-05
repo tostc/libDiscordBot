@@ -138,6 +138,28 @@ namespace DiscordBot
             CDiscordClient(const std::string &Token, Intent Intents);
 
             /**
+             * @brief Sets the online status of the bot.
+             * 
+             * @param state: Online state of the bot. @see State.
+             */
+            void SetState(State state) override;
+
+            /**
+             * @brief Sets the bot AFK.
+             * 
+             * @param AFK: True if the bot is afk.
+             */
+            void SetAFK(bool AFK) override;
+
+            /**
+             * @brief Sets the "Playing" status text or sets the bot in streaming mode.
+             * 
+             * @param Text: The text after "Playing"
+             * @param URL: [Optional] A url to twitch or youtube, if this url is set the bot "Streams" on these platforms.
+             */
+            void SetActivity(const std::string &Text, const std::string &URL = "") override;
+
+            /**
              * @brief Adds a song to the music queue.
              * 
              * @param guild: The guild which is associated with the queue.
@@ -253,6 +275,11 @@ namespace DiscordBot
             void Quit() override;
 
             /**
+             * @brief Same as Quit() but as asynchronous call. Internally Quit() is called. @see Quit()
+             */
+            void QuitAsync() override;
+
+            /**
              * @return Gets the bot user.
              */
             User GetBotUser() override
@@ -266,7 +293,8 @@ namespace DiscordBot
             {
                 QUEUE_NEXT_SONG,
                 RESUME,
-                RECONNECT
+                RECONNECT,
+                QUIT
             };
 
             const char *BASE_URL = "https://discordapp.com/api";
@@ -309,6 +337,21 @@ namespace DiscordBot
             AudioSources m_AudioSources;
 
             MusicQueues m_MusicQueues;
+
+            bool m_IsAFK;
+            State m_State;
+            std::string m_Text; //Playing xy
+            std::string m_URL;  //Streams on xy
+
+            /**
+             * @return Creates a user info object and return it as json string.
+             */
+            std::string CreateUserInfoJSON();
+
+            /**
+             * @brief Updates the userinfo things like online state, afk, now playing etc.
+             */
+            void UpdateUserInfo();
 
             /**
              * @brief Joins or leaves a voice channel.

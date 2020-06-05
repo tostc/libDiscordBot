@@ -49,11 +49,12 @@ namespace DiscordBot
         return DiscordClient(new CDiscordClient(Token, Intents));
     }
 
-    CDiscordClient::CDiscordClient(const std::string &Token, Intent Intents) : m_Intents(Intents), m_Token(Token), m_Terminate(false), m_HeartACKReceived(false), m_Quit(false), m_LastSeqNum(-1) 
+    CDiscordClient::CDiscordClient(const std::string &Token, Intent Intents) : m_Intents(Intents), m_Token(Token), m_Terminate(false), m_HeartACKReceived(false), m_Quit(false), m_LastSeqNum(-1), m_IsAFK(false), m_State(State::ONLINE)
     {
         m_EVManger.SubscribeMessage(QUEUE_NEXT_SONG, std::bind(&CDiscordClient::OnMessageReceive, this, std::placeholders::_1));  
         m_EVManger.SubscribeMessage(RESUME, std::bind(&CDiscordClient::OnMessageReceive, this, std::placeholders::_1));  
         m_EVManger.SubscribeMessage(RECONNECT, std::bind(&CDiscordClient::OnMessageReceive, this, std::placeholders::_1));   
+        m_EVManger.SubscribeMessage(QUIT, std::bind(&CDiscordClient::OnMessageReceive, this, std::placeholders::_1));   
 
         //Disable client side checking.
         ix::SocketTLSOptions DisabledTrust;
@@ -61,6 +62,106 @@ namespace DiscordBot
 
         m_HTTPClient.setTLSOptions(DisabledTrust);
         m_Socket.setTLSOptions(DisabledTrust);
+    }
+
+    /**
+     * @brief Sets the online status of the bot.
+     * 
+     * @param state: Online state of the bot. @see State.
+     */
+    void CDiscordClient::SetState(State state)
+    {
+        m_State = state;
+        UpdateUserInfo();
+    }
+
+    /**
+     * @brief Sets the bot AFK.
+     * 
+     * @param AFK: True if the bot is afk.
+     */
+    void CDiscordClient::SetAFK(bool AFK)
+    {
+        m_IsAFK = AFK;
+        UpdateUserInfo();
+    }
+
+    /**
+     * @brief Sets the "Playing" status text or sets the bot in streaming mode.
+     * 
+     * @param Text: The text after "Playing"
+     * @param URL: [Optional] A url to twitch or youtube, if this url is set the bot "Streams" on these platforms.
+     */
+    void CDiscordClient::SetActivity(const std::string &Text, const std::string &URL)
+    {
+        m_Text = Text;
+        m_URL = URL;
+        UpdateUserInfo();
+    }
+
+    /**
+     * @return Creates a user info object and return it as json string.
+     */
+    std::string CDiscordClient::CreateUserInfoJSON()
+    {
+        CJSON json;
+
+        std::string OnlineState;
+
+        switch(m_State)
+        {
+            case State::ONLINE:
+            {
+                OnlineState = "online";
+            }break;
+
+            case State::DND:
+            {
+                OnlineState = "dnd";
+            }break;
+
+            case State::IDLE:
+            {
+                OnlineState = "idle";
+            }break;
+
+            case State::INVISIBLE:
+            {
+                OnlineState = "invisible";
+            }break;
+            
+            case State::OFFLINE:
+            {
+                OnlineState = "offline";
+            }break;
+        }
+
+        json.AddPair("since", static_cast<uint32_t>(time(nullptr)));
+        json.AddPair("status", OnlineState);
+        json.AddPair("afk", m_IsAFK);
+
+        CJSON activity;
+        activity.AddPair("name", m_Text);
+
+        if(!m_URL.empty())
+        {
+            activity.AddPair("url", m_URL);
+            activity.AddPair("type", 1); //Streaming
+        }
+        else
+            activity.AddPair("type", 0); //Game
+
+        json.AddJSON("game", activity.Serialize());
+
+        return json.Serialize();
+    }
+
+    /**
+     * @brief Updates the userinfo things like online state, afk, now playing etc.
+     */
+    void CDiscordClient::UpdateUserInfo()
+    {        
+        SendOP(OPCodes::PRESENCE_UPDATE, CreateUserInfoJSON());
     }
 
     /**
@@ -292,6 +393,14 @@ namespace DiscordBot
     }
 
     /**
+     * @brief Same as Quit() but as asynchronous call. Internally Quit() is called. @see Quit()
+     */
+    void CDiscordClient::QuitAsync()
+    {
+        m_EVManger.PostMessage(QUIT, 0, 200);
+    }
+
+    /**
      * @brief Adds a song to the music queue.
      * 
      * @param guild: The guild which is associated with the queue.
@@ -486,6 +595,11 @@ namespace DiscordBot
             {
                 m_SessionID.clear();
                 m_Socket.start();
+            }break;
+
+            case QUIT:
+            {
+                Quit();
             }break;
         }
     }
@@ -898,6 +1012,7 @@ namespace DiscordBot
         try
         {
             CJSON json;
+            std::string TT = json.Serialize(Pay);
             m_Socket.send(json.Serialize(Pay));
         }
         catch (const CJSONException &e)
@@ -916,6 +1031,7 @@ namespace DiscordBot
         id.Properties["$os"] = "linux";
         id.Properties["$browser"] = "libDiscordBot";
         id.Properties["$device"] = "libDiscordBot";
+        id.Properties["presence"] = CreateUserInfoJSON();
         id.Intents = m_Intents;
 
         CJSON json;

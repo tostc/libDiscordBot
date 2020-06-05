@@ -120,6 +120,16 @@ namespace DiscordBot
         return static_cast<Intent>(static_cast<unsigned>(lhs) |static_cast<unsigned>(rhs));
     }  
 
+    /** Online state of the bot. */
+    enum class State
+    {
+        ONLINE,
+        DND,
+        IDLE,
+        INVISIBLE,
+        OFFLINE
+    };
+
     class DISCORDBOT_EXPORT IDiscordClient
     {
         public:
@@ -157,6 +167,28 @@ namespace DiscordBot
             {
                 return m_Controller;
             }
+
+            /**
+             * @brief Sets the online status of the bot.
+             * 
+             * @param state: Online state of the bot. @see State.
+             */
+            virtual void SetState(State state) = 0;
+
+            /**
+             * @brief Sets the bot AFK.
+             * 
+             * @param AFK: True if the bot is afk.
+             */
+            virtual void SetAFK(bool AFK) = 0;
+
+            /**
+             * @brief Sets the "Playing" status text or sets the bot in streaming mode.
+             * 
+             * @param Text: The text after "Playing"
+             * @param URL: [Optional] A url to twitch or youtube, if this url is set the bot "Streams" on these platforms.
+             */
+            virtual void SetActivity(const std::string &Text, const std::string &URL = "") = 0;
 
             /**
              * @brief Adds a song to the music queue.
@@ -272,6 +304,11 @@ namespace DiscordBot
              * @brief Quits the bot. And disconnects all voice states.
              */
             virtual void Quit() = 0;
+
+            /**
+             * @brief Same as Quit() but as asynchronous call. Internally Quit() is called. @see Quit()
+             */
+            virtual void QuitAsync() = 0;
 
             /**
              * @return Gets the bot user.

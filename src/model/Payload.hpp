@@ -56,7 +56,7 @@ namespace DiscordBot
 
                 if(D.empty())
                     json.AddPair("d", nullptr);
-                else if(std::find_if(D.begin(), D.end(), [](const char &c) -> bool { return isdigit(c); }) == D.end())
+                else if(IsNumber(D))
                     json.AddPair("d", std::stoi(D));
                 else
                     json.AddJSON("d", D);
@@ -66,6 +66,22 @@ namespace DiscordBot
 
                 if(!T.empty())
                     json.AddPair("t", T);
+            }
+
+            bool IsNumber(const std::string &Val) const
+            {
+                bool Ret = true;
+
+                for (auto &&e : Val)
+                {
+                    if(!isdigit(e))
+                    {
+                        Ret = false;
+                        break;
+                    }
+                }
+                
+                return Ret;
             }
     };
 
