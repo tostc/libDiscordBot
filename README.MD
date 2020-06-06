@@ -6,18 +6,21 @@ libDiscordBot is an easy-to-use C++ Discord bot library that you can use to quic
 
 ![Discord Logo](https://discord.com/assets/fc0b01fe10a0b8c602fb0106d8189d9b.png)
 
-# Read me!
-This is the development version of the library. You might encounter bugs/errors, the API is probably broken, and the project might not build.
+## Feeling adventurous?
+  You can clone the development branch if you want the latest and probably buggy stuff. This is not recommended for productivity programs.
 
 ## Features
-* Send and read messages
-* Stream music (it has a playlist API)
-* Implementing commands is now way easier!
+- Built In help command
+- Built In rights management system for commands.
+- Audio streaming
+- Playlist API
+- Easy to use API
+- Member and Guild management
 
 ### Prerequisites
 First you need following software and libraries.
 
-* cmake
+* CMake
 * C++ compiler which supports C++14
     * Compiles with clang and gcc under Linux.
     * Compiles with Visual Studio 2019 under Windows.
@@ -28,8 +31,9 @@ These instructions will help you compile and use the library to build your own b
 1. Cloning the repository:
 
 ```
-git clone --recurse-submodules -j8 -b development --single-branch https://github.com/tostc/libDiscordBot.git
+git clone --recurse-submodules -j8 --single-branch https://github.com/tostc/libDiscordBot.git
 ```
+side note: if you want to clone a specfic branch, you can include `-b *name of the branch you want to clone*` anywhere in the command (obviously, only after `git clone`).
 
 2. Building the project:
 
@@ -49,19 +53,21 @@ For Windows open the *.sln file inside the build directory
 
 3. Copy and rename the project_template directory somewhere to get starting. Follow the introduction inside the README.MD of the template.
 
+### First bot
+
+Please visit the [wiki page](https://github.com/tostc/libDiscordBot/wiki/Your-first-bot).
+
 ## Checklist
 - [ ] Administration
 - [x] Rights management(with Roles)
 - [ ] Wrap all Discord objects
 - [ ] Wrap all Discord events
 
-## Features
-- Built In help command
-- Built In rights management system for commands.
-- Audio streaming
-- Playlist api
-- Easy to use API
-- Member and Guild management
+## Applications which uses libDiscordBot
+
+Send a pull request or open an issue if you like to add your application here.
+
+- [NightcoreBot](https://github.com/tostc/NightcoreBot) - Discord music bot which turns all music to nightcore. Perfect for all nighcore lovers. 
 
 ## Libraries
 * There's no need to manually install each of these if you used the command in the "Cloning the repository: " step.
