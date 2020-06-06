@@ -30,6 +30,10 @@
 #define CLOG_IMPLEMENTATION
 #include <Log.hpp>
 
+#ifdef DISCORDBOT_UNIX
+#include <signal.h>
+#endif
+
 namespace DiscordBot
 {
     /**
@@ -51,6 +55,11 @@ namespace DiscordBot
 
     CDiscordClient::CDiscordClient(const std::string &Token, Intent Intents) : m_Intents(Intents), m_Token(Token), m_Terminate(false), m_HeartACKReceived(false), m_Quit(false), m_LastSeqNum(-1) 
     {
+#ifdef DISCORDBOT_UNIX
+        //Ignores the SIGPIPE signal.
+        signal(SIGPIPE, SIG_IGN);
+#endif
+
         m_EVManger.SubscribeMessage(QUEUE_NEXT_SONG, std::bind(&CDiscordClient::OnMessageReceive, this, std::placeholders::_1));  
         m_EVManger.SubscribeMessage(RESUME, std::bind(&CDiscordClient::OnMessageReceive, this, std::placeholders::_1));  
         m_EVManger.SubscribeMessage(RECONNECT, std::bind(&CDiscordClient::OnMessageReceive, this, std::placeholders::_1));   
@@ -481,6 +490,12 @@ namespace DiscordBot
             {
                 m_Socket.start();
             }break;
+
+            case RECONNECT:
+            {
+                m_SessionID.clear();
+                m_Socket.start();
+            }break;
         }
     }
 
@@ -491,6 +506,11 @@ namespace DiscordBot
     {
         switch (msg->type)
         {
+            case ix::WebSocketMessageType::Open:
+            {
+                llog << linfo << "Websocket opened URI: " << msg->openInfo.uri << " Protocol: " << msg->openInfo.protocol << lendl;
+            }break;
+
             case ix::WebSocketMessageType::Error:
             {
                 llog << lerror << "Websocket error " << msg->errorInfo.reason << lendl;
@@ -499,6 +519,7 @@ namespace DiscordBot
             case ix::WebSocketMessageType::Close:
             {
                 m_Terminate = true;
+                m_HeartACKReceived = false;
                 llog << linfo << "Websocket closed code " << msg->closeInfo.code << " Reason " << msg->closeInfo.reason << lendl;
             }break;
 
@@ -784,17 +805,6 @@ namespace DiscordBot
                                 if (m_Controller)
                                     m_Controller->OnResume();
                             } break;
-
-                            //Something is wrong.
-                            case Adler32("INVALID_SESSION"):
-                            {
-                                if (Pay.D == "true")
-                                    SendResume();
-                                else
-                                    Quit();
-
-                                llog << linfo << "INVALID_SESSION" << lendl;
-                            }break;
                         }
                 }break;
 
@@ -828,6 +838,24 @@ namespace DiscordBot
                 case OPCodes::HEARTBEAT_ACK:
                 {
                     m_HeartACKReceived = true;
+                }break;
+
+                //Something is wrong.
+                case OPCodes::INVALID_SESSION:
+                {
+                    if (Pay.D == "true")
+                        SendResume();
+                    else
+                    {
+                        //TODO: Maybe deadlock. Let's find out.
+                        llog << linfo << "INVALID_SESSION CLOSE SOCKET" << lendl;
+                        m_Socket.close();
+                        llog << linfo << "INVALID_SESSION SOCKET CLOSED" << lendl;
+                        m_EVManger.PostMessage(RECONNECT, 0, 5000);
+                    }
+                        //Quit();
+
+                    llog << linfo << "INVALID_SESSION" << lendl;
                 }break;
                 }
             }break;
