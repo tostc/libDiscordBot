@@ -611,6 +611,11 @@ namespace DiscordBot
     {
         switch (msg->type)
         {
+            case ix::WebSocketMessageType::Open:
+            {
+                llog << linfo << "Websocket opened URI: " << msg->openInfo.uri << " Protocol: " << msg->openInfo.protocol << lendl;
+            }break;
+
             case ix::WebSocketMessageType::Error:
             {
                 llog << lerror << "Websocket error " << msg->errorInfo.reason << lendl;
@@ -619,6 +624,7 @@ namespace DiscordBot
             case ix::WebSocketMessageType::Close:
             {
                 m_Terminate = true;
+                m_HeartACKReceived = false;
                 llog << linfo << "Websocket closed code " << msg->closeInfo.code << " Reason " << msg->closeInfo.reason << lendl;
             }break;
 
@@ -904,24 +910,6 @@ namespace DiscordBot
                                 if (m_Controller)
                                     m_Controller->OnResume();
                             } break;
-
-                            //Something is wrong.
-                            case Adler32("INVALID_SESSION"):
-                            {
-                                if (Pay.D == "true")
-                                    SendResume();
-                                else
-                                {
-                                    //TODO: Maybe deadlock. Let's find out.
-                                    llog << linfo << "INVALID_SESSION CLOSE SOCKET" << lendl;
-                                    m_Socket.close();
-                                    llog << linfo << "INVALID_SESSION SOCKET CLOSED" << lendl;
-                                    m_EVManger.PostMessage(RECONNECT, 0, 5000);
-                                }
-                                    //Quit();
-
-                                llog << linfo << "INVALID_SESSION" << lendl;
-                            }break;
                         }
                 }break;
 
@@ -955,6 +943,24 @@ namespace DiscordBot
                 case OPCodes::HEARTBEAT_ACK:
                 {
                     m_HeartACKReceived = true;
+                }break;
+
+                //Something is wrong.
+                case OPCodes::INVALID_SESSION:
+                {
+                    if (Pay.D == "true")
+                        SendResume();
+                    else
+                    {
+                        //TODO: Maybe deadlock. Let's find out.
+                        llog << linfo << "INVALID_SESSION CLOSE SOCKET" << lendl;
+                        m_Socket.close();
+                        llog << linfo << "INVALID_SESSION SOCKET CLOSED" << lendl;
+                        m_EVManger.PostMessage(RECONNECT, 0, 5000);
+                    }
+                        //Quit();
+
+                    llog << linfo << "INVALID_SESSION" << lendl;
                 }break;
                 }
             }break;
