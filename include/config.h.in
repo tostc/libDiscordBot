@@ -34,12 +34,15 @@
 
 #if defined (_WIN32)
     #if defined(DLL_BUILD)
-        #define  DISCORDBOT_EXPORT __declspec(dllexport)
+        #define DISCORDBOT_EXPORT __declspec(dllexport)
     #else
-        #define  DISCORDBOT_EXPORT __declspec(dllimport)
+        #define DISCORDBOT_EXPORT __declspec(dllimport)
     #endif
+
+    #define DISCORDBOT_WINDOWS
 #else
     #define DISCORDBOT_EXPORT
+    #define DISCORDBOT_UNIX
 #endif
 
 #endif //CONFIG_H

@@ -30,6 +30,10 @@
 #define CLOG_IMPLEMENTATION
 #include <Log.hpp>
 
+#ifdef DISCORDBOT_UNIX
+#include <signal.h>
+#endif
+
 namespace DiscordBot
 {
     /**
@@ -51,6 +55,11 @@ namespace DiscordBot
 
     CDiscordClient::CDiscordClient(const std::string &Token, Intent Intents) : m_Intents(Intents), m_Token(Token), m_Terminate(false), m_HeartACKReceived(false), m_Quit(false), m_LastSeqNum(-1) 
     {
+#ifdef DISCORDBOT_UNIX
+        //Ignores the SIGPIPE signal.
+        signal(SIGPIPE, SIG_IGN);
+#endif
+
         m_EVManger.SubscribeMessage(QUEUE_NEXT_SONG, std::bind(&CDiscordClient::OnMessageReceive, this, std::placeholders::_1));  
         m_EVManger.SubscribeMessage(RESUME, std::bind(&CDiscordClient::OnMessageReceive, this, std::placeholders::_1));  
         m_EVManger.SubscribeMessage(RECONNECT, std::bind(&CDiscordClient::OnMessageReceive, this, std::placeholders::_1));   
