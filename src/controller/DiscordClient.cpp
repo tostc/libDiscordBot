@@ -829,6 +829,16 @@ namespace DiscordBot
 
                             /*------------------------GUILD_MEMBERS Intent------------------------*/
 
+                            /*------------------------GUILD_PRESENCES Intent------------------------*/
+                            //ATTENTION: NEEDS "Presence Intent" ACTIVATED TO WORK, OTHERWISE THE BOT FAIL TO CONNECT AND A ERROR IS WRITTEN TO THE CONSOLE!!!
+
+                            case Adler32("PRESENCE_UPDATE"):
+                            { 
+                                
+                            }break;
+
+                            /*------------------------GUILD_PRESENCES Intent------------------------*/
+
                             /*------------------------GUILD_VOICE_STATES Intent------------------------*/
 
                             case Adler32("VOICE_STATE_UPDATE"):
