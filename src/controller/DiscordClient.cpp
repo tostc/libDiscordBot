@@ -651,12 +651,18 @@ namespace DiscordBot
                                 Member.ParseObject(Pay.D);
 
                                 std::string GuildID = Member.GetValue<std::string>("guild_id");
-                                
-                                Guild guild = m_Guilds[GuildID];
-                                GuildMember Tmp = CreateMember(Member, guild);
 
-                                if(m_Controller)
-                                    m_Controller->OnMemberAdd(guild, Tmp);
+                                auto IT = m_Guilds.find(GuildID);
+                                if(IT != m_Guilds.end())
+                                {
+                                    Guild guild = IT->second;//m_Guilds[GuildID];
+                                    GuildMember Tmp = CreateMember(Member, guild);
+
+                                    if(m_Controller)
+                                        m_Controller->OnMemberAdd(guild, Tmp);
+                                }
+                                else
+                                    llog << ldebug << "Invalid Guild ( " << GuildID << " ) " << lendl;
                             }break;
 
                             case Adler32("GUILD_MEMBER_UPDATE"):
@@ -670,20 +676,26 @@ namespace DiscordBot
                                 json.ParseObject(json.GetValue<std::string>("user"));
                                 std::string UserID = json.GetValue<std::string>("id");
 
-                                Guild guild = m_Guilds[GuildID];
-                                auto IT = guild->Members.find(UserID);
-                                if(IT != guild->Members.end())
+                                auto GIT = m_Guilds.find(GuildID);
+                                if(GIT != m_Guilds.end())
                                 {
-                                    IT->second->Roles.clear();
-                                    for (auto &&e : Array)
-                                        IT->second->Roles.push_back(guild->Roles[e]);                               
+                                    Guild guild = GIT->second;//m_Guilds[GuildID];
+                                    auto IT = guild->Members.find(UserID);
+                                    if(IT != guild->Members.end())
+                                    {
+                                        IT->second->Roles.clear();
+                                        for (auto &&e : Array)
+                                            IT->second->Roles.push_back(guild->Roles[e]);                               
 
-                                    IT->second->Nick = Nick;
-                                    IT->second->PremiumSince = Premium;
+                                        IT->second->Nick = Nick;
+                                        IT->second->PremiumSince = Premium;
 
-                                    if(m_Controller)
-                                        m_Controller->OnMemberUpdate(guild, IT->second);
+                                        if(m_Controller)
+                                            m_Controller->OnMemberUpdate(guild, IT->second);
+                                    } 
                                 }
+                                else
+                                    llog << ldebug << "Invalid Guild ( " << GuildID << " ) " << lendl;
                             }break;
 
                             case Adler32("GUILD_MEMBER_REMOVE"):
@@ -694,23 +706,29 @@ namespace DiscordBot
                                 json.ParseObject(json.GetValue<std::string>("user"));
                                 std::string UserID = json.GetValue<std::string>("id");
 
-                                Guild guild = m_Guilds[GuildID];
-
-                                auto IT = guild->Members.find(UserID);
-                                if(IT != guild->Members.end())
+                                auto GIT = m_Guilds.find(GuildID);
+                                if(GIT != m_Guilds.end())
                                 {
-                                    GuildMember member = IT->second;
-                                    guild->Members.erase(IT);
+                                    Guild guild = GIT->second;//m_Guilds[GuildID];
 
-                                    if(m_Controller)
-                                        m_Controller->OnMemberRemove(guild, member);
-                                }                                
+                                    auto IT = guild->Members.find(UserID);
+                                    if(IT != guild->Members.end())
+                                    {
+                                        GuildMember member = IT->second;
+                                        guild->Members.erase(IT);
 
-                                if(m_Users.find(UserID) != m_Users.end())
-                                {
-                                    if(m_Users[UserID].use_count() == 1)
-                                        m_Users.erase(UserID);
+                                        if(m_Controller)
+                                            m_Controller->OnMemberRemove(guild, member);
+                                    }                                
+
+                                    if(m_Users.find(UserID) != m_Users.end())
+                                    {
+                                        if(m_Users[UserID].use_count() == 1)
+                                            m_Users.erase(UserID);
+                                    }
                                 }
+                                else
+                                    llog << ldebug << "Invalid Guild ( " << GuildID << " ) " << lendl;
                             }break;
 
                             /*------------------------GUILD_MEMBERS Intent------------------------*/
