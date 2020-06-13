@@ -112,9 +112,19 @@ namespace DiscordBot
              * @param guild: Guild which had contains the member
              * @param Member: Member which leaves
              * 
-             * @note The GUILD_MEMBERS intent needs to be set to receive this event. Also you must activate "Server Members Intent" under the bot section of your Discord Application (Website).This intent is set by default. @see Intent
+             * @note The GUILD_MEMBERS  Also you must activate "Server Members Intent" under the bot section of your Discord Application (Website).This intent is set by default. @see Intent
              */
             virtual void OnMemberRemove(Guild guild, GuildMember Member) {}
+
+            /**
+             * @brief Called if a user changes his activity state or online state.
+             * 
+             * @param guild: Guild which had contains the member
+             * @param Member: Member which updates
+             * 
+             * @note The GUILD_PRESENCES intent needs to be set to receive this event. Please visit <a href="https://discord.com/developers/docs/topics/gateway#privileged-intents">this</a> website to use this intent.
+             */
+            virtual void OnPresenceUpdate(Guild guild, GuildMember Member) {}
 
             /**
              * @brief Called if a new message was sended. Process the message and call associated commands.

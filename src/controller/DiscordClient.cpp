@@ -53,7 +53,7 @@ namespace DiscordBot
         return DiscordClient(new CDiscordClient(Token, Intents));
     }
 
-    CDiscordClient::CDiscordClient(const std::string &Token, Intent Intents) : m_Intents(Intents), m_Token(Token), m_Terminate(false), m_HeartACKReceived(false), m_Quit(false), m_LastSeqNum(-1), m_IsAFK(false), m_State(State::ONLINE)
+    CDiscordClient::CDiscordClient(const std::string &Token, Intent Intents) : m_Intents(Intents), m_Token(Token), m_Terminate(false), m_HeartACKReceived(false), m_Quit(false), m_LastSeqNum(-1), m_IsAFK(false), m_State(OnlineState::ONLINE)
     {
 #ifdef DISCORDBOT_UNIX
         //Ignores the SIGPIPE signal.
@@ -78,7 +78,7 @@ namespace DiscordBot
      * 
      * @param state: Online state of the bot. @see State.
      */
-    void CDiscordClient::SetState(State state)
+    void CDiscordClient::SetState(OnlineState state)
     {
         m_State = state;
         UpdateUserInfo();
@@ -115,38 +115,10 @@ namespace DiscordBot
     {
         CJSON json;
 
-        std::string OnlineState;
-
-        switch(m_State)
-        {
-            case State::ONLINE:
-            {
-                OnlineState = "online";
-            }break;
-
-            case State::DND:
-            {
-                OnlineState = "dnd";
-            }break;
-
-            case State::IDLE:
-            {
-                OnlineState = "idle";
-            }break;
-
-            case State::INVISIBLE:
-            {
-                OnlineState = "invisible";
-            }break;
-            
-            case State::OFFLINE:
-            {
-                OnlineState = "offline";
-            }break;
-        }
+        std::string State = OnlineStateToStr(m_State);
 
         json.AddPair("since", static_cast<uint32_t>(time(nullptr)));
-        json.AddPair("status", OnlineState);
+        json.AddPair("status", State);
         json.AddPair("afk", m_IsAFK);
 
         CJSON activity;
@@ -852,7 +824,50 @@ namespace DiscordBot
 
                             case Adler32("PRESENCE_UPDATE"):
                             { 
-                                
+                                json.ParseObject(Pay.D);
+                                CJSON UJson;
+                                UJson.ParseObject(json.GetValue<std::string>("user"));
+
+                                User user;
+                                auto UIT = m_Users.find(json.GetValue<std::string>("id"));
+                                if(UIT != m_Users.end())
+                                    user = UIT->second;
+                                else
+                                    user = CreateUser(UJson);
+
+                                if(!json.GetValue<std::string>("game").empty())
+                                {
+                                    CJSON JGame;
+                                    JGame.ParseObject(json.GetValue<std::string>("game"));
+                                    user->Game = CreateActivity(JGame);
+                                }
+
+                                user->State = StrToOnlineState(json.GetValue<std::string>("status"));
+                                std::vector<std::string> Acts = json.GetValue<std::vector<std::string>>("activities");
+                                for (auto &&e : Acts)
+                                {
+                                    CJSON JAct;
+                                    JAct.ParseObject(e);
+                                    user->Activities.push_back(CreateActivity(JAct));
+                                }
+
+                                CJSON JClientState;
+                                JClientState.ParseObject(json.GetValue<std::string>("client_status")); 
+
+                                user->Desktop = StrToOnlineState(JClientState.GetValue<std::string>("desktop"));      
+                                user->Mobile = StrToOnlineState(JClientState.GetValue<std::string>("mobile"));   
+                                user->Web = StrToOnlineState(JClientState.GetValue<std::string>("web"));                      
+
+                                auto GIT = m_Guilds.find(json.GetValue<std::string>("guild_id"));
+                                if(GIT != m_Guilds.end())
+                                {
+                                    GuildMember member;
+                                    auto MIT = GIT->second->Members.find(user->ID);
+                                    if(MIT == GIT->second->Members.end())
+                                        member = GetMember(GIT->second, user->ID);
+
+                                    
+                                }
                             }break;
 
                             /*------------------------GUILD_PRESENCES Intent------------------------*/
@@ -1124,6 +1139,73 @@ namespace DiscordBot
             IT->second->StartSpeaking(Source);
     }
 
+    std::string OnlineStateToStr(OnlineState state)
+    {
+        switch(state)
+        {
+            case OnlineState::ONLINE:
+            {
+                return "online";
+            }break;
+
+            case OnlineState::DND:
+            {
+                return "dnd";
+            }break;
+
+            case OnlineState::IDLE:
+            {
+                return "idle";
+            }break;
+
+            case OnlineState::INVISIBLE:
+            {
+                return "invisible";
+            }break;
+            
+            case OnlineState::OFFLINE:
+            {
+                return "offline";
+            }break;
+        }
+    }
+
+    OnlineState StrToOnlineState(const std::string &state)
+    {
+        switch(Adler32(state.c_str()))
+        {
+            case Adler32("online"):
+            {
+                return OnlineState::ONLINE;
+            }break;
+
+            case Adler32("dnd"):
+            {
+                return OnlineState::DND;
+            }break;
+
+            case Adler32("idle"):
+            {
+                return OnlineState::IDLE;
+            }break;
+
+            case Adler32("invisible"):
+            {
+                return OnlineState::INVISIBLE;
+            }break;
+
+            case Adler32("offline"):
+            {
+                return OnlineState::OFFLINE;
+            }break;
+
+            default:
+            {
+                return OnlineState::OFFLINE;
+            }break;
+        }
+    }
+
     GuildMember CDiscordClient::GetMember(Guild guild, const std::string &UserID)
     {
         auto UserIT = guild->Members.find(UserID);
@@ -1178,6 +1260,11 @@ namespace DiscordBot
         Ret->Flags = (UserFlags)json.GetValue<int>("flags");
         Ret->PremiumType = (PremiumTypes)json.GetValue<int>("premium_type");
         Ret->PublicFlags = (UserFlags)json.GetValue<int>("public_flags");
+
+        Ret->State = OnlineState::ONLINE;
+        Ret->Desktop = OnlineState::ONLINE;
+        Ret->Mobile = OnlineState::OFFLINE;
+        Ret->Web = OnlineState::ONLINE;
 
         m_Users[Ret->ID] = Ret;
 
@@ -1454,6 +1541,52 @@ namespace DiscordBot
         ret->Permissions = (Permission)json.GetValue<uint32_t>("permissions");
         ret->Managed = json.GetValue<bool>("managed");
         ret->Mentionable = json.GetValue<bool>("mentionable");
+
+        return ret;
+    }
+
+    Activity CDiscordClient::CreateActivity(CJSON &json)
+    {
+        Activity ret = Activity(new CActivity());
+
+        ret->Name = json.GetValue<std::string>("name");
+        ret->Type = (ActivityType)json.GetValue<int>("type");
+        ret->URL = json.GetValue<std::string>("url");
+        ret->CreatedAt = json.GetValue<int>("created_at");
+
+        CJSON Timestamps;
+        Timestamps.ParseObject(json.GetValue<std::string>("timestamps"));
+        ret->StartTime = Timestamps.GetValue<int>("start");
+        ret->EndTime = Timestamps.GetValue<int>("end");
+
+        ret->AppID = json.GetValue<std::string>("application_id");
+        ret->Details = json.GetValue<std::string>("details");
+
+        ret->State = json.GetValue<std::string>("state");
+
+        if(!json.GetValue<std::string>("party").empty())
+        {
+            CJSON JParty;
+            JParty.ParseObject(json.GetValue<std::string>("party"));
+
+            ret->PartyObject = Party(new CParty());
+            ret->PartyObject->ID = JParty.GetValue<std::string>("id");
+            ret->PartyObject->Size = JParty.GetValue<std::vector<int>>("size");
+        }
+
+        if(!json.GetValue<std::string>("secrets").empty())
+        {
+            CJSON JSecret;
+            JSecret.ParseObject(json.GetValue<std::string>("secrets"));
+
+            ret->Secret = Secrets(new CSecrets());
+            ret->Secret->Join = JSecret.GetValue<std::string>("join");
+            ret->Secret->Spectate = JSecret.GetValue<std::string>("spectate");
+            ret->Secret->Match = JSecret.GetValue<std::string>("match");
+        }
+
+        ret->Instance = json.GetValue<bool>("instance");
+        ret->Flags = (ActivityFlags)json.GetValue<int>("flags");
 
         return ret;
     }

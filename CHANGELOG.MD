@@ -1,3 +1,9 @@
+## Version 2.1.1-alpha (06.06.2020)
+- Bugfix for Issue #7 the bot crashes randomly.
+
+## Version 2.1.0-alpha (01.06.2020)
+- Added direct message support
+
 ## Version 2.0.0-alpha (31.05.2020)
 - Bugfix: Multiple command parameters now working correctly
 - Added role management for commands

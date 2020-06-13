@@ -27,6 +27,9 @@
 
 #include <memory>
 #include <string>
+#include <vector>
+#include <models/OnlineState.hpp>
+#include <models/Activity.hpp>
 
 namespace DiscordBot
 {
@@ -73,6 +76,13 @@ namespace DiscordBot
             UserFlags Flags;
             PremiumTypes PremiumType;
             UserFlags PublicFlags;
+
+            Activity Game;
+            OnlineState State;
+            OnlineState Desktop;
+            OnlineState Mobile;
+            OnlineState Web;
+            std::vector<Activity> Activities;
 
             ~CUser() {}
 

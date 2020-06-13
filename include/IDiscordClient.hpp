@@ -32,6 +32,7 @@
 #include <controller/IMusicQueue.hpp>
 #include <controller/Factory.hpp>
 #include <config.h>
+#include <models/OnlineState.hpp>
 
 namespace DiscordBot
 {
@@ -53,7 +54,7 @@ namespace DiscordBot
         //- CHANNEL_DELETE
         //- CHANNEL_PINS_UPDATE
 
-        GUILD_MEMBERS = (1 << 1),
+        GUILD_MEMBERS = (1 << 1),           //!< Please visit <a href="https://discord.com/developers/docs/topics/gateway#privileged-intents">this</a> website to use this intent.
         //- GUILD_MEMBER_ADD
         //- GUILD_MEMBER_UPDATE
         //- GUILD_MEMBER_REMOVE
@@ -78,7 +79,7 @@ namespace DiscordBot
         GUILD_VOICE_STATES = (1 << 7),
         //- VOICE_STATE_UPDATE
 
-        GUILD_PRESENCES = (1 << 8),
+        GUILD_PRESENCES = (1 << 8),         //!< Please visit <a href="https://discord.com/developers/docs/topics/gateway#privileged-intents">this</a> website to use this intent.
         //- PRESENCE_UPDATE
 
         GUILD_MESSAGES = (1 << 9),
@@ -119,16 +120,6 @@ namespace DiscordBot
     {
         return static_cast<Intent>(static_cast<unsigned>(lhs) |static_cast<unsigned>(rhs));
     }  
-
-    /** Online state of the bot. */
-    enum class State
-    {
-        ONLINE,
-        DND,
-        IDLE,
-        INVISIBLE,
-        OFFLINE
-    };
 
     class DISCORDBOT_EXPORT IDiscordClient
     {
@@ -173,7 +164,7 @@ namespace DiscordBot
              * 
              * @param state: Online state of the bot. @see State.
              */
-            virtual void SetState(State state) = 0;
+            virtual void SetState(OnlineState state) = 0;
 
             /**
              * @brief Sets the bot AFK.

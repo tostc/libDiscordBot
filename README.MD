@@ -6,9 +6,6 @@ libDiscordBot is an easy-to-use C++ library which helps you to create quickly a 
 
 ![Discord Logo](https://discord.com/assets/fc0b01fe10a0b8c602fb0106d8189d9b.png)
 
-## Feeling adventurous?
-  You can clone the development branch if you want the latest and probably buggy stuff. This is not recommended for productivity programs.
-
 ## Features
 - Built In help command
 - Built In rights management system for commands.

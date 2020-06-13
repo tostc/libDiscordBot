@@ -37,6 +37,7 @@
 #include <models/User.hpp>
 #include <models/Guild.hpp>
 #include <models/Role.hpp>
+#include <models/Activity.hpp>
 #include <atomic>
 #include "MessageManager.hpp"
 #include "../model/Payload.hpp"
@@ -142,7 +143,7 @@ namespace DiscordBot
              * 
              * @param state: Online state of the bot. @see State.
              */
-            void SetState(State state) override;
+            void SetState(OnlineState state) override;
 
             /**
              * @brief Sets the bot AFK.
@@ -339,7 +340,7 @@ namespace DiscordBot
             MusicQueues m_MusicQueues;
 
             bool m_IsAFK;
-            State m_State;
+            OnlineState m_State;
             std::string m_Text; //Playing xy
             std::string m_URL;  //Streams on xy
 
@@ -395,6 +396,9 @@ namespace DiscordBot
 
             void OnQueueWaitFinish(const std::string &Guild, AudioSource Source);
 
+            std::string OnlineStateToStr(OnlineState state);
+            OnlineState StrToOnlineState(const std::string &state);
+
             GuildMember GetMember(Guild guild, const std::string &UserID);
 
             User CreateUser(CJSON &json);
@@ -403,6 +407,7 @@ namespace DiscordBot
             Channel CreateChannel(CJSON &json);
             Message CreateMessage(CJSON &json);
             Role CreateRole(CJSON &json);
+            Activity CreateActivity(CJSON &json);
     };
 } // namespace DiscordBot
 
