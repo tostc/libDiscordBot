@@ -659,6 +659,7 @@ namespace DiscordBot
                                 Guild guild = Guild(new CGuild());
                                 guild->ID = json.GetValue<std::string>("id");
                                 guild->Name = json.GetValue<std::string>("name");
+                                guild->Icon = json.GetValue<std::string>("icon");
 
                                 //Get all Roles;
                                 std::vector<std::string> Array = json.GetValue<std::vector<std::string>>("roles");
@@ -829,7 +830,7 @@ namespace DiscordBot
                                 UJson.ParseObject(json.GetValue<std::string>("user"));
 
                                 User user;
-                                auto UIT = m_Users.find(json.GetValue<std::string>("id"));
+                                auto UIT = m_Users.find(UJson.GetValue<std::string>("id"));
                                 if(UIT != m_Users.end())
                                     user = UIT->second;
                                 else
@@ -865,8 +866,11 @@ namespace DiscordBot
                                     auto MIT = GIT->second->Members.find(user->ID);
                                     if(MIT == GIT->second->Members.end())
                                         member = GetMember(GIT->second, user->ID);
+                                    else
+                                        member = MIT->second;
 
-                                    
+                                    if(m_Controller)
+                                        m_Controller->OnPresenceUpdate(GIT->second, member);
                                 }
                             }break;
 
@@ -1031,8 +1035,8 @@ namespace DiscordBot
             {
                 m_Socket.stop();
 
-                m_Users.clear();
-                m_Guilds.clear();
+                // m_Users.clear();
+                // m_Guilds.clear();
 
                 std::lock_guard<std::mutex> lock(m_VoiceSocketsLock);
                 m_VoiceSockets.clear();
@@ -1139,7 +1143,7 @@ namespace DiscordBot
             IT->second->StartSpeaking(Source);
     }
 
-    std::string OnlineStateToStr(OnlineState state)
+    std::string CDiscordClient::OnlineStateToStr(OnlineState state)
     {
         switch(state)
         {
@@ -1167,10 +1171,15 @@ namespace DiscordBot
             {
                 return "offline";
             }break;
+
+            default:
+            {
+                return "offline";
+            }break;
         }
     }
 
-    OnlineState StrToOnlineState(const std::string &state)
+    OnlineState CDiscordClient::StrToOnlineState(const std::string &state)
     {
         switch(Adler32(state.c_str()))
         {

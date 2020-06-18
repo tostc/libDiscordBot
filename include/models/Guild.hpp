@@ -42,6 +42,7 @@ namespace DiscordBot
 
             std::string ID;
             std::string Name;
+            std::string Icon;
 
             GuildMember Owner;
 

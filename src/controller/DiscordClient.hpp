@@ -288,6 +288,22 @@ namespace DiscordBot
                 return m_BotUser;
             }
 
+            /**
+             * @return Gets the list of all connected servers.
+             */
+            Guilds GetGuilds()
+            {
+                return m_Guilds;
+            }
+
+            /**
+             * @return Gets a list of all users.
+             */
+            Users GetUsers()
+            {
+                return m_Users;
+            }
+
             ~CDiscordClient() {}
         private:
             enum
@@ -299,8 +315,6 @@ namespace DiscordBot
             };
 
             const char *BASE_URL = "https://discordapp.com/api";
-            using Users = std::map<std::string, User>;
-            using Guilds = std::map<std::string, Guild>;
             using VoiceSockets = std::map<std::string, VoiceSocket>;
             using AudioSources = std::map<std::string, AudioSource>;
             using MusicQueues = std::map<std::string, MusicQueue>;

@@ -38,6 +38,8 @@ namespace DiscordBot
 {
     class IDiscordClient;
     using DiscordClient = std::shared_ptr<IDiscordClient>;
+    using Users = std::map<std::string, User>;
+    using Guilds = std::map<std::string, Guild>;
 
     //Discord Gateway intents https://discordapp.com/developers/docs/topics/gateway#gateway-intents
     enum class Intent
@@ -305,6 +307,16 @@ namespace DiscordBot
              * @return Gets the bot user.
              */
             virtual User GetBotUser() = 0;
+
+            /**
+             * @return Gets the list of all connected servers.
+             */
+            virtual Guilds GetGuilds() = 0;
+
+            /**
+             * @return Gets a list of all users.
+             */
+            virtual Users GetUsers() = 0;
 
             /**
              * @param Token: Your Discord bot token. Which you have created <a href="https://discordapp.com/developers/applications">here</a>.
