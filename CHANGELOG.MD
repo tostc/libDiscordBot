@@ -1,3 +1,14 @@
+## Version 2.2.0-alpha (19.06.2020)
+- Added access to the cached guilds
+- Added access to the cached users
+- Implemented GUILD_PRESENCES event. You can now retieve informations when a user updates his online state or activity state.
+- You can now set the activity state via `SetActivity`
+- You can now set the online state via `SetState`
+- You can now set the afk state vie `SetAFK`
+- Added `QuitAsync` to avoid deadlocks.
+- Added guild icons
+- Bugfix: If the bot resumes the guild cache is cleared and never restored.
+
 ## Version 2.1.1-alpha (06.06.2020)
 - Bugfix for Issue #7 the bot crashes randomly.
 
