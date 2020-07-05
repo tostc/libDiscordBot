@@ -3,7 +3,7 @@ libDiscordBot is an easy-to-use C++ library which helps you to create quickly a 
 
 Need help? Feel free to join our Discord Server.
 
-[![Discord Server](https://discordapp.com/api/guilds/711169228320931840/embed.png?style=banner2)](https://discord.gg/4yu7uR2)
+[![Discord Server](https://discordapp.com/api/guilds/711169228320931840/embed.png?style=banner2)](https://discord.gg/C79vGZb)
 
 ## Feeling adventurous?
   You can clone the development branch if you want the latest and probably buggy stuff. This is not recommended for productivity programs.
