@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.3.0)
-project(discordbot VERSION 2.2.0 LANGUAGES CXX)
+project(discordbot VERSION 2.2.1 LANGUAGES CXX)
 
 include(${CMAKE_ROOT}/Modules/ExternalProject.cmake)
 
@@ -60,6 +60,10 @@ ExternalProject_Add(IXWebSocket_build
                     INSTALL_COMMAND ""
                     TEST_COMMAND ""
                     DEPENDS mbedtls_build)
+
+if(CMAKE_SYSTEM_PROCESSOR MATCHES "(arm|aarch64)")
+  set(OPUS_DISABLE_INTRINSICS ON CACHE BOOL "")
+endif()
 
 add_subdirectory(${PROJECT_SOURCE_DIR}/externals/opus EXCLUDE_FROM_ALL)
 

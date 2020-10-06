@@ -255,7 +255,7 @@ namespace DiscordBot
             llog << lerror << "Failed to send message HTTP: " << res->statusCode << " MSG: " << res->errorMsg << lendl;
         else
         {
-            json.ParseObject(res->payload);
+            json.ParseObject(res->body);
             Channel c = CreateChannel(json);
 
             SendMessage(c, Text, embed, TTS);
@@ -319,7 +319,7 @@ namespace DiscordBot
             try
             {
                 CJSON json;
-                m_Gateway = json.Deserialize<std::shared_ptr<SGateway>>(res->payload);
+                m_Gateway = json.Deserialize<std::shared_ptr<SGateway>>(res->body);
             }
             catch (const CJSONException &e)
             {
@@ -1237,7 +1237,7 @@ namespace DiscordBot
                 try
                 {    
                     CJSON JOwner;
-                    JOwner.ParseObject(res->payload);
+                    JOwner.ParseObject(res->body);
 
                     Ret = CreateMember(JOwner, guild);
                 }

@@ -5,6 +5,8 @@ Need help? Feel free to join our Discord Server.
 
 [![Discord Server](https://discordapp.com/api/guilds/711169228320931840/embed.png?style=banner2)](https://discord.gg/C79vGZb)
 
+If you like this library please give me a ![star](star.png)
+
 ## Feeling adventurous?
   You can clone the development branch if you want the latest and probably buggy stuff. This is not recommended for productivity programs.
 
@@ -23,6 +25,8 @@ First you need following software and libraries.
 * C++ compiler which supports C++14
     * Compiles with clang and gcc under Linux.
     * Compiles with Visual Studio 2019 under Windows.
+* Maybe runs flawless on the Raspberry Pi (not Tested)
+    * For more informations please visit [this](https://github.com/tostc/libDiscordBot/issues/9#issue-715171899) issue, and look under `Compiling the bot with the lib:`
 
 ## Getting Started
 These instructions will help you compile and use the library to build your own bot.
