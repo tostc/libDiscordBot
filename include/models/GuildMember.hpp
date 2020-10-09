@@ -38,6 +38,7 @@ namespace DiscordBot
         public:
             CGuildMember(/* args */) : Deaf(false), Mute(false) {}
 
+            std::string GuildID;
             User UserRef;
             std::string Nick;
             std::vector<Role> Roles;

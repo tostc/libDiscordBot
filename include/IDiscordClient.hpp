@@ -274,6 +274,16 @@ namespace DiscordBot
             virtual void SendMessage(User user, const std::string Text, Embed embed = nullptr, bool TTS = false) = 0;
 
             /**
+             * @brief Renames a guildmember.
+             * 
+             * @param member: Member to rename.
+             * @param Name: The new name.
+             * 
+             * @throw CDiscordClientException on error.
+             */
+            virtual void RenameMember(GuildMember member, const std::string &Name) = 0;
+
+            /**
              * @return Returns the audio source for the given guild. Null if there is no audio source available.
              */
             virtual AudioSource GetAudioSource(Guild guild) = 0;
@@ -309,9 +319,19 @@ namespace DiscordBot
             virtual User GetBotUser() = 0;
 
             /**
+             * @return Gets the bot guild member of a given guild.
+             */
+            virtual GuildMember GetBotMember(Guild guild) = 0;
+
+            /**
              * @return Gets the list of all connected servers.
              */
             virtual Guilds GetGuilds() = 0;
+
+            /**
+             * @return Gets a guild object by its id or null.
+             */
+            virtual Guild GetGuild(const std::string &GID) = 0;
 
             /**
              * @return Gets a list of all users.

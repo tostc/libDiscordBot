@@ -20,11 +20,9 @@ set(MBEDTLS_LIBRARIES "${MBEDCRYPTO_LIBRARY};${MBEDTLS_LIBRARY};${MBEDX509_LIBRA
 
 set(PTHREAD "")
 set(ZLIB_LIB "")
+set(ZLIB_ROOT ${PROJECT_BINARY_DIR}/zlib) # IXWebsocket doesn't delivery zlib anymore, so this is the new build path.
+set(ZLIB_PROJECT_ROOT ${PROJECT_SOURCE_DIR}/externals/zlib-1.2.11)
 set(LINK_DIRS "")
-            #     "${PROJECT_BINARY_DIR}/externals/mbedtls/library/${LINK_SUB_DIR}"
-            #   "${PROJECT_BINARY_DIR}/externals/IXWebSocket/${LINK_SUB_DIR}"
-            #   "${PROJECT_BINARY_DIR}/externals/IXWebSocket/third_party/zlib/${LINK_SUB_DIR}"
-            #   "${PROJECT_BINARY_DIR}/externals/opus/${LINK_SUB_DIR}")
 
 set(libsodium_src ${PROJECT_SOURCE_DIR}/externals/libsodium)
 
@@ -43,6 +41,17 @@ if(MSVC)
 	add_definitions(-DSODIUM_STATIC=1 -DSODIUM_EXPORT=.)
 endif(MSVC)
 
+set(SKIP_INSTALL_LIBRARIES on)
+set(SKIP_INSTALL_HEADERS on)
+set(SKIP_INSTALL_FILES on)
+set(SKIP_INSTALL_ALL on)
+
+file(MAKE_DIRECTORY ${ZLIB_ROOT}/include)
+file(MAKE_DIRECTORY ${ZLIB_ROOT}/lib)
+
+
+add_subdirectory(${ZLIB_PROJECT_ROOT})
+
 #Workaround for dependencies.
 ExternalProject_Add(mbedtls_build
                     SOURCE_DIR ${mbedtls_src}
@@ -55,7 +64,7 @@ ExternalProject_Add(mbedtls_build
 ExternalProject_Add(IXWebSocket_build
                     SOURCE_DIR ${IXWebSocket_src}
                     BINARY_DIR ${PROJECT_BINARY_DIR}/externals/IXWebSocket
-                    CONFIGURE_COMMAND cmake ${IXWebSocket_src} -G ${CMAKE_GENERATOR} -DUSE_TLS=ON -DUSE_MBED_TLS=ON -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE} -DCMAKE_CONFIGURATION_TYPES=RELEASE -DMBEDTLS_INCLUDE_DIRS=${mbedtls_src}/include -DMBEDCRYPTO_LIBRARY=${MBEDCRYPTO_LIBRARY} -DMBEDTLS_LIBRARY=${MBEDTLS_LIBRARY} -DMBEDX509_LIBRARY=${MBEDX509_LIBRARY} -DMBEDTLS_LIBRARIES=${MBEDTLS_LIBRARIES} -DCMAKE_ARCHIVE_OUTPUT_DIRECTORY=${PROJECT_ARCHIVE_OUTPUT_DIRECTORY} -DCMAKE_LIBRARY_OUTPUT_DIRECTORY=${PROJECT_LIBRARY_OUTPUT_DIRECTORY} -DCMAKE_INSTALL_PREFIX=${PROJECT_BINARY_DIR}
+                    CONFIGURE_COMMAND cmake ${IXWebSocket_src} -G ${CMAKE_GENERATOR} -DZLIB_ROOT=${ZLIB_ROOT} -DUSE_TLS=ON -DUSE_MBED_TLS=ON -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE} -DCMAKE_CONFIGURATION_TYPES=RELEASE -DMBEDTLS_INCLUDE_DIRS=${mbedtls_src}/include -DMBEDCRYPTO_LIBRARY=${MBEDCRYPTO_LIBRARY} -DMBEDTLS_LIBRARY=${MBEDTLS_LIBRARY} -DMBEDX509_LIBRARY=${MBEDX509_LIBRARY} -DMBEDTLS_LIBRARIES=${MBEDTLS_LIBRARIES} -DCMAKE_ARCHIVE_OUTPUT_DIRECTORY=${PROJECT_ARCHIVE_OUTPUT_DIRECTORY} -DCMAKE_LIBRARY_OUTPUT_DIRECTORY=${PROJECT_LIBRARY_OUTPUT_DIRECTORY} -DCMAKE_INSTALL_PREFIX=${PROJECT_BINARY_DIR}
                     BUILD_COMMAND ${BUILD_CMD_WEBSOCKET}
                     INSTALL_COMMAND ""
                     TEST_COMMAND ""
@@ -70,16 +79,8 @@ add_subdirectory(${PROJECT_SOURCE_DIR}/externals/opus EXCLUDE_FROM_ALL)
 if(NOT WIN32)
 	set(PTHREAD pthread)
 	set(LINK_DIRS "${PROJECT_BINARY_DIR}/src/libsodium/.libs/")
-	
-	if (NOT ZLIB_FOUND)
-	  find_package(ZLIB)
-	endif()
 
-	if (ZLIB_FOUND)
-		set(ZLIB_LIB "z")
-	else()
-		set(ZLIB_LIB "${CMAKE_STATIC_LIBRARY_PREFIX}z${CMAKE_STATIC_LIBRARY_SUFFIX}")
-    endif()
+	set(ZLIB_LIB "${ZLIB_ROOT}/lib/${CMAKE_STATIC_LIBRARY_PREFIX}z${CMAKE_STATIC_LIBRARY_SUFFIX}")
     
     ExternalProject_Add(libsodium_build
                         SOURCE_DIR ${libsodium_src}
@@ -131,6 +132,20 @@ set(SRCS
     "${PROJECT_SOURCE_DIR}/src/commands/HelpCommand.cpp")
 
 add_library(${PROJECT_NAME} SHARED ${SRCS})
+
+if(UNIX)
+  set(ZLIB_BINARY_DIR ${PROJECT_BINARY_DIR}/externals/zlib-1.2.11)
+  set(ZLIB_LIBS ${ZLIB_BINARY_DIR}/libz.a)
+else(UNIX)
+  set(ZLIB_LIBS ${ZLIB_BINARY_DIR}/zlibstatic.lib ${ZLIB_BINARY_DIR}/zlibstatic.a)
+endif(UNIX)
+
+add_custom_target(zlib_copy ALL
+                  COMMAND ${CMAKE_COMMAND} -E copy ${ZLIB_LIBS} ${ZLIB_ROOT}/lib
+                  COMMAND ${CMAKE_COMMAND} -E copy ${ZLIB_PROJECT_ROOT}/zlib.h ${ZLIB_BINARY_DIR}/zconf.h ${ZLIB_ROOT}/include
+                  DEPENDS zlibstatic)
+
+add_dependencies(IXWebSocket_build zlib_copy)
 add_dependencies(${PROJECT_NAME} IXWebSocket_build)
 add_dependencies(${PROJECT_NAME} libsodium_build)
 

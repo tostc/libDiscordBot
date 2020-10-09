@@ -25,6 +25,7 @@
 #include "DiscordClient.hpp"
 #include <iostream>
 #include <sodium.h>
+#include <models/DiscordException.hpp>
 #include "Helper.hpp"
 
 #define CLOG_IMPLEMENTATION
@@ -59,6 +60,7 @@ namespace DiscordBot
         //Ignores the SIGPIPE signal.
         signal(SIGPIPE, SIG_IGN);
 #endif
+        USER_AGENT = std::string("libDiscordBot (https://github.com/tostc/libDiscordBot, ") + VERSION + ")";
 
         m_EVManger.SubscribeMessage(QUEUE_NEXT_SONG, std::bind(&CDiscordClient::OnMessageReceive, this, std::placeholders::_1));  
         m_EVManger.SubscribeMessage(RESUME, std::bind(&CDiscordClient::OnMessageReceive, this, std::placeholders::_1));  
@@ -106,6 +108,21 @@ namespace DiscordBot
         m_Text = Text;
         m_URL = URL;
         UpdateUserInfo();
+    }
+
+    bool CDiscordClient::HasPermission(GuildMember member, Permission perm)
+    {
+        bool ret = false;
+        for (auto e : member->Roles)
+        {
+            if((e->Permissions & perm) == perm)
+            {
+                ret = true;
+                break;
+            }
+        }
+        
+        return ret;
     }
 
     /**
@@ -202,12 +219,6 @@ namespace DiscordBot
         if(channel->Type != ChannelTypes::GUILD_TEXT && channel->Type != ChannelTypes::DM)
             return;
 
-        ix::HttpRequestArgsPtr args = ix::HttpRequestArgsPtr(new ix::HttpRequestArgs());
-
-        //Add the bot token.
-        args->extraHeaders["Authorization"] = "Bot " + m_Token;
-        args->extraHeaders["Content-Type"] = "application/json";
-
         CJSON json;
         json.AddPair("content", Text);
         json.AddPair("tts", TTS);
@@ -227,7 +238,7 @@ namespace DiscordBot
             json.AddJSON("embed", jembed.Serialize());
         }
 
-        auto res = m_HTTPClient.post(std::string(BASE_URL) + "/channels/" + channel->ID + "/messages", json.Serialize(), args);
+        auto res = Post("/channels/" + channel->ID + "/messages", json.Serialize());
         if (res->statusCode != 200)
             llog << lerror << "Failed to send message HTTP: " << res->statusCode << " MSG: " << res->errorMsg << lendl;
     }
@@ -244,13 +255,7 @@ namespace DiscordBot
         CJSON json;
         json.AddPair("recipient_id", user->ID);
 
-        ix::HttpRequestArgsPtr args = ix::HttpRequestArgsPtr(new ix::HttpRequestArgs());
-
-        //Add the bot token.
-        args->extraHeaders["Authorization"] = "Bot " + m_Token;
-        args->extraHeaders["Content-Type"] = "application/json";
-
-        auto res = m_HTTPClient.post(std::string(BASE_URL) + "/users/@me/channels", json.Serialize(), args);
+        auto res = Post("/users/@me/channels", json.Serialize());
         if (res->statusCode != 200)
             llog << lerror << "Failed to send message HTTP: " << res->statusCode << " MSG: " << res->errorMsg << lendl;
         else
@@ -260,6 +265,25 @@ namespace DiscordBot
 
             SendMessage(c, Text, embed, TTS);
         }
+    }
+
+    void CDiscordClient::RenameMember(GuildMember member, const std::string &Name)
+    {
+        if(!member || !member->UserRef)
+            return;
+
+        auto bot = GetBotMember(GetGuild(member->GuildID));
+        if(!HasPermission(bot, Permission::MANAGE_NICKNAMES))
+            throw CDiscordClientException("Missing right to rename a user: 'MANAGE_NICKNAMES'", DiscordClientErrorType::MISSING_PERMISSION);
+
+        CJSON js;
+        js.AddPair("nick", Name);
+
+        //Renames the Bot.
+        if(bot->UserRef->ID == member->UserRef->ID)
+            RenameSelf(member->GuildID, js.Serialize());
+        else
+            ModifyMember(member->GuildID, member->UserRef->ID, js.Serialize());
     }
 
     /**
@@ -307,13 +331,8 @@ namespace DiscordBot
      */
     void CDiscordClient::Run()
     {
-        ix::HttpRequestArgsPtr args = ix::HttpRequestArgsPtr(new ix::HttpRequestArgs());
-
-        //Add the bot token.
-        args->extraHeaders["Authorization"] = "Bot " + m_Token;
-
         //Requests the gateway endpoint for bots.
-        auto res = m_HTTPClient.get(BASE_URL + std::string("/gateway/bot"), args);
+        auto res = Get("/gateway/bot");
         if (res->statusCode == 200)
         {
             try
@@ -328,7 +347,7 @@ namespace DiscordBot
             }
 
             //Connects to discords websocket.
-            m_Socket.setUrl(m_Gateway->URL + "/?v=6&encoding=json");
+            m_Socket.setUrl(m_Gateway->URL + "/?v=8&encoding=json");
             m_Socket.setOnMessageCallback(std::bind(&CDiscordClient::OnWebsocketEvent, this, std::placeholders::_1));
             m_Socket.start();
 
@@ -1129,6 +1148,55 @@ namespace DiscordBot
         }
     }
 
+    ix::HttpResponsePtr CDiscordClient::Get(const std::string &URL)
+    {
+        ix::HttpRequestArgsPtr args = ix::HttpRequestArgsPtr(new ix::HttpRequestArgs());
+
+        //Add the bot token.
+        args->extraHeaders["Authorization"] = "Bot " + m_Token;
+        args->extraHeaders["User-Agent"] = USER_AGENT;
+
+        return m_HTTPClient.get(std::string(BASE_URL) + URL, args);
+    }
+
+    ix::HttpResponsePtr CDiscordClient::Post(const std::string &URL, const std::string &Body)
+    {
+        ix::HttpRequestArgsPtr args = ix::HttpRequestArgsPtr(new ix::HttpRequestArgs());
+
+        //Add the bot token.
+        args->extraHeaders["Authorization"] = "Bot " + m_Token;
+        args->extraHeaders["Content-Type"] = "application/json";
+        args->extraHeaders["User-Agent"] = USER_AGENT;
+
+        return m_HTTPClient.post(std::string(BASE_URL) + URL, Body, args);
+    }
+
+    ix::HttpResponsePtr CDiscordClient::Patch(const std::string &URL, const std::string &Body)
+    {
+        ix::HttpRequestArgsPtr args = ix::HttpRequestArgsPtr(new ix::HttpRequestArgs());
+
+        //Add the bot token.
+        args->extraHeaders["Authorization"] = "Bot " + m_Token;
+        args->extraHeaders["Content-Type"] = "application/json";
+        args->extraHeaders["User-Agent"] = USER_AGENT;
+
+        return m_HTTPClient.patch(std::string(BASE_URL) + URL, Body, args);
+    }
+
+    void CDiscordClient::ModifyMember(const std::string &GID, const std::string &UID, const std::string &js)
+    {
+        auto res = Patch("/guilds/" + GID + "/members/" + UID, js);
+        if(res->statusCode != 204)
+            throw CDiscordClientException("Error during member modification. Error: " + res->body + " HTTP Code: " + std::to_string(res->statusCode), DiscordClientErrorType::HTTP_ERROR);
+    }
+
+    void CDiscordClient::RenameSelf(const std::string &GID, const std::string &js)
+    {
+        auto res = Patch("/guilds/" + GID + "/members/@me/nick", js);
+        if(res->statusCode != 200)
+            throw CDiscordClientException("Error during member modification. Error: " + res->body + " HTTP Code: " + std::to_string(res->statusCode), DiscordClientErrorType::HTTP_ERROR);
+    }
+
     void CDiscordClient::OnQueueWaitFinish(const std::string &Guild, AudioSource Source)
     {
         if(!Source)
@@ -1224,12 +1292,7 @@ namespace DiscordBot
             Ret = UserIT->second;
         else
         {
-            ix::HttpRequestArgsPtr args = ix::HttpRequestArgsPtr(new ix::HttpRequestArgs());
-
-            //Add the bot token.
-            args->extraHeaders["Authorization"] = "Bot " + m_Token;
-
-            auto res = m_HTTPClient.get(std::string(BASE_URL) + "/guilds/" + guild->ID + "/members/" + UserID, args);
+            auto res = Get("/guilds/" + guild->ID + "/members/" + UserID);
             if (res->statusCode != 200)
                 llog << lerror << "Failed to receive owner info HTTP: " << res->statusCode << " MSG: " << res->errorMsg << lendl;
             else
@@ -1299,6 +1362,7 @@ namespace DiscordBot
                 member = CreateUser(user);
         }
 
+        Ret->GuildID = guild->ID;
         Ret->UserRef = member;
         Ret->Nick = json.GetValue<std::string>("nick");
         Ret->JoinedAt = json.GetValue<std::string>("joined_at");

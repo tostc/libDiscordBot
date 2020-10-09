@@ -251,6 +251,16 @@ namespace DiscordBot
             void SendMessage(User user, const std::string Text, Embed embed = nullptr, bool TTS = false) override;
 
             /**
+             * @brief Renames a guildmember.
+             * 
+             * @param member: Member to rename.
+             * @param Name: The new name.
+             * 
+             * @throw CDiscordClientException on error.
+             */
+            void RenameMember(GuildMember member, const std::string &Name) override;
+
+            /**
              * @return Returns the audio source for the given guild. Null if there is no audio source available.
              */
             AudioSource GetAudioSource(Guild guild) override;
@@ -289,17 +299,45 @@ namespace DiscordBot
             }
 
             /**
+             * @return Gets the bot guild member of a given guild.
+             */
+            GuildMember GetBotMember(Guild guild) override
+            {
+                GuildMember ret;
+                if(guild)
+                {
+                    auto IT = guild->Members.find(m_BotUser->ID);
+                    if(IT != guild->Members.end())
+                        ret = IT->second;
+                }
+
+                return ret;
+            }
+
+            /**
              * @return Gets the list of all connected servers.
              */
-            Guilds GetGuilds()
+            Guilds GetGuilds() override
             {
                 return m_Guilds;
             }
 
             /**
+             * @return Gets a guild object by its id or null.
+             */
+            Guild GetGuild(const std::string &GID) 
+            {
+                auto IT = m_Guilds.find(GID);
+                if(IT != m_Guilds.end())
+                    return IT->second;
+
+                return nullptr;
+            }
+
+            /**
              * @return Gets a list of all users.
              */
-            Users GetUsers()
+            Users GetUsers() override
             {
                 return m_Users;
             }
@@ -314,7 +352,9 @@ namespace DiscordBot
                 QUIT
             };
 
-            const char *BASE_URL = "https://discordapp.com/api";
+            const char *BASE_URL = "https://discord.com/api";
+            std::string USER_AGENT;
+
             using VoiceSockets = std::map<std::string, VoiceSocket>;
             using AudioSources = std::map<std::string, AudioSource>;
             using MusicQueues = std::map<std::string, MusicQueue>;
@@ -357,6 +397,11 @@ namespace DiscordBot
             OnlineState m_State;
             std::string m_Text; //Playing xy
             std::string m_URL;  //Streams on xy
+
+            /**
+             * @brief Checks if a member has a given right.
+             */
+            bool HasPermission(GuildMember member, Permission perm);
 
             /**
              * @return Creates a user info object and return it as json string.
@@ -410,6 +455,13 @@ namespace DiscordBot
 
             void OnQueueWaitFinish(const std::string &Guild, AudioSource Source);
 
+            ix::HttpResponsePtr Get(const std::string &URL);
+            ix::HttpResponsePtr Post(const std::string &URL, const std::string &Body);
+            ix::HttpResponsePtr Patch(const std::string &URL, const std::string &Body);
+
+
+            void ModifyMember(const std::string &GID, const std::string &UID, const std::string &js);
+            void RenameSelf(const std::string &GID, const std::string &js);
             std::string OnlineStateToStr(OnlineState state);
             OnlineState StrToOnlineState(const std::string &state);
 
