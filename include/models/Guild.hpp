@@ -32,6 +32,7 @@
 #include <models/Channel.hpp>
 #include <models/GuildMember.hpp>
 #include <models/Role.hpp>
+#include <models/atomic.hpp>
 
 namespace DiscordBot
 {
@@ -40,15 +41,15 @@ namespace DiscordBot
         public:
             CGuild(/* args */) {}
 
-            std::string ID;
-            std::string Name;
-            std::string Icon;
+            atomic<std::string> ID;
+            atomic<std::string> Name;
+            atomic<std::string> Icon;
 
             GuildMember Owner;
 
-            std::map<std::string, GuildMember> Members;
-            std::map<std::string, Channel> Channels; 
-            std::map<std::string, Role> Roles;
+            atomic<std::map<std::string, GuildMember>> Members;
+            atomic<std::map<std::string, Channel>> Channels; 
+            atomic<std::map<std::string, Role>> Roles;
 
             ~CGuild() {}
         private:

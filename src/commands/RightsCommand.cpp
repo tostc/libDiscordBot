@@ -106,8 +106,8 @@ namespace DiscordBot
                 if(!Msg.empty())
                     Msg += ", ";
 
-                auto IT = ctx->Msg->GuildRef->Roles.find(e);
-                if(IT != ctx->Msg->GuildRef->Roles.end())
+                auto IT = ctx->Msg->GuildRef->Roles->find(e);
+                if(IT != ctx->Msg->GuildRef->Roles->end())
                     Msg += IT->second->Name;
             }
 
@@ -120,11 +120,11 @@ namespace DiscordBot
 
     std::string CRightsCommand::GetRoleID(Guild guild, const std::string &RoleName)
     {
-        auto IT = guild->Roles.find(RoleName);
-        if(IT != guild->Roles.end())
+        auto IT = guild->Roles->find(RoleName);
+        if(IT != guild->Roles->end())
             return RoleName;
 
-        for (auto &&e : guild->Roles)
+        for (auto &&e : guild->Roles.load())
         {
             if(e.second->Name == RoleName)
                 return e.second->ID;

@@ -113,7 +113,7 @@ namespace DiscordBot
     bool CDiscordClient::HasPermission(GuildMember member, Permission perm)
     {
         bool ret = false;
-        for (auto e : member->Roles)
+        for (auto e : member->Roles.load())
         {
             if((e->Permissions & perm) == perm)
             {
@@ -188,7 +188,7 @@ namespace DiscordBot
      */
     void CDiscordClient::Join(Channel channel)
     {
-        if (!channel || channel->GuildID.empty() || channel->ID.empty())
+        if (!channel || channel->GuildID->empty() || channel->ID->empty())
             return;
 
         ChangeVoiceState(channel->GuildID, channel->ID);
@@ -226,14 +226,14 @@ namespace DiscordBot
         if(embed)
         {
             CJSON jembed;
-            jembed.AddPair("title", embed->Title);
-            jembed.AddPair("description", embed->Description);
+            jembed.AddPair("title", embed->Title.load());
+            jembed.AddPair("description", embed->Description.load());
 
-            if(!embed->URL.empty())
-                jembed.AddPair("url", embed->URL);
+            if(!embed->URL->empty())
+                jembed.AddPair("url", embed->URL.load());
 
-            if(!embed->Type.empty())
-                jembed.AddPair("type", embed->Type);
+            if(!embed->Type->empty())
+                jembed.AddPair("type", embed->Type.load());
 
             json.AddJSON("embed", jembed.Serialize());
         }
@@ -253,7 +253,7 @@ namespace DiscordBot
     void CDiscordClient::SendMessage(User user, const std::string Text, Embed embed, bool TTS)
     {
         CJSON json;
-        json.AddPair("recipient_id", user->ID);
+        json.AddPair("recipient_id", user->ID.load());
 
         auto res = Post("/users/@me/channels", json.Serialize());
         if (res->statusCode != 200)
@@ -269,12 +269,7 @@ namespace DiscordBot
 
     void CDiscordClient::RenameMember(GuildMember member, const std::string &Name)
     {
-        if(!member || !member->UserRef)
-            return;
-
-        auto bot = GetBotMember(GetGuild(member->GuildID));
-        if(!HasPermission(bot, Permission::MANAGE_NICKNAMES))
-            throw CDiscordClientException("Missing right to rename a user: 'MANAGE_NICKNAMES'", DiscordClientErrorType::MISSING_PERMISSION);
+        auto bot = CheckMemberAction(member, Permission::MANAGE_NICKNAMES, "Missing right to rename a user: 'MANAGE_NICKNAMES'");
 
         CJSON js;
         js.AddPair("nick", Name);
@@ -286,6 +281,72 @@ namespace DiscordBot
             ModifyMember(member->GuildID, member->UserRef->ID, js.Serialize());
     }
 
+    void CDiscordClient::MuteMember(GuildMember member, bool mute)
+    {
+        CheckMemberAction(member, Permission::MUTE_MEMBERS, "Missing right to mute a user: 'MUTE_MEMBERS'");
+        if(!member->State)
+            throw CDiscordClientException("User can't be muted, because he are not connected to a voice channel.", DiscordClientErrorType::MEMBER_NOT_IN_VC);
+
+        CJSON js;
+        js.AddPair("mute", mute);
+
+        ModifyMember(member->GuildID, member->UserRef->ID, js.Serialize());
+    }
+
+    void CDiscordClient::DeafMember(GuildMember member, bool deaf)
+    {
+        CheckMemberAction(member, Permission::DEAFEN_MEMBERS, "Missing right to deaf a user: 'DEAFEN_MEMBERS'");
+        if(!member->State)
+            throw CDiscordClientException("User can't be deafen, because he are not connected to a voice channel.", DiscordClientErrorType::MEMBER_NOT_IN_VC);
+
+        CJSON js;
+        js.AddPair("deaf", deaf);
+
+        ModifyMember(member->GuildID, member->UserRef->ID, js.Serialize());
+    }
+
+    void CDiscordClient::MoveMember(GuildMember member, Channel c)
+    {
+        CheckMemberAction(member, Permission::MOVE_MEMBERS, "Missing right to move a user: 'MOVE_MEMBERS'");
+        if(!member->State)
+            throw CDiscordClientException("User can't be moved, because he are not connected to a voice channel.", DiscordClientErrorType::MEMBER_NOT_IN_VC);
+
+        CJSON js;
+        if(c)
+            js.AddPair("channel_id", c->ID.load());
+        else
+            js.AddPair("channel_id", nullptr);  //Kicks the user.
+
+        ModifyMember(member->GuildID, member->UserRef->ID, js.Serialize());
+    }
+
+    void CDiscordClient::ModifyRoles(GuildMember member, std::vector<Role> Roles)
+    {
+        CheckMemberAction(member, Permission::MANAGE_ROLES, "Missing right to modify roles of a user: 'MANAGE_ROLES'");
+        std::vector<std::string> IDs;
+        CJSON js;
+
+        for (auto e : Roles)
+        {
+            IDs.push_back(e->ID);
+        }
+        
+        js.AddPair("roles", IDs);
+        ModifyMember(member->GuildID, member->UserRef->ID, js.Serialize());
+    }
+
+    GuildMember CDiscordClient::CheckMemberAction(GuildMember m, Permission p, const std::string &errMsg)
+    {
+        if(!m || !m->UserRef)
+            throw CDiscordClientException("The member can't be null!", DiscordClientErrorType::PARAMETER_IS_NULL);
+
+        auto bot = GetBotMember(GetGuild(m->GuildID));
+        if(!HasPermission(bot, p))
+            throw CDiscordClientException(errMsg, DiscordClientErrorType::MISSING_PERMISSION);
+
+        return bot;
+    }
+
     /**
      * @return Returns the audio source for the given guild. Null if there is no audio source available.
      */
@@ -294,9 +355,8 @@ namespace DiscordBot
         if(!guild)
             return AudioSource();
 
-        std::lock_guard<std::mutex> lock(m_VoiceSocketsLock);
-        VoiceSockets::iterator IT = m_VoiceSockets.find(guild->ID);
-        if (IT != m_VoiceSockets.end())
+        VoiceSockets::iterator IT = m_VoiceSockets->find(guild->ID);
+        if (IT != m_VoiceSockets->end())
             return IT->second->GetAudioSource();
 
         return AudioSource();
@@ -310,9 +370,8 @@ namespace DiscordBot
         if(!guild)
             return MusicQueue();
 
-        std::lock_guard<std::mutex> lock(m_MusicQueueLock);
-        auto IT = m_MusicQueues.find(guild->ID);
-        if (IT != m_MusicQueues.end())
+        auto IT = m_MusicQueues->find(guild->ID);
+        if (IT != m_MusicQueues->end())
             return IT->second;
 
         return MusicQueue();
@@ -385,10 +444,10 @@ namespace DiscordBot
         }
 
         m_Guilds.clear();
-        m_VoiceSockets.clear();
-        m_AudioSources.clear();
+        m_VoiceSockets->clear();
+        m_AudioSources->clear();
         m_Users.clear();
-        m_MusicQueues.clear();
+        m_MusicQueues->clear();
         m_Quit = true;
     }
 
@@ -411,10 +470,8 @@ namespace DiscordBot
         if(!guild)
             return;
 
-        std::lock_guard<std::mutex> lock(m_MusicQueueLock);
-
-        auto IT = m_MusicQueues.find(guild->ID);
-        if(IT != m_MusicQueues.end())
+        auto IT = m_MusicQueues->find(guild->ID);
+        if(IT != m_MusicQueues->end())
             IT->second->AddSong(Info);
         else if(m_QueueFactory)
         {
@@ -422,7 +479,7 @@ namespace DiscordBot
             Tmp->SetGuildID(guild->ID);
             Tmp->SetOnWaitFinishCallback(std::bind(&CDiscordClient::OnQueueWaitFinish, this, std::placeholders::_1, std::placeholders::_2));
             Tmp->AddSong(Info);
-            m_MusicQueues[guild->ID] = Tmp;
+            m_MusicQueues->insert({guild->ID, Tmp});
         }
     }
 
@@ -435,14 +492,13 @@ namespace DiscordBot
      */
     bool CDiscordClient::StartSpeaking(Channel channel)
     {
-        if (!channel || channel->GuildID.empty())
+        if (!channel || channel->GuildID->empty())
             return false;
 
         AudioSource Source;
 
-        std::lock_guard<std::mutex> lock(m_MusicQueueLock);
-        auto IT = m_MusicQueues.find(channel->GuildID);
-        if(IT != m_MusicQueues.end())
+        auto IT = m_MusicQueues->find(channel->GuildID);
+        if(IT != m_MusicQueues->end())
         {
             if(IT->second->HasNext())
                 Source = IT->second->Next();
@@ -463,19 +519,17 @@ namespace DiscordBot
      */
     bool CDiscordClient::StartSpeaking(Channel channel, AudioSource source)
     {
-        if (!channel || channel->GuildID.empty())
+        if (!channel || channel->GuildID->empty())
             return false;
 
-        std::lock_guard<std::mutex> lock(m_VoiceSocketsLock);
-        VoiceSockets::iterator IT = m_VoiceSockets.find(channel->GuildID);
-        if (IT != m_VoiceSockets.end() && source)
+        VoiceSockets::iterator IT = m_VoiceSockets->find(channel->GuildID);
+        if (IT != m_VoiceSockets->end() && source)
             IT->second->StartSpeaking(source);
         else if(source)
         {
             Join(channel);
 
-            std::lock_guard<std::mutex> lock(m_AudioSourcesLock);
-            m_AudioSources[channel->GuildID] = source;
+            m_AudioSources->insert({channel->GuildID, source});
         }
 
         return true;
@@ -491,9 +545,8 @@ namespace DiscordBot
         if(!guild)
             return;
 
-        std::lock_guard<std::mutex> lock(m_VoiceSocketsLock);
-        VoiceSockets::iterator IT = m_VoiceSockets.find(guild->ID);
-        if (IT != m_VoiceSockets.end())
+        VoiceSockets::iterator IT = m_VoiceSockets->find(guild->ID);
+        if (IT != m_VoiceSockets->end())
             IT->second->PauseSpeaking();
     }
 
@@ -507,9 +560,8 @@ namespace DiscordBot
         if(!guild)
             return;
 
-        std::lock_guard<std::mutex> lock(m_VoiceSocketsLock);
-        VoiceSockets::iterator IT = m_VoiceSockets.find(guild->ID);
-        if (IT != m_VoiceSockets.end())
+        VoiceSockets::iterator IT = m_VoiceSockets->find(guild->ID);
+        if (IT != m_VoiceSockets->end())
             IT->second->ResumeSpeaking();
     }
 
@@ -523,9 +575,8 @@ namespace DiscordBot
         if(!guild)
             return;
 
-        std::lock_guard<std::mutex> lock(m_VoiceSocketsLock);
-        VoiceSockets::iterator IT = m_VoiceSockets.find(guild->ID);
-        if (IT != m_VoiceSockets.end())
+        VoiceSockets::iterator IT = m_VoiceSockets->find(guild->ID);
+        if (IT != m_VoiceSockets->end())
             IT->second->StopSpeaking();
     }
 
@@ -534,12 +585,11 @@ namespace DiscordBot
      */
     void CDiscordClient::RemoveSong(Channel channel, size_t Index)
     {
-        if (!channel || channel->GuildID.empty())
+        if (!channel || channel->GuildID->empty())
             return;
 
-        std::lock_guard<std::mutex> lock(m_MusicQueueLock);
-        auto IT = m_MusicQueues.find(channel->GuildID);
-        if(IT != m_MusicQueues.end())
+        auto IT = m_MusicQueues->find(channel->GuildID);
+        if(IT != m_MusicQueues->end())
             IT->second->RemoveSong(Index);
     }
 
@@ -548,12 +598,11 @@ namespace DiscordBot
      */
     void CDiscordClient::RemoveSong(Channel channel, const std::string &Name)
     {
-        if (!channel || channel->GuildID.empty())
+        if (!channel || channel->GuildID->empty())
             return;
 
-        std::lock_guard<std::mutex> lock(m_MusicQueueLock);
-        auto IT = m_MusicQueues.find(channel->GuildID);
-        if(IT != m_MusicQueues.end())
+        auto IT = m_MusicQueues->find(channel->GuildID);
+        if(IT != m_MusicQueues->end())
             IT->second->RemoveSong(Name);
     }
 
@@ -567,9 +616,8 @@ namespace DiscordBot
 
                 AudioSource Source;
 
-                std::lock_guard<std::mutex> lock(m_MusicQueueLock);
-                auto MQIT = m_MusicQueues.find(Data->Value);
-                if(MQIT != m_MusicQueues.end())
+                auto MQIT = m_MusicQueues->find(Data->Value);
+                if(MQIT != m_MusicQueues->end())
                 {
                     if(MQIT->second->HasNext())
                         Source = MQIT->second->Next();
@@ -579,9 +627,8 @@ namespace DiscordBot
 
                 if(Source)
                 {
-                    std::lock_guard<std::mutex> lock(m_VoiceSocketsLock);
-                    auto IT = m_VoiceSockets.find(Data->Value);
-                    if(IT != m_VoiceSockets.end())
+                    auto IT = m_VoiceSockets->find(Data->Value);
+                    if(IT != m_VoiceSockets->end())
                         IT->second->StartSpeaking(Source);
                 }
             }break;
@@ -688,7 +735,7 @@ namespace DiscordBot
                                     jRole.ParseObject(e);
 
                                     Role Tmp = CreateRole(jRole);
-                                    guild->Roles[Tmp->ID] = Tmp;
+                                    guild->Roles->insert({Tmp->ID, Tmp});
                                 }
 
                                 //Get all Channels;
@@ -700,7 +747,7 @@ namespace DiscordBot
 
                                     Channel Tmp = CreateChannel(jChannel);
                                     Tmp->GuildID = guild->ID;
-                                    guild->Channels[Tmp->ID] = Tmp;
+                                    guild->Channels->insert({Tmp->ID, Tmp});
                                 }
 
                                 //Get all members.
@@ -736,11 +783,8 @@ namespace DiscordBot
                             {
                                 json.ParseObject(Pay.D);
 
-                                std::lock_guard<std::mutex> lock(m_MusicQueueLock);
-                                std::lock_guard<std::mutex> lock1(m_VoiceSocketsLock);
-
-                                m_VoiceSockets.erase(json.GetValue<std::string>("id"));
-                                m_MusicQueues.erase(json.GetValue<std::string>("id"));
+                                m_VoiceSockets->erase(json.GetValue<std::string>("id"));
+                                m_MusicQueues->erase(json.GetValue<std::string>("id"));
                                 m_Guilds.erase(json.GetValue<std::string>("id"));
 
                                 llog << linfo << "GUILD_DELETE" << lendl;
@@ -786,12 +830,12 @@ namespace DiscordBot
                                 if(GIT != m_Guilds.end())
                                 {
                                     Guild guild = GIT->second;//m_Guilds[GuildID];
-                                    auto IT = guild->Members.find(UserID);
-                                    if(IT != guild->Members.end())
+                                    auto IT = guild->Members->find(UserID);
+                                    if(IT != guild->Members->end())
                                     {
-                                        IT->second->Roles.clear();
+                                        IT->second->Roles->clear();
                                         for (auto &&e : Array)
-                                            IT->second->Roles.push_back(guild->Roles[e]);                               
+                                            IT->second->Roles->push_back(guild->Roles->at(e));                               
 
                                         IT->second->Nick = Nick;
                                         IT->second->PremiumSince = Premium;
@@ -817,11 +861,11 @@ namespace DiscordBot
                                 {
                                     Guild guild = GIT->second;//m_Guilds[GuildID];
 
-                                    auto IT = guild->Members.find(UserID);
-                                    if(IT != guild->Members.end())
+                                    auto IT = guild->Members->find(UserID);
+                                    if(IT != guild->Members->end())
                                     {
                                         GuildMember member = IT->second;
-                                        guild->Members.erase(IT);
+                                        guild->Members->erase(IT);
 
                                         if(m_Controller)
                                             m_Controller->OnMemberRemove(guild, member);
@@ -868,7 +912,7 @@ namespace DiscordBot
                                 {
                                     CJSON JAct;
                                     JAct.ParseObject(e);
-                                    user->Activities.push_back(CreateActivity(JAct));
+                                    user->Activities->push_back(CreateActivity(JAct));
                                 }
 
                                 CJSON JClientState;
@@ -882,8 +926,8 @@ namespace DiscordBot
                                 if(GIT != m_Guilds.end())
                                 {
                                     GuildMember member;
-                                    auto MIT = GIT->second->Members.find(user->ID);
-                                    if(MIT == GIT->second->Members.end())
+                                    auto MIT = GIT->second->Members->find(user->ID);
+                                    if(MIT == GIT->second->Members->end())
                                         member = GetMember(GIT->second, user->ID);
                                     else
                                         member = MIT->second;
@@ -908,15 +952,12 @@ namespace DiscordBot
                                     {
                                         if(Tmp->UserRef->ID == m_BotUser->ID && !Tmp->ChannelRef)
                                         {
-                                            std::lock_guard<std::mutex> lock(m_MusicQueueLock);
-                                            std::lock_guard<std::mutex> lock1(m_VoiceSocketsLock);
-
-                                            m_VoiceSockets.erase(Tmp->GuildRef->ID);
-                                            m_MusicQueues.erase(Tmp->GuildRef->ID);
+                                            m_VoiceSockets->erase(Tmp->GuildRef->ID);
+                                            m_MusicQueues->erase(Tmp->GuildRef->ID);
                                         }
 
-                                        auto IT = Tmp->GuildRef->Members.find(Tmp->UserRef->ID);
-                                        if(IT != Tmp->GuildRef->Members.end())
+                                        auto IT = Tmp->GuildRef->Members->find(Tmp->UserRef->ID);
+                                        if(IT != Tmp->GuildRef->Members->end())
                                             m_Controller->OnVoiceStateUpdate(Tmp->GuildRef, IT->second);
                                     }
                                 }   
@@ -931,34 +972,31 @@ namespace DiscordBot
                                 Guilds::iterator GIT = m_Guilds.find(json.GetValue<std::string>("guild_id"));
                                 if (GIT != m_Guilds.end())
                                 {
-                                    auto UIT = GIT->second->Members.find(m_BotUser->ID);
-                                    if (UIT != GIT->second->Members.end())
+                                    auto UIT = GIT->second->Members->find(m_BotUser->ID);
+                                    if (UIT != GIT->second->Members->end())
                                     {
-                                        std::lock_guard<std::mutex> lock(m_VoiceSocketsLock);
                                         VoiceSocket Socket = VoiceSocket(new CVoiceSocket(json, UIT->second->State->SessionID, m_BotUser->ID));
                                         Socket->SetOnSpeakFinish(std::bind(&CDiscordClient::OnSpeakFinish, this, std::placeholders::_1));
-                                        m_VoiceSockets[GIT->second->ID] = Socket;
+                                        m_VoiceSockets->insert({GIT->second->ID, Socket});
 
                                         //Creates a music queue for the server.
                                         if(m_QueueFactory)
                                         {
-                                            std::lock_guard<std::mutex> lock(m_MusicQueueLock);
-                                            if(m_MusicQueues.find(GIT->second->ID) == m_MusicQueues.end())
+                                            if(m_MusicQueues->find(GIT->second->ID) == m_MusicQueues->end())
                                             {
                                                 MusicQueue MQ = m_QueueFactory->Create();
                                                 MQ->SetGuildID(GIT->second->ID);
                                                 MQ->SetOnWaitFinishCallback(std::bind(&CDiscordClient::OnQueueWaitFinish, this, std::placeholders::_1, std::placeholders::_2));
-                                                m_MusicQueues[GIT->second->ID] = MQ;
+                                                m_MusicQueues->insert({GIT->second->ID, MQ});
                                             }
                                         }
 
                                         //Plays the queued audiosource.
-                                        std::lock_guard<std::mutex> lock1(m_AudioSourcesLock);
-                                        AudioSources::iterator IT = m_AudioSources.find(GIT->second->ID);
-                                        if (IT != m_AudioSources.end())
+                                        AudioSources::iterator IT = m_AudioSources->find(GIT->second->ID);
+                                        if (IT != m_AudioSources->end())
                                         {
                                             Socket->StartSpeaking(IT->second);
-                                            m_AudioSources.erase(IT);
+                                            m_AudioSources->erase(IT);
                                         }
                                     }
                                 }
@@ -1057,8 +1095,7 @@ namespace DiscordBot
                 // m_Users.clear();
                 // m_Guilds.clear();
 
-                std::lock_guard<std::mutex> lock(m_VoiceSocketsLock);
-                m_VoiceSockets.clear();
+                m_VoiceSockets->clear();
 
                 if (m_Controller)
                     m_Controller->OnDisconnect();
@@ -1205,9 +1242,8 @@ namespace DiscordBot
             return;
         }
 
-        std::lock_guard<std::mutex> lock(m_VoiceSocketsLock);
-        VoiceSockets::iterator IT = m_VoiceSockets.find(Guild);
-        if(IT != m_VoiceSockets.end())
+        VoiceSockets::iterator IT = m_VoiceSockets->find(Guild);
+        if(IT != m_VoiceSockets->end())
             IT->second->StartSpeaking(Source);
     }
 
@@ -1285,10 +1321,10 @@ namespace DiscordBot
 
     GuildMember CDiscordClient::GetMember(Guild guild, const std::string &UserID)
     {
-        auto UserIT = guild->Members.find(UserID);
+        auto UserIT = guild->Members->find(UserID);
         GuildMember Ret;
 
-        if(UserIT != guild->Members.end())
+        if(UserIT != guild->Members->end())
             Ret = UserIT->second;
         else
         {
@@ -1374,13 +1410,13 @@ namespace DiscordBot
         auto Array = json.GetValue<std::vector<std::string>>("roles");
         for (auto &&e : Array)
         {
-            auto RIT = guild->Roles.find(e);
-            if(RIT != guild->Roles.end())
-                Ret->Roles.push_back(RIT->second);
+            auto RIT = guild->Roles->find(e);
+            if(RIT != guild->Roles->end())
+                Ret->Roles->push_back(RIT->second);
         }
 
         if (Ret->UserRef)
-            guild->Members[Ret->UserRef->ID] = Ret;
+            guild->Members->insert({Ret->UserRef->ID, Ret});
 
         return Ret;
     }
@@ -1404,15 +1440,15 @@ namespace DiscordBot
 
         if (Ret->GuildRef)
         {
-            auto CIT = Ret->GuildRef->Channels.find(json.GetValue<std::string>("channel_id"));
-            if (CIT != Ret->GuildRef->Channels.end())
+            auto CIT = Ret->GuildRef->Channels->find(json.GetValue<std::string>("channel_id"));
+            if (CIT != Ret->GuildRef->Channels->end())
                 Ret->ChannelRef = CIT->second;
 
             GuildMember Member;
 
             //Adds this voice state to the guild member.
-            auto MIT = Ret->GuildRef->Members.find(json.GetValue<std::string>("user_id"));
-            if (MIT != Ret->GuildRef->Members.end())
+            auto MIT = Ret->GuildRef->Members->find(json.GetValue<std::string>("user_id"));
+            if (MIT != Ret->GuildRef->Members->end())
                 Member = MIT->second;
             else
             {
@@ -1473,7 +1509,7 @@ namespace DiscordBot
             ov->Allow = (Permission)jov.GetValue<int>("allow");
             ov->Deny = (Permission)jov.GetValue<int>("deny");
 
-            Ret->Overwrites.push_back(ov);
+            Ret->Overwrites->push_back(ov);
         }
 
         Ret->Name = json.GetValue<std::string>("name");
@@ -1498,7 +1534,7 @@ namespace DiscordBot
             else
                 user = CreateUser(juser);
 
-            Ret->Recipients.push_back(user);
+            Ret->Recipients->push_back(user);
         }
 
         Ret->Icon = json.GetValue<std::string>("icon");
@@ -1519,8 +1555,8 @@ namespace DiscordBot
         if (IT != m_Guilds.end())
         {
             Ret->GuildRef = IT->second;
-            std::map<std::string, Channel>::iterator CIT = Ret->GuildRef->Channels.find(json.GetValue<std::string>("channel_id"));
-            if (CIT != Ret->GuildRef->Channels.end())
+            std::map<std::string, Channel>::iterator CIT = Ret->GuildRef->Channels->find(json.GetValue<std::string>("channel_id"));
+            if (CIT != Ret->GuildRef->Channels->end())
                 channel = CIT->second;
         }
 
@@ -1553,8 +1589,8 @@ namespace DiscordBot
             //Gets the guild member, if this message is not a dm.
             if (Ret->GuildRef)
             {
-                auto MIT = Ret->GuildRef->Members.find(Ret->Author->ID);
-                if (MIT != Ret->GuildRef->Members.end())
+                auto MIT = Ret->GuildRef->Members->find(Ret->Author->ID);
+                if (MIT != Ret->GuildRef->Members->end())
                     Ret->Member = MIT->second;
                 else
                     Ret->Member = GetMember(Ret->GuildRef, Ret->Author->ID);
@@ -1583,8 +1619,8 @@ namespace DiscordBot
 
             if (Ret->GuildRef)
             {
-                auto MIT = Ret->GuildRef->Members.find(Ret->Author->ID);
-                if (MIT != Ret->GuildRef->Members.end())
+                auto MIT = Ret->GuildRef->Members->find(Ret->Author->ID);
+                if (MIT != Ret->GuildRef->Members->end())
                 {
                     Found = true;
                     Ret->Mentions.push_back(MIT->second);

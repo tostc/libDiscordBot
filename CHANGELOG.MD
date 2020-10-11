@@ -1,3 +1,13 @@
+## Version 2.2.2-alpha ()
+- Added the renaming of users
+- Added the moving of users
+- Added the muting of users
+- Added role managemen of users. You can now assign and remove roles of members
+- Discords object fields are now atomic.
+
+## Version 2.2.1-alpha (06.10.2020)
+- Added fix from issue #9 to build the library flawsless for the raspberry pi.
+
 ## Version 2.2.0-alpha (19.06.2020)
 - Added access to the cached guilds
 - Added access to the cached users

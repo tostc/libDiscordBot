@@ -284,6 +284,48 @@ namespace DiscordBot
             virtual void RenameMember(GuildMember member, const std::string &Name) = 0;
 
             /**
+             * @brief Mutes a member in a voice channel.
+             * 
+             * @param member: Member to mute.
+             * @param mute: True if the member should be mute.
+             * 
+             * @throw CDiscordClientException on error.
+             */
+            virtual void MuteMember(GuildMember member, bool mute) = 0;
+
+            /**
+             * @brief Deafs a member in a voice channel.
+             * 
+             * @param member: Member to deaf.
+             * @param mute: True if the member should be deaf.
+             * 
+             * @throw CDiscordClientException on error.
+             */
+            virtual void DeafMember(GuildMember member, bool deaf) = 0;
+
+            /**
+             * @brief Modifies the roles of a member.
+             * 
+             * @param member: Member to modify.
+             * @param Roles: Roles to assign.
+             * 
+             * @throw CDiscordClientException on error.
+             */
+            virtual void ModifyRoles(GuildMember member, std::vector<Role> Roles) = 0;
+
+            /**
+             * @brief Moves a member to a channel.
+             * 
+             * @param member: Member to move.
+             * @param c: Channel to move to.
+             * 
+             * @note If c is null the user will be kicked.
+             * 
+             * @throw CDiscordClientException on error.
+             */
+            virtual void MoveMember(GuildMember member, Channel c) = 0;
+
+            /**
              * @return Returns the audio source for the given guild. Null if there is no audio source available.
              */
             virtual AudioSource GetAudioSource(Guild guild) = 0;

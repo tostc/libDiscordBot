@@ -22,32 +22,48 @@
  * SOFTWARE.
  */
 
-#ifndef EMBED_HPP
-#define EMBED_HPP
-
-#include <memory>
-#include <string>
-#include <models/atomic.hpp>
+#include <models/Message.hpp>
 
 namespace DiscordBot
 {
-    class CEmbed
+    std::vector<SMention> CMessage::ParseParam(const std::string &Param)
     {
-        public:
-            CEmbed(/* args */) {}
+        std::vector<SMention> Ret;
+        std::string ID;
 
-            atomic<std::string> Title;
-            atomic<std::string> Description;
-            atomic<std::string> Type;
-            atomic<std::string> URL;
+        const char *beg = Param.c_str();
+        const char *end = beg + Param.size();
 
-            ~CEmbed() {}
-        private:
-        /* data */
-    };
+        bool BeginTagFound = false;
+        MentionTypes Type;
 
-    using Embed = std::shared_ptr<CEmbed>;
+        while (beg != end)
+        {
+            switch (*beg)
+            {
+                case '<':
+                {
+                    BeginTagFound = true;
+                }break;
+
+                case '>':
+                {
+                    if(BeginTagFound)
+                        Ret.push_back({Type, ID});
+
+                    BeginTagFound = false;
+                }break;
+
+                default:
+                {
+                    if(BeginTagFound)
+                        ID += beg;
+                }break;
+            }
+
+            beg++;
+        }
+
+        return Ret;
+    }
 } // namespace DiscordBot
-
-
-#endif //EMBED_HPP

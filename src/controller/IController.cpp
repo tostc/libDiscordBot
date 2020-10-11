@@ -119,12 +119,12 @@ namespace DiscordBot
         {
             for (auto &&Id : RoleIDs)
             {
-                auto IT = std::find_if(member->Roles.begin(), member->Roles.end(), [Id](Role r)
+                auto IT = std::find_if(member->Roles->begin(), member->Roles->end(), [Id](Role r)
                 {
                     return Id == r->ID;
                 });
 
-                if(IT != member->Roles.end())
+                if(IT != member->Roles->end())
                     return true;
             }
         }

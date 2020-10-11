@@ -30,6 +30,8 @@
 #include <vector>
 #include <string>
 #include <models/Role.hpp>
+#include <atomic>
+#include <models/atomic.hpp>
 
 namespace DiscordBot
 {
@@ -38,14 +40,14 @@ namespace DiscordBot
         public:
             CGuildMember(/* args */) : Deaf(false), Mute(false) {}
 
-            std::string GuildID;
+            atomic<std::string> GuildID;
             User UserRef;
-            std::string Nick;
-            std::vector<Role> Roles;
-            std::string JoinedAt;
-            std::string PremiumSince;
-            bool Deaf;
-            bool Mute;
+            atomic<std::string> Nick;
+            atomic<std::vector<Role>> Roles;
+            atomic<std::string> JoinedAt;
+            atomic<std::string> PremiumSince;
+            std::atomic<bool> Deaf;
+            std::atomic<bool> Mute;
 
             VoiceState State;
 

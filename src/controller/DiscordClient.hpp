@@ -40,8 +40,9 @@
 #include <models/Activity.hpp>
 #include <atomic>
 #include "MessageManager.hpp"
-#include "../model/Payload.hpp"
+#include "../models/Payload.hpp"
 #include "VoiceSocket.hpp"
+#include <models/atomic.hpp>
 
 #undef SendMessage
 
@@ -261,6 +262,48 @@ namespace DiscordBot
             void RenameMember(GuildMember member, const std::string &Name) override;
 
             /**
+             * @brief Mutes a member in a voice channel.
+             * 
+             * @param member: Member to mute.
+             * @param mute: True if the member should be mute.
+             * 
+             * @throw CDiscordClientException on error.
+             */
+            void MuteMember(GuildMember member, bool mute) override;
+
+            /**
+             * @brief Deafs a member in a voice channel.
+             * 
+             * @param member: Member to deaf.
+             * @param mute: True if the member should be deaf.
+             * 
+             * @throw CDiscordClientException on error.
+             */
+            void DeafMember(GuildMember member, bool deaf) override;
+
+            /**
+             * @brief Moves a member to a channel.
+             * 
+             * @param member: Member to move.
+             * @param c: Channel to move to.
+             * 
+             * @note If c is null the user will be kicked.
+             * 
+             * @throw CDiscordClientException on error.
+             */
+            void MoveMember(GuildMember member, Channel c) override;
+
+            /**
+             * @brief Modifies the roles of a member.
+             * 
+             * @param member: Member to modify.
+             * @param Roles: Roles to assign.
+             * 
+             * @throw CDiscordClientException on error.
+             */
+            void ModifyRoles(GuildMember member, std::vector<Role> Roles) override;
+
+            /**
              * @return Returns the audio source for the given guild. Null if there is no audio source available.
              */
             AudioSource GetAudioSource(Guild guild) override;
@@ -306,8 +349,8 @@ namespace DiscordBot
                 GuildMember ret;
                 if(guild)
                 {
-                    auto IT = guild->Members.find(m_BotUser->ID);
-                    if(IT != guild->Members.end())
+                    auto IT = guild->Members->find(m_BotUser->ID);
+                    if(IT != guild->Members->end())
                         ret = IT->second;
                 }
 
@@ -362,10 +405,6 @@ namespace DiscordBot
             CMessageManager m_EVManger;
             Intent m_Intents;
 
-            std::mutex m_MusicQueueLock;
-            std::mutex m_AudioSourcesLock;
-            std::mutex m_VoiceSocketsLock;
-
             std::string m_Token;
             std::shared_ptr<SGateway> m_Gateway;
             ix::WebSocket m_Socket;
@@ -387,11 +426,11 @@ namespace DiscordBot
             Guilds m_Guilds;
 
             //All open voice connections.
-            VoiceSockets m_VoiceSockets;
+            atomic<VoiceSockets> m_VoiceSockets;
 
-            AudioSources m_AudioSources;
+            atomic<AudioSources> m_AudioSources;
 
-            MusicQueues m_MusicQueues;
+            atomic<MusicQueues> m_MusicQueues;
 
             bool m_IsAFK;
             OnlineState m_State;
@@ -454,6 +493,13 @@ namespace DiscordBot
             void OnSpeakFinish(const std::string &Guild);
 
             void OnQueueWaitFinish(const std::string &Guild, AudioSource Source);
+
+            /**
+             * @brief Checks for member actions.
+             * 
+             * @return Returns the bot member.
+             */
+            GuildMember CheckMemberAction(GuildMember m, Permission p, const std::string &errMsg);
 
             ix::HttpResponsePtr Get(const std::string &URL);
             ix::HttpResponsePtr Post(const std::string &URL, const std::string &Body);
