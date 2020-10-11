@@ -1,6 +1,9 @@
 cmake_minimum_required(VERSION 3.3.0)
 project(discordbot VERSION 2.2.1 LANGUAGES CXX)
 
+set(CMAKE_CXX_STANDARD 14)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
 include(${CMAKE_ROOT}/Modules/ExternalProject.cmake)
 
 set(VERSION_SUFFIX "-alpha")
@@ -41,6 +44,9 @@ if(MSVC)
 	add_definitions(-DSODIUM_STATIC=1 -DSODIUM_EXPORT=.)
 endif(MSVC)
 
+get_filename_component(TOOLCHAIN "${CMAKE_TOOLCHAIN_FILE}"
+                       REALPATH BASE_DIR "${PROJECT_BINARY_DIR}")
+
 set(SKIP_INSTALL_LIBRARIES on)
 set(SKIP_INSTALL_HEADERS on)
 set(SKIP_INSTALL_FILES on)
@@ -51,12 +57,24 @@ file(MAKE_DIRECTORY ${ZLIB_ROOT}/lib)
 
 
 add_subdirectory(${ZLIB_PROJECT_ROOT})
+                              
+if(UNIX)
+  set(ZLIB_BINARY_DIR ${PROJECT_BINARY_DIR}/externals/zlib-1.2.11)
+  set(ZLIB_LIBS ${ZLIB_BINARY_DIR}/libz.a)
+else(UNIX)
+  set(ZLIB_LIBS ${ZLIB_BINARY_DIR}/zlibstatic.lib ${ZLIB_BINARY_DIR}/zlibstatic.a)
+endif(UNIX)
+
+add_custom_target(zlib_copy ALL
+                  COMMAND ${CMAKE_COMMAND} -E copy ${ZLIB_LIBS} ${ZLIB_ROOT}/lib
+                  COMMAND ${CMAKE_COMMAND} -E copy ${ZLIB_PROJECT_ROOT}/zlib.h ${ZLIB_BINARY_DIR}/zconf.h ${ZLIB_ROOT}/include
+                  DEPENDS zlibstatic)
 
 #Workaround for dependencies.
 ExternalProject_Add(mbedtls_build
                     SOURCE_DIR ${mbedtls_src}
                     BINARY_DIR ${PROJECT_BINARY_DIR}/externals/mbedtls
-                    CONFIGURE_COMMAND cmake ${mbedtls_src} -G ${CMAKE_GENERATOR} -DCMAKE_POSITION_INDEPENDENT_CODE=ON -DCMAKE_ARCHIVE_OUTPUT_DIRECTORY=${PROJECT_ARCHIVE_OUTPUT_DIRECTORY} -DCMAKE_LIBRARY_OUTPUT_DIRECTORY=${PROJECT_LIBRARY_OUTPUT_DIRECTORY} -DCMAKE_INSTALL_PREFIX=${PROJECT_BINARY_DIR} -DENABLE_PROGRAMS=OFF -DENABLE_TESTING=OFF -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE} -DCMAKE_CONFIGURATION_TYPES=RELEASE
+                    CONFIGURE_COMMAND cmake ${mbedtls_src} -G ${CMAKE_GENERATOR} -DCMAKE_POSITION_INDEPENDENT_CODE=ON -DCMAKE_ARCHIVE_OUTPUT_DIRECTORY=${PROJECT_ARCHIVE_OUTPUT_DIRECTORY} -DCMAKE_LIBRARY_OUTPUT_DIRECTORY=${PROJECT_LIBRARY_OUTPUT_DIRECTORY} -DCMAKE_INSTALL_PREFIX=${PROJECT_BINARY_DIR} -DENABLE_PROGRAMS=OFF -DENABLE_TESTING=OFF -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE} -DCMAKE_CONFIGURATION_TYPES=RELEASE -DCMAKE_TOOLCHAIN_FILE=${TOOLCHAIN}
                     BUILD_COMMAND ${BUILD_CMD_MBED}
                     INSTALL_COMMAND ""
                     TEST_COMMAND "")
@@ -64,11 +82,12 @@ ExternalProject_Add(mbedtls_build
 ExternalProject_Add(IXWebSocket_build
                     SOURCE_DIR ${IXWebSocket_src}
                     BINARY_DIR ${PROJECT_BINARY_DIR}/externals/IXWebSocket
-                    CONFIGURE_COMMAND cmake ${IXWebSocket_src} -G ${CMAKE_GENERATOR} -DZLIB_ROOT=${ZLIB_ROOT} -DUSE_TLS=ON -DUSE_MBED_TLS=ON -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE} -DCMAKE_CONFIGURATION_TYPES=RELEASE -DMBEDTLS_INCLUDE_DIRS=${mbedtls_src}/include -DMBEDCRYPTO_LIBRARY=${MBEDCRYPTO_LIBRARY} -DMBEDTLS_LIBRARY=${MBEDTLS_LIBRARY} -DMBEDX509_LIBRARY=${MBEDX509_LIBRARY} -DMBEDTLS_LIBRARIES=${MBEDTLS_LIBRARIES} -DCMAKE_ARCHIVE_OUTPUT_DIRECTORY=${PROJECT_ARCHIVE_OUTPUT_DIRECTORY} -DCMAKE_LIBRARY_OUTPUT_DIRECTORY=${PROJECT_LIBRARY_OUTPUT_DIRECTORY} -DCMAKE_INSTALL_PREFIX=${PROJECT_BINARY_DIR}
+                    CONFIGURE_COMMAND cmake ${IXWebSocket_src} -G ${CMAKE_GENERATOR} -DZLIB_ROOT=${ZLIB_ROOT}2 -DUSE_TLS=ON -DUSE_MBED_TLS=ON -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE} -DCMAKE_CONFIGURATION_TYPES=RELEASE -DMBEDTLS_INCLUDE_DIRS=${mbedtls_src}/include -DMBEDCRYPTO_LIBRARY=${MBEDCRYPTO_LIBRARY} -DMBEDTLS_LIBRARY=${MBEDTLS_LIBRARY} -DMBEDX509_LIBRARY=${MBEDX509_LIBRARY} -DMBEDTLS_LIBRARIES=${MBEDTLS_LIBRARIES} -DCMAKE_ARCHIVE_OUTPUT_DIRECTORY=${PROJECT_ARCHIVE_OUTPUT_DIRECTORY} -DCMAKE_LIBRARY_OUTPUT_DIRECTORY=${PROJECT_LIBRARY_OUTPUT_DIRECTORY} -DCMAKE_INSTALL_PREFIX=${PROJECT_BINARY_DIR} -DCMAKE_TOOLCHAIN_FILE=${TOOLCHAIN}
                     BUILD_COMMAND ${BUILD_CMD_WEBSOCKET}
                     INSTALL_COMMAND ""
                     TEST_COMMAND ""
-                    DEPENDS mbedtls_build)
+                    DEPENDS mbedtls_build
+                    DEPENDS zlib_copy)
 
 if(CMAKE_SYSTEM_PROCESSOR MATCHES "(arm|aarch64)")
   set(OPUS_DISABLE_INTRINSICS ON CACHE BOOL "")
@@ -80,16 +99,17 @@ if(NOT WIN32)
 	set(PTHREAD pthread)
 	set(LINK_DIRS "${PROJECT_BINARY_DIR}/src/libsodium/.libs/")
 
-	set(ZLIB_LIB "${ZLIB_ROOT}/lib/${CMAKE_STATIC_LIBRARY_PREFIX}z${CMAKE_STATIC_LIBRARY_SUFFIX}")
+  set(ZLIB_LIB "${ZLIB_ROOT}/lib/${CMAKE_STATIC_LIBRARY_PREFIX}z${CMAKE_STATIC_LIBRARY_SUFFIX}")
+
     
-    ExternalProject_Add(libsodium_build
-                        SOURCE_DIR ${libsodium_src}
-                        BINARY_DIR ${PROJECT_BINARY_DIR}
-                        PATCH_COMMAND "${libsodium_src}/autogen.sh"
-                        CONFIGURE_COMMAND "${libsodium_src}/configure" "--disable-pie" "--with-pic=\"yes\""
-                        BUILD_COMMAND "make"
-                        INSTALL_COMMAND cp -TR "${PROJECT_BINARY_DIR}/src/libsodium/include/" "${libsodium_src}/src/libsodium/include/"
-                        TEST_COMMAND "")
+  ExternalProject_Add(libsodium_build
+                      SOURCE_DIR ${libsodium_src}
+                      BINARY_DIR ${PROJECT_BINARY_DIR}
+                      PATCH_COMMAND "${libsodium_src}/autogen.sh"
+                      CONFIGURE_COMMAND "${libsodium_src}/configure" "--disable-pie" "--with-pic=\"yes\"" "--host=arm-linux-gnueabihf"
+                      BUILD_COMMAND "make"
+                      INSTALL_COMMAND cp -TR "${PROJECT_BINARY_DIR}/src/libsodium/include/" "${libsodium_src}/src/libsodium/include/"
+                      TEST_COMMAND "")
 else(NOT WIN32)
 	if(MSVC)
 		set(LINK_DIRS ${LINK_DIRS} "${PROJECT_BINARY_DIR}")
@@ -133,19 +153,8 @@ set(SRCS
 
 add_library(${PROJECT_NAME} SHARED ${SRCS})
 
-if(UNIX)
-  set(ZLIB_BINARY_DIR ${PROJECT_BINARY_DIR}/externals/zlib-1.2.11)
-  set(ZLIB_LIBS ${ZLIB_BINARY_DIR}/libz.a)
-else(UNIX)
-  set(ZLIB_LIBS ${ZLIB_BINARY_DIR}/zlibstatic.lib ${ZLIB_BINARY_DIR}/zlibstatic.a)
-endif(UNIX)
-
-add_custom_target(zlib_copy ALL
-                  COMMAND ${CMAKE_COMMAND} -E copy ${ZLIB_LIBS} ${ZLIB_ROOT}/lib
-                  COMMAND ${CMAKE_COMMAND} -E copy ${ZLIB_PROJECT_ROOT}/zlib.h ${ZLIB_BINARY_DIR}/zconf.h ${ZLIB_ROOT}/include
-                  DEPENDS zlibstatic)
-
-add_dependencies(IXWebSocket_build zlib_copy)
+# add_dependencies(zlib_copy zlibstatic)
+# add_dependencies(IXWebSocket_build zlib_copy)
 add_dependencies(${PROJECT_NAME} IXWebSocket_build)
 add_dependencies(${PROJECT_NAME} libsodium_build)
 
@@ -164,4 +173,4 @@ install(TARGETS ${PROJECT_NAME} EXPORT ${PROJECT_NAME}
 )
 
 set_target_properties(${PROJECT_NAME} PROPERTIES SOVERSION ${PROJECT_VERSION}${VERSION_SUFFIX})
-target_link_libraries(${PROJECT_NAME} libsodium${CMAKE_STATIC_LIBRARY_SUFFIX} ixwebsocket ${CMAKE_STATIC_LIBRARY_PREFIX}mbedtls${CMAKE_STATIC_LIBRARY_SUFFIX} ${CMAKE_STATIC_LIBRARY_PREFIX}mbedcrypto${CMAKE_STATIC_LIBRARY_SUFFIX} ${CMAKE_STATIC_LIBRARY_PREFIX}mbedx509${CMAKE_STATIC_LIBRARY_SUFFIX} ${ZLIB_LIB} opus ${PTHREAD})
+target_link_libraries(${PROJECT_NAME} libsodium${CMAKE_STATIC_LIBRARY_SUFFIX} ixwebsocket ${CMAKE_STATIC_LIBRARY_PREFIX}mbedtls${CMAKE_STATIC_LIBRARY_SUFFIX} ${CMAKE_STATIC_LIBRARY_PREFIX}mbedcrypto${CMAKE_STATIC_LIBRARY_SUFFIX} ${CMAKE_STATIC_LIBRARY_PREFIX}mbedx509${CMAKE_STATIC_LIBRARY_SUFFIX} zlibstatic opus ${PTHREAD})
