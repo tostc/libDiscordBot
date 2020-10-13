@@ -56,6 +56,18 @@ For Windows open the *.sln file inside the build directory
 
 3. Copy and rename the project_template directory somewhere to get starting. Follow the introduction inside the README.MD of the template.
 
+## Crosscompiling
+
+To crosscompile the library there are toolchain files inside the crosscompile folder.
+How to use
+
+1. Do the same steps (1 - 2) as describe above except the `cmake ../` step.
+2. Call cmake with the following parameters.
+```
+cmake ../ -DCMAKE_TOOLCHAIN_FILE=../crosscompile/TOOLCHAINFILE.cmake
+```
+3. You can now compile your programm.
+
 ### First bot
 
 Please visit the [wiki page](https://github.com/tostc/libDiscordBot/wiki/Your-first-bot).
