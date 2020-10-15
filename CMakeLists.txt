@@ -4,6 +4,8 @@ project(discordbot VERSION 2.2.1 LANGUAGES CXX)
 set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+set(CMAKE_BUILD_WITH_INSTALL_RPATH ON)
+
 include(${CMAKE_ROOT}/Modules/ExternalProject.cmake)
 
 set(VERSION_SUFFIX "-alpha")
@@ -75,8 +77,8 @@ if(CMAKE_CROSSCOMPILING)
                         REALPATH BASE_DIR "${PROJECT_BINARY_DIR}")
 
   set(TOOLCHAIN_PARAM "-DCMAKE_TOOLCHAIN_FILE=${TOOLCHAIN}")
-  set(EXTERNAL_ENV "${CMAKE_COMMAND} -E env \"PATH=${ROOT_PATH}:$ENV{PATH}\"")
-  set(EXTERNAL_HOST_PARAM "\"--host=${HOST_NAME}\"")
+  set(EXTERNAL_ENV ${CMAKE_COMMAND} -E env PATH=${ROOT_PATH}/bin:$ENV{PATH})
+  set(EXTERNAL_HOST_PARAM --host=${HOST_NAME})
 endif()
 
 #Workaround for dependencies.
@@ -114,7 +116,7 @@ if(NOT WIN32)
                       SOURCE_DIR ${libsodium_src}
                       BINARY_DIR ${PROJECT_BINARY_DIR}
                       PATCH_COMMAND "${libsodium_src}/autogen.sh"
-                      CONFIGURE_COMMAND ${EXTERNAL_ENV} "${libsodium_src}/configure" "--disable-pie" "--with-pic=\"yes\"" ${EXTERNAL_HOST_PARAM}
+                      CONFIGURE_COMMAND ${EXTERNAL_ENV} "${libsodium_src}/configure" "--disable-pie" --with-pic="yes" ${EXTERNAL_HOST_PARAM}
                       BUILD_COMMAND ${EXTERNAL_ENV} "make"
                       INSTALL_COMMAND cp -TR "${PROJECT_BINARY_DIR}/src/libsodium/include/" "${libsodium_src}/src/libsodium/include/"
                       TEST_COMMAND "")
