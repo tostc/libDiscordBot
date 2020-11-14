@@ -30,7 +30,7 @@
 #include <time.h>
 #include <stdlib.h>
 #include <queue>
-#include "Helper.hpp"
+#include "../helpers/Helper.hpp"
 
 namespace DiscordBot
 {

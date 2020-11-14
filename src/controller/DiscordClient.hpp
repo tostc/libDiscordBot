@@ -257,6 +257,8 @@ namespace DiscordBot
              * @param member: Member to rename.
              * @param Name: The new name.
              * 
+             * @attention The bot needs following permission `MANAGE_NICKNAMES`
+             * 
              * @throw CDiscordClientException on error.
              */
             void RenameMember(GuildMember member, const std::string &Name) override;
@@ -266,6 +268,8 @@ namespace DiscordBot
              * 
              * @param member: Member to mute.
              * @param mute: True if the member should be mute.
+             * 
+             * @attention The bot needs following permission `MUTE_MEMBERS`
              * 
              * @throw CDiscordClientException on error.
              */
@@ -277,6 +281,8 @@ namespace DiscordBot
              * @param member: Member to deaf.
              * @param mute: True if the member should be deaf.
              * 
+             * @attention The bot needs following permission `DEAFEN_MEMBERS`
+             * 
              * @throw CDiscordClientException on error.
              */
             void DeafMember(GuildMember member, bool deaf) override;
@@ -287,7 +293,9 @@ namespace DiscordBot
              * @param member: Member to move.
              * @param c: Channel to move to.
              * 
-             * @note If c is null the user will be kicked.
+             * @note If c is null the user will be kicked from the voice channel.
+             * 
+             * @attention The bot needs following permission `MOVE_MEMBERS`
              * 
              * @throw CDiscordClientException on error.
              */
@@ -299,9 +307,52 @@ namespace DiscordBot
              * @param member: Member to modify.
              * @param Roles: Roles to assign.
              * 
+             * @attention The bot needs following permission `MANAGE_ROLES`
+             * 
              * @throw CDiscordClientException on error.
              */
             void ModifyRoles(GuildMember member, std::vector<Role> Roles) override;
+
+            /**
+             * @brief Bans a member from the guild.
+             * 
+             * @param member: Member to ban.
+             * @param Reason: Ban reason.
+             * @param DeleteMsgDays: Deletes all messages of the banned user. (0 - 7 are valid values. -1 ignores the value.)
+             * 
+             * @attention The bot needs following permission `BAN_MEMBERS`
+             * 
+             * @throw CDiscordClientException on error.
+             */
+            void BanMember(GuildMember member, const std::string &Reason = "", int DeleteMsgDays = -1) override;
+
+            /**
+             * @brief Unbans a user.
+             * 
+             * @param guild: The guild were the user is banned.
+             * @param user: User which is banned.
+             * 
+             * @attention The bot needs following permission `BAN_MEMBERS`
+             * 
+             * @throw CDiscordClientException on error.
+             */
+            void UnbanMember(Guild guild, User user) override;
+            
+            /**
+             * @attention The bot needs following permission `BAN_MEMBERS`
+             * 
+             * @return Returns a list of banned users of a guild. (ret.first = reason, ret.second = user)
+             */
+            std::vector<std::pair<std::string, User>> GetGuildBans(Guild guild) override;
+
+            /**
+             * @brief Kicks a member from the guild.
+             * 
+             * @param member: Member to kick.
+             * 
+             * @attention The bot needs following permission `KICK_MEMBERS`
+             */
+            void KickMember(GuildMember member) override;
 
             /**
              * @return Returns the audio source for the given guild. Null if there is no audio source available.
@@ -370,8 +421,8 @@ namespace DiscordBot
              */
             Guild GetGuild(const std::string &GID) 
             {
-                auto IT = m_Guilds.find(GID);
-                if(IT != m_Guilds.end())
+                auto IT = m_Guilds->find(GID);
+                if(IT != m_Guilds->end())
                     return IT->second;
 
                 return nullptr;
@@ -420,10 +471,10 @@ namespace DiscordBot
             User m_BotUser;
 
             //Map of all users in different servers.
-            Users m_Users;
+            atomic<Users> m_Users;
 
             //All Guilds where the bot is in.
-            Guilds m_Guilds;
+            atomic<Guilds> m_Guilds;
 
             //All open voice connections.
             atomic<VoiceSockets> m_VoiceSockets;
@@ -501,6 +552,8 @@ namespace DiscordBot
              */
             GuildMember CheckMemberAction(GuildMember m, Permission p, const std::string &errMsg);
 
+            GuildMember CheckBotPermissions(const std::string &GID, const std::string &errMsg, Permission p);
+
             ix::HttpResponsePtr Get(const std::string &URL);
             ix::HttpResponsePtr Post(const std::string &URL, const std::string &Body);
             ix::HttpResponsePtr Patch(const std::string &URL, const std::string &Body);
@@ -513,12 +566,9 @@ namespace DiscordBot
 
             GuildMember GetMember(Guild guild, const std::string &UserID);
 
-            User CreateUser(CJSON &json);
             GuildMember CreateMember(CJSON &json, Guild guild);
             VoiceState CreateVoiceState(CJSON &json, Guild guild);
-            Channel CreateChannel(CJSON &json);
             Message CreateMessage(CJSON &json);
-            Role CreateRole(CJSON &json);
             Activity CreateActivity(CJSON &json);
     };
 } // namespace DiscordBot

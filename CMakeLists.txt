@@ -1,10 +1,10 @@
 cmake_minimum_required(VERSION 3.3.0)
 project(discordbot VERSION 2.2.1 LANGUAGES CXX)
 
+#----------------------------Setup any needed variable and include any needed module.----------------------------#
+
 set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
-
-set(CMAKE_BUILD_WITH_INSTALL_RPATH ON)
 
 include(${CMAKE_ROOT}/Modules/ExternalProject.cmake)
 
@@ -54,6 +54,19 @@ set(SKIP_INSTALL_ALL on)
 file(MAKE_DIRECTORY ${ZLIB_ROOT}/include)
 file(MAKE_DIRECTORY ${ZLIB_ROOT}/lib)
 
+set(TOOLCHAIN_PARAM "")
+set(EXTERNAL_ENV "")
+set(EXTERNAL_HOST_PARAM "")
+if(CMAKE_CROSSCOMPILING)
+  get_filename_component(TOOLCHAIN "${CMAKE_TOOLCHAIN_FILE}"
+                        REALPATH BASE_DIR "${PROJECT_BINARY_DIR}")
+
+  set(TOOLCHAIN_PARAM "-DCMAKE_TOOLCHAIN_FILE=${TOOLCHAIN}")
+  set(EXTERNAL_ENV ${CMAKE_COMMAND} -E env PATH=${ROOT_PATH}/bin:$ENV{PATH})
+  set(EXTERNAL_HOST_PARAM --host=${HOST_NAME})
+endif()
+
+#----------------------------Create build targets----------------------------#
 
 add_subdirectory(${ZLIB_PROJECT_ROOT})
                               
@@ -68,18 +81,6 @@ add_custom_target(zlib_copy ALL
                   COMMAND ${CMAKE_COMMAND} -E copy ${ZLIB_LIBS} ${ZLIB_ROOT}/lib
                   COMMAND ${CMAKE_COMMAND} -E copy ${ZLIB_PROJECT_ROOT}/zlib.h ${ZLIB_BINARY_DIR}/zconf.h ${ZLIB_ROOT}/include
                   DEPENDS zlibstatic)
-
-set(TOOLCHAIN_PARAM "")
-set(EXTERNAL_ENV "")
-set(EXTERNAL_HOST_PARAM "")
-if(CMAKE_CROSSCOMPILING)
-  get_filename_component(TOOLCHAIN "${CMAKE_TOOLCHAIN_FILE}"
-                        REALPATH BASE_DIR "${PROJECT_BINARY_DIR}")
-
-  set(TOOLCHAIN_PARAM "-DCMAKE_TOOLCHAIN_FILE=${TOOLCHAIN}")
-  set(EXTERNAL_ENV ${CMAKE_COMMAND} -E env PATH=${ROOT_PATH}/bin:$ENV{PATH})
-  set(EXTERNAL_HOST_PARAM --host=${HOST_NAME})
-endif()
 
 #Workaround for dependencies.
 ExternalProject_Add(mbedtls_build
@@ -100,6 +101,7 @@ ExternalProject_Add(IXWebSocket_build
                     DEPENDS mbedtls_build
                     DEPENDS zlib_copy)
 
+# There is an issue on arm processors for opus (https://github.com/xiph/opus/issues/203)                    
 if(CMAKE_SYSTEM_PROCESSOR MATCHES "(arm|aarch64)")
   set(OPUS_DISABLE_INTRINSICS ON CACHE BOOL "")
 endif()
@@ -163,8 +165,6 @@ set(SRCS
 
 add_library(${PROJECT_NAME} SHARED ${SRCS})
 
-# add_dependencies(zlib_copy zlibstatic)
-# add_dependencies(IXWebSocket_build zlib_copy)
 add_dependencies(${PROJECT_NAME} IXWebSocket_build)
 add_dependencies(${PROJECT_NAME} libsodium_build)
 
