@@ -1,9 +1,10 @@
-## Version 2.2.2-alpha ()
+## Version 2.2.2-beta ()
 - Added the renaming of users
 - Added the moving of users
 - Added the muting of users
-- Added role managemen of users. You can now assign and remove roles of members
+- Added role management of users. You can now assign and remove roles of members
 - Discords object fields are now atomic.
+- Guild administration interface added. 
 
 ## Version 2.2.1-alpha (06.10.2020)
 - Added fix from issue #9 to build the library flawsless for the raspberry pi.

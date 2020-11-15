@@ -43,6 +43,8 @@
 #include "../models/Payload.hpp"
 #include "VoiceSocket.hpp"
 #include <models/atomic.hpp>
+#include "GuildAdmin.hpp"
+#include "../helpers/JSONHelpers.hpp"
 
 #undef SendMessage
 
@@ -252,109 +254,6 @@ namespace DiscordBot
             void SendMessage(User user, const std::string Text, Embed embed = nullptr, bool TTS = false) override;
 
             /**
-             * @brief Renames a guildmember.
-             * 
-             * @param member: Member to rename.
-             * @param Name: The new name.
-             * 
-             * @attention The bot needs following permission `MANAGE_NICKNAMES`
-             * 
-             * @throw CDiscordClientException on error.
-             */
-            void RenameMember(GuildMember member, const std::string &Name) override;
-
-            /**
-             * @brief Mutes a member in a voice channel.
-             * 
-             * @param member: Member to mute.
-             * @param mute: True if the member should be mute.
-             * 
-             * @attention The bot needs following permission `MUTE_MEMBERS`
-             * 
-             * @throw CDiscordClientException on error.
-             */
-            void MuteMember(GuildMember member, bool mute) override;
-
-            /**
-             * @brief Deafs a member in a voice channel.
-             * 
-             * @param member: Member to deaf.
-             * @param mute: True if the member should be deaf.
-             * 
-             * @attention The bot needs following permission `DEAFEN_MEMBERS`
-             * 
-             * @throw CDiscordClientException on error.
-             */
-            void DeafMember(GuildMember member, bool deaf) override;
-
-            /**
-             * @brief Moves a member to a channel.
-             * 
-             * @param member: Member to move.
-             * @param c: Channel to move to.
-             * 
-             * @note If c is null the user will be kicked from the voice channel.
-             * 
-             * @attention The bot needs following permission `MOVE_MEMBERS`
-             * 
-             * @throw CDiscordClientException on error.
-             */
-            void MoveMember(GuildMember member, Channel c) override;
-
-            /**
-             * @brief Modifies the roles of a member.
-             * 
-             * @param member: Member to modify.
-             * @param Roles: Roles to assign.
-             * 
-             * @attention The bot needs following permission `MANAGE_ROLES`
-             * 
-             * @throw CDiscordClientException on error.
-             */
-            void ModifyRoles(GuildMember member, std::vector<Role> Roles) override;
-
-            /**
-             * @brief Bans a member from the guild.
-             * 
-             * @param member: Member to ban.
-             * @param Reason: Ban reason.
-             * @param DeleteMsgDays: Deletes all messages of the banned user. (0 - 7 are valid values. -1 ignores the value.)
-             * 
-             * @attention The bot needs following permission `BAN_MEMBERS`
-             * 
-             * @throw CDiscordClientException on error.
-             */
-            void BanMember(GuildMember member, const std::string &Reason = "", int DeleteMsgDays = -1) override;
-
-            /**
-             * @brief Unbans a user.
-             * 
-             * @param guild: The guild were the user is banned.
-             * @param user: User which is banned.
-             * 
-             * @attention The bot needs following permission `BAN_MEMBERS`
-             * 
-             * @throw CDiscordClientException on error.
-             */
-            void UnbanMember(Guild guild, User user) override;
-            
-            /**
-             * @attention The bot needs following permission `BAN_MEMBERS`
-             * 
-             * @return Returns a list of banned users of a guild. (ret.first = reason, ret.second = user)
-             */
-            std::vector<std::pair<std::string, User>> GetGuildBans(Guild guild) override;
-
-            /**
-             * @brief Kicks a member from the guild.
-             * 
-             * @param member: Member to kick.
-             * 
-             * @attention The bot needs following permission `KICK_MEMBERS`
-             */
-            void KickMember(GuildMember member) override;
-
-            /**
              * @return Returns the audio source for the given guild. Null if there is no audio source available.
              */
             AudioSource GetAudioSource(Guild guild) override;
@@ -419,13 +318,30 @@ namespace DiscordBot
             /**
              * @return Gets a guild object by its id or null.
              */
-            Guild GetGuild(const std::string &GID) 
+            Guild GetGuild(const std::string &GID) override
             {
                 auto IT = m_Guilds->find(GID);
                 if(IT != m_Guilds->end())
                     return IT->second;
 
                 return nullptr;
+            }
+
+            GuildAdmin GetAdminInterface(Guild g) override
+            {
+                if(!g || g->ID == "")
+                    return nullptr;
+
+                auto IT = m_Admins->find(g->ID);
+                if(IT == m_Admins->end())
+                {
+                    auto ret = GuildAdmin(new CGuildAdmin(this, g));
+                    m_Admins->insert({g->ID, ret});
+
+                    return ret;
+                }
+
+                return IT->second;
             }
 
             /**
@@ -437,6 +353,19 @@ namespace DiscordBot
             }
 
             ~CDiscordClient() {}
+
+
+            ix::HttpResponsePtr Get(const std::string &URL);
+            ix::HttpResponsePtr Post(const std::string &URL, const std::string &Body);
+            ix::HttpResponsePtr Put(const std::string &URL, const std::string &Body);
+            ix::HttpResponsePtr Patch(const std::string &URL, const std::string &Body);
+            ix::HttpResponsePtr Delete(const std::string &URL);
+
+            GuildMember GetMember(Guild guild, const std::string &UserID);
+            User GetUserOrAdd(const std::string &js)
+            {
+                return m_Users | js;
+            }
         private:
             enum
             {
@@ -452,6 +381,7 @@ namespace DiscordBot
             using VoiceSockets = std::map<std::string, VoiceSocket>;
             using AudioSources = std::map<std::string, AudioSource>;
             using MusicQueues = std::map<std::string, MusicQueue>;
+            using AdminInterfaces = std::map<std::string, GuildAdmin>;
 
             CMessageManager m_EVManger;
             Intent m_Intents;
@@ -476,6 +406,8 @@ namespace DiscordBot
             //All Guilds where the bot is in.
             atomic<Guilds> m_Guilds;
 
+            atomic<AdminInterfaces> m_Admins;
+
             //All open voice connections.
             atomic<VoiceSockets> m_VoiceSockets;
 
@@ -487,11 +419,6 @@ namespace DiscordBot
             OnlineState m_State;
             std::string m_Text; //Playing xy
             std::string m_URL;  //Streams on xy
-
-            /**
-             * @brief Checks if a member has a given right.
-             */
-            bool HasPermission(GuildMember member, Permission perm);
 
             /**
              * @return Creates a user info object and return it as json string.
@@ -545,26 +472,8 @@ namespace DiscordBot
 
             void OnQueueWaitFinish(const std::string &Guild, AudioSource Source);
 
-            /**
-             * @brief Checks for member actions.
-             * 
-             * @return Returns the bot member.
-             */
-            GuildMember CheckMemberAction(GuildMember m, Permission p, const std::string &errMsg);
-
-            GuildMember CheckBotPermissions(const std::string &GID, const std::string &errMsg, Permission p);
-
-            ix::HttpResponsePtr Get(const std::string &URL);
-            ix::HttpResponsePtr Post(const std::string &URL, const std::string &Body);
-            ix::HttpResponsePtr Patch(const std::string &URL, const std::string &Body);
-
-
-            void ModifyMember(const std::string &GID, const std::string &UID, const std::string &js);
-            void RenameSelf(const std::string &GID, const std::string &js);
             std::string OnlineStateToStr(OnlineState state);
             OnlineState StrToOnlineState(const std::string &state);
-
-            GuildMember GetMember(Guild guild, const std::string &UserID);
 
             GuildMember CreateMember(CJSON &json, Guild guild);
             VoiceState CreateVoiceState(CJSON &json, Guild guild);

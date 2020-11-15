@@ -97,6 +97,18 @@ namespace DiscordBot
                 return m_Value == rhs.load();
             }
 
+            inline bool operator!=(const T &rhs)
+            {
+                std::lock_guard<std::recursive_mutex> lock(m_Lock);
+                return m_Value != rhs;
+            }
+
+            inline bool operator!=(const atomic<T> &rhs)
+            {
+                std::lock_guard<std::recursive_mutex> lock(m_Lock);
+                return m_Value != rhs.load();
+            }
+
             inline T load() const noexcept
             {
                 std::lock_guard<std::recursive_mutex> lock(m_Lock);

@@ -162,7 +162,7 @@ namespace DiscordBot
         return Ret;
     }
 
-    std::string Serialize(const Embed &e)
+    inline std::string Serialize(const Embed &e)
     {
         CJSON js;
 

@@ -27,7 +27,6 @@
 #include <sodium.h>
 #include <models/DiscordException.hpp>
 #include "../helpers/Helper.hpp"
-#include "../helpers/JSONHelpers.hpp"
 
 #define CLOG_IMPLEMENTATION
 #include <Log.hpp>
@@ -88,21 +87,6 @@ namespace DiscordBot
         m_Text = Text;
         m_URL = URL;
         UpdateUserInfo();
-    }
-
-    bool CDiscordClient::HasPermission(GuildMember member, Permission perm)
-    {
-        bool ret = false;
-        for (auto e : member->Roles.load())
-        {
-            if((e->Permissions & perm) == perm)
-            {
-                ret = true;
-                break;
-            }
-        }
-        
-        return ret;
     }
 
     std::string CDiscordClient::CreateUserInfoJSON()
@@ -201,134 +185,6 @@ namespace DiscordBot
 
             SendMessage(c, Text, embed, TTS);
         }
-    }
-
-    void CDiscordClient::RenameMember(GuildMember member, const std::string &Name)
-    {
-        auto bot = CheckMemberAction(member, Permission::MANAGE_NICKNAMES, "Missing right to rename a user: 'MANAGE_NICKNAMES'");
-
-        CJSON js;
-        js.AddPair("nick", Name);
-
-        //Renames the Bot.
-        if(bot->UserRef->ID == member->UserRef->ID)
-            RenameSelf(member->GuildID, js.Serialize());
-        else
-            ModifyMember(member->GuildID, member->UserRef->ID, js.Serialize());
-    }
-
-    void CDiscordClient::MuteMember(GuildMember member, bool mute)
-    {
-        CheckMemberAction(member, Permission::MUTE_MEMBERS, "Missing right to mute a user: 'MUTE_MEMBERS'");
-        if(!member->State)
-            throw CDiscordClientException("User can't be muted, because he are not connected to a voice channel.", DiscordClientErrorType::MEMBER_NOT_IN_VC);
-
-        CJSON js;
-        js.AddPair("mute", mute);
-
-        ModifyMember(member->GuildID, member->UserRef->ID, js.Serialize());
-    }
-
-    void CDiscordClient::DeafMember(GuildMember member, bool deaf)
-    {
-        CheckMemberAction(member, Permission::DEAFEN_MEMBERS, "Missing right to deaf a user: 'DEAFEN_MEMBERS'");
-        if(!member->State)
-            throw CDiscordClientException("User can't be deafen, because he are not connected to a voice channel.", DiscordClientErrorType::MEMBER_NOT_IN_VC);
-
-        CJSON js;
-        js.AddPair("deaf", deaf);
-
-        ModifyMember(member->GuildID, member->UserRef->ID, js.Serialize());
-    }
-
-    void CDiscordClient::MoveMember(GuildMember member, Channel c)
-    {
-        CheckMemberAction(member, Permission::MOVE_MEMBERS, "Missing right to move a user: 'MOVE_MEMBERS'");
-        if(!member->State)
-            throw CDiscordClientException("User can't be moved, because he are not connected to a voice channel.", DiscordClientErrorType::MEMBER_NOT_IN_VC);
-
-        CJSON js;
-        if(c)
-            js.AddPair("channel_id", c->ID.load());
-        else
-            js.AddPair("channel_id", nullptr);  //Kicks the user.
-
-        ModifyMember(member->GuildID, member->UserRef->ID, js.Serialize());
-    }
-
-    void CDiscordClient::ModifyRoles(GuildMember member, std::vector<Role> Roles)
-    {
-        CheckMemberAction(member, Permission::MANAGE_ROLES, "Missing right to modify roles of a user: 'MANAGE_ROLES'");
-        std::vector<std::string> IDs;
-        CJSON js;
-
-        for (auto e : Roles)
-        {
-            IDs.push_back(e->ID);
-        }
-        
-        js.AddPair("roles", IDs);
-        ModifyMember(member->GuildID, member->UserRef->ID, js.Serialize());
-    }
-
-    void CDiscordClient::BanMember(GuildMember member, const std::string &Reason, int DeleteMsgDays)
-    {
-        
-    }
-
-    void CDiscordClient::UnbanMember(Guild guild, User user)    
-    {
-
-
-    }
-
-    std::vector<std::pair<std::string, User>> CDiscordClient::GetGuildBans(Guild guild)    
-    {
-        std::vector<std::pair<std::string, User>> ret;
-
-        if(!guild)
-            return ret;
-
-        CheckBotPermissions(guild->ID, "Missing right to see the ban list: 'BAN_MEMBERS'", Permission::BAN_MEMBERS);
-        auto res = Get("/guilds/" + guild->ID + "/bans");
-
-        if(res->statusCode != 200)
-            throw CDiscordClientException("Unable to get ban list. Error: " + res->body + " HTTP Code: " + std::to_string(res->statusCode), DiscordClientErrorType::HTTP_ERROR);
-
-        CJSON js;
-        auto list = js.Deserialize<std::vector<std::string>>(res->body);
-
-        for (auto e : list)
-        {
-            js.ParseObject(e);
-
-            User user = m_Users | js.GetValue<std::string>("user");
-            ret.push_back({js.GetValue<std::string>("reason"), user});
-        }
-
-        return ret;        
-    }
-
-    void CDiscordClient::KickMember(GuildMember member)    
-    {
-        CheckMemberAction(member, Permission::KICK_MEMBERS, "Missing right to kick a user: 'KICK_MEMBERS'");
-    }
-
-    GuildMember CDiscordClient::CheckMemberAction(GuildMember m, Permission p, const std::string &errMsg)
-    {
-        if(!m || !m->UserRef)
-            throw CDiscordClientException("The member can't be null!", DiscordClientErrorType::PARAMETER_IS_NULL);
-
-        return CheckBotPermissions(m->GuildID, errMsg, p);
-    }
-
-    GuildMember CDiscordClient::CheckBotPermissions(const std::string &GID, const std::string &errMsg, Permission p)
-    {
-        auto bot = GetBotMember(GetGuild(GID));
-        if(!HasPermission(bot, p))
-            throw CDiscordClientException(errMsg, DiscordClientErrorType::MISSING_PERMISSION);
-
-        return bot;
     }
 
     AudioSource CDiscordClient::GetAudioSource(Guild guild)
@@ -768,6 +624,7 @@ namespace DiscordBot
                                     llog << ldebug << "Invalid Guild ( " << GuildID << " ) " << lendl;
                             }break;
 
+                            case Adler32("GUILD_BAN_ADD"):
                             case Adler32("GUILD_MEMBER_REMOVE"):
                             {
                                 json.ParseObject(Pay.D);
@@ -1086,7 +943,7 @@ namespace DiscordBot
     {
         ix::HttpRequestArgsPtr args = ix::HttpRequestArgsPtr(new ix::HttpRequestArgs());
 
-        //Add the bot token.
+        //Adds the bot token.
         args->extraHeaders["Authorization"] = "Bot " + m_Token;
         args->extraHeaders["User-Agent"] = USER_AGENT;
 
@@ -1097,7 +954,7 @@ namespace DiscordBot
     {
         ix::HttpRequestArgsPtr args = ix::HttpRequestArgsPtr(new ix::HttpRequestArgs());
 
-        //Add the bot token.
+        //Adds the bot token.
         args->extraHeaders["Authorization"] = "Bot " + m_Token;
         args->extraHeaders["Content-Type"] = "application/json";
         args->extraHeaders["User-Agent"] = USER_AGENT;
@@ -1105,11 +962,23 @@ namespace DiscordBot
         return m_HTTPClient.post(std::string(BASE_URL) + URL, Body, args);
     }
 
+    ix::HttpResponsePtr CDiscordClient::Put(const std::string &URL, const std::string &Body)
+    {
+        ix::HttpRequestArgsPtr args = ix::HttpRequestArgsPtr(new ix::HttpRequestArgs());
+
+        //Adds the bot token.
+        args->extraHeaders["Authorization"] = "Bot " + m_Token;
+        args->extraHeaders["Content-Type"] = "application/json";
+        args->extraHeaders["User-Agent"] = USER_AGENT;
+
+        return m_HTTPClient.put(std::string(BASE_URL) + URL, Body, args);
+    }
+
     ix::HttpResponsePtr CDiscordClient::Patch(const std::string &URL, const std::string &Body)
     {
         ix::HttpRequestArgsPtr args = ix::HttpRequestArgsPtr(new ix::HttpRequestArgs());
 
-        //Add the bot token.
+        //Adds the bot token.
         args->extraHeaders["Authorization"] = "Bot " + m_Token;
         args->extraHeaders["Content-Type"] = "application/json";
         args->extraHeaders["User-Agent"] = USER_AGENT;
@@ -1117,18 +986,15 @@ namespace DiscordBot
         return m_HTTPClient.patch(std::string(BASE_URL) + URL, Body, args);
     }
 
-    void CDiscordClient::ModifyMember(const std::string &GID, const std::string &UID, const std::string &js)
+    ix::HttpResponsePtr CDiscordClient::Delete(const std::string &URL)
     {
-        auto res = Patch("/guilds/" + GID + "/members/" + UID, js);
-        if(res->statusCode != 204)
-            throw CDiscordClientException("Error during member modification. Error: " + res->body + " HTTP Code: " + std::to_string(res->statusCode), DiscordClientErrorType::HTTP_ERROR);
-    }
+        ix::HttpRequestArgsPtr args = ix::HttpRequestArgsPtr(new ix::HttpRequestArgs());
 
-    void CDiscordClient::RenameSelf(const std::string &GID, const std::string &js)
-    {
-        auto res = Patch("/guilds/" + GID + "/members/@me/nick", js);
-        if(res->statusCode != 200)
-            throw CDiscordClientException("Error during member modification. Error: " + res->body + " HTTP Code: " + std::to_string(res->statusCode), DiscordClientErrorType::HTTP_ERROR);
+        //Adds the bot token.
+        args->extraHeaders["Authorization"] = "Bot " + m_Token;
+        args->extraHeaders["User-Agent"] = USER_AGENT;
+
+        return m_HTTPClient.del(std::string(BASE_URL) + URL, args);
     }
 
     void CDiscordClient::OnQueueWaitFinish(const std::string &Guild, AudioSource Source)

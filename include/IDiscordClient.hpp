@@ -33,6 +33,7 @@
 #include <controller/Factory.hpp>
 #include <config.h>
 #include <models/OnlineState.hpp>
+#include <controller/IGuildAdmin.hpp>
 
 namespace DiscordBot
 {
@@ -274,109 +275,6 @@ namespace DiscordBot
             virtual void SendMessage(User user, const std::string Text, Embed embed = nullptr, bool TTS = false) = 0;
 
             /**
-             * @brief Renames a guildmember.
-             * 
-             * @param member: Member to rename.
-             * @param Name: The new name.
-             * 
-             * @attention The bot needs following permission `MANAGE_NICKNAMES`
-             * 
-             * @throw CDiscordClientException on error.
-             */
-            virtual void RenameMember(GuildMember member, const std::string &Name) = 0;
-
-            /**
-             * @brief Mutes a member in a voice channel.
-             * 
-             * @param member: Member to mute.
-             * @param mute: True if the member should be mute.
-             * 
-             * @attention The bot needs following permission `MUTE_MEMBERS`
-             * 
-             * @throw CDiscordClientException on error.
-             */
-            virtual void MuteMember(GuildMember member, bool mute) = 0;
-
-            /**
-             * @brief Deafs a member in a voice channel.
-             * 
-             * @param member: Member to deaf.
-             * @param mute: True if the member should be deaf.
-             * 
-             * @attention The bot needs following permission `DEAFEN_MEMBERS`
-             * 
-             * @throw CDiscordClientException on error.
-             */
-            virtual void DeafMember(GuildMember member, bool deaf) = 0;
-
-            /**
-             * @brief Modifies the roles of a member.
-             * 
-             * @param member: Member to modify.
-             * @param Roles: Roles to assign.
-             * 
-             * @attention The bot needs following permission `MANAGE_ROLES`
-             * 
-             * @throw CDiscordClientException on error.
-             */
-            virtual void ModifyRoles(GuildMember member, std::vector<Role> Roles) = 0;
-
-            /**
-             * @brief Moves a member to a channel.
-             * 
-             * @param member: Member to move.
-             * @param c: Channel to move to.
-             * 
-             * @note If c is null the user will be kicked from the voice channel.
-             * 
-             * @attention The bot needs following permission `MOVE_MEMBERS`
-             * 
-             * @throw CDiscordClientException on error.
-             */
-            virtual void MoveMember(GuildMember member, Channel c) = 0;
-
-            /**
-             * @brief Bans a member from the guild.
-             * 
-             * @param member: Member to ban.
-             * @param Reason: Ban reason.
-             * @param DeleteMsgDays: Deletes all messages of the banned user. (0 - 7 are valid values. -1 ignores the value.)
-             * 
-             * @attention The bot needs following permission `BAN_MEMBERS`
-             * 
-             * @throw CDiscordClientException on error.
-             */
-            virtual void BanMember(GuildMember member, const std::string &Reason = "", int DeleteMsgDays = -1) = 0;
-
-            /**
-             * @brief Unbans a user.
-             * 
-             * @param guild: The guild were the user is banned.
-             * @param user: User which is banned.
-             * 
-             * @attention The bot needs following permission `BAN_MEMBERS`
-             * 
-             * @throw CDiscordClientException on error.
-             */
-            virtual void UnbanMember(Guild guild, User user) = 0;
-            
-            /**
-             * @attention The bot needs following permission `BAN_MEMBERS`
-             * 
-             * @return Returns a list of banned users of a guild. (ret.first = reason, ret.second = user)
-             */
-            virtual std::vector<std::pair<std::string, User>> GetGuildBans(Guild guild) = 0;
-
-            /**
-             * @brief Kicks a member from the guild.
-             * 
-             * @param member: Member to kick.
-             * 
-             * @attention The bot needs following permission `KICK_MEMBERS`
-             */
-            virtual void KickMember(GuildMember member) = 0;
-
-            /**
              * @return Returns the audio source for the given guild. Null if there is no audio source available.
              */
             virtual AudioSource GetAudioSource(Guild guild) = 0;
@@ -425,6 +323,11 @@ namespace DiscordBot
              * @return Gets a guild object by its id or null.
              */
             virtual Guild GetGuild(const std::string &GID) = 0;
+
+            /**
+             * @return Gets the administrator interface for a given guild. Or null if g is null.
+             */
+            virtual GuildAdmin GetAdminInterface(Guild g) = 0;
 
             /**
              * @return Gets a list of all users.
