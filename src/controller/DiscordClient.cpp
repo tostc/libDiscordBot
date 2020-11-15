@@ -568,6 +568,43 @@ namespace DiscordBot
 
                             /*------------------------GUILDS Intent------------------------*/
 
+                            /*------------------------CHANNEL Intent------------------------*/
+
+                            case Adler32("CHANNEL_CREATE"):
+                            {
+                                Channel Tmp;
+                                (Pay.D & m_Users) >> Tmp;
+
+                                auto IT = m_Guilds->find(Tmp->GuildID);
+                                if(IT != m_Guilds->end())
+                                    IT->second->Channels->insert({Tmp->ID, Tmp});
+                            }break;
+
+                            case Adler32("CHANNEL_UPDATE"):
+                            {
+                                Channel Tmp;
+                                (Pay.D & m_Users) >> Tmp;
+
+                                auto IT = m_Guilds->find(Tmp->GuildID);
+                                if(IT != m_Guilds->end())
+                                {
+                                    IT->second->Channels->erase(Tmp->ID);
+                                    IT->second->Channels->insert({Tmp->ID, Tmp});
+                                }
+                            }break;
+
+                            case Adler32("CHANNEL_DELETE"):
+                            {
+                                Channel Tmp;
+                                (Pay.D & m_Users) >> Tmp;
+
+                                auto IT = m_Guilds->find(Tmp->GuildID);
+                                if(IT != m_Guilds->end())
+                                    IT->second->Channels->erase(Tmp->ID);
+                            }break;
+
+                            /*------------------------CHANNEL Intent------------------------*/
+
                             /*------------------------GUILD_MEMBERS Intent------------------------*/
                             //ATTENTION: NEEDS "Server Members Intent" ACTIVATED TO WORK, OTHERWISE THE BOT FAIL TO CONNECT AND A ERROR IS WRITTEN TO THE CONSOLE!!!
 
@@ -986,7 +1023,7 @@ namespace DiscordBot
         return m_HTTPClient.patch(std::string(BASE_URL) + URL, Body, args);
     }
 
-    ix::HttpResponsePtr CDiscordClient::Delete(const std::string &URL)
+    ix::HttpResponsePtr CDiscordClient::Delete(const std::string &URL, const std::string &Body)
     {
         ix::HttpRequestArgsPtr args = ix::HttpRequestArgsPtr(new ix::HttpRequestArgs());
 
@@ -994,7 +1031,13 @@ namespace DiscordBot
         args->extraHeaders["Authorization"] = "Bot " + m_Token;
         args->extraHeaders["User-Agent"] = USER_AGENT;
 
-        return m_HTTPClient.del(std::string(BASE_URL) + URL, args);
+        if(Body != "")
+        {
+            args->extraHeaders["Content-Type"] = "application/json";
+            return m_HTTPClient.request(std::string(BASE_URL) + URL, "DELETE", Body, args);
+        }
+        else
+            return m_HTTPClient.del(std::string(BASE_URL) + URL, args);
     }
 
     void CDiscordClient::OnQueueWaitFinish(const std::string &Guild, AudioSource Source)

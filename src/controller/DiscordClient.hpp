@@ -359,7 +359,7 @@ namespace DiscordBot
             ix::HttpResponsePtr Post(const std::string &URL, const std::string &Body);
             ix::HttpResponsePtr Put(const std::string &URL, const std::string &Body);
             ix::HttpResponsePtr Patch(const std::string &URL, const std::string &Body);
-            ix::HttpResponsePtr Delete(const std::string &URL);
+            ix::HttpResponsePtr Delete(const std::string &URL, const std::string &Body = "");
 
             GuildMember GetMember(Guild guild, const std::string &UserID);
             User GetUserOrAdd(const std::string &js)

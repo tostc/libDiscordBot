@@ -34,7 +34,6 @@ namespace DiscordBot
     {
         MISSING_PERMISSION,     //!< Throws if your bot doesn't have the permission to execute an action inside a guild.
         HTTP_ERROR,             //!< There was an error with the request.
-        MEMBER_NOT_IN_VC,       //!< The user isn't in a voice channel.
         PARAMETER_IS_NULL,      //!< Throws if a required parameter is a nullptr.
         MISSING_USER_REF,       //!< Throws if a user reference is null.
     };

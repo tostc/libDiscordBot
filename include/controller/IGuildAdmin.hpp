@@ -31,6 +31,7 @@
 #include <models/Guild.hpp>
 #include <models/GuildMember.hpp>
 #include <models/ModifyMember.hpp>
+#include <models/ModifyChannel.hpp>
 
 namespace DiscordBot
 {
@@ -93,6 +94,40 @@ namespace DiscordBot
              * @attention The bot needs following permission `KICK_MEMBERS`
              */
             virtual void KickMember(User member) = 0;
+
+            /**
+             * @brief Create a new channel.
+             * 
+             * @param channel: Channel informations.
+             * 
+             * @attention The bot needs following permission `MANAGE_CHANNELS`
+             * 
+             * @throw CDiscordClientException on error.
+             */
+            virtual void CreateChannel(const CModifyChannel &channel) = 0;
+
+            /**
+             * @brief Modifies a channel.
+             * 
+             * @param channel: Channel informations.
+             * 
+             * @attention The bot needs following permission `MANAGE_CHANNELS`
+             * 
+             * @throw CDiscordClientException on error.
+             */
+            virtual void ModifyChannel(const CModifyChannel &channel) = 0;
+
+            /**
+             * @brief Deletes a channel.
+             * 
+             * @param channel: Channel to delete.
+             * 
+             * @note This can't be undone.
+             * @attention The bot needs following permission `MANAGE_CHANNELS`
+             * 
+             * @throw CDiscordClientException on error.
+             */
+            virtual void DeleteChannel(Channel channel, const std::string &reason) = 0;
 
             virtual ~IGuildAdmin() = default;
     };

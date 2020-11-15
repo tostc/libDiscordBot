@@ -42,6 +42,10 @@ namespace DiscordBot
             std::vector<std::pair<std::string, User>> GetGuildBans() override;
             void KickMember(User member) override;
 
+            void CreateChannel(const CModifyChannel &channel) override;
+            void ModifyChannel(const CModifyChannel &channel) override;
+            void DeleteChannel(Channel channel, const std::string &reason) override;
+
             ~CGuildAdmin() {}
 
         private:
@@ -52,6 +56,7 @@ namespace DiscordBot
              */
             bool HasPermission(GuildMember member, Permission perm);
             void RenameSelf(const std::string &js);
+            std::string ModifyChannelToJS(const CModifyChannel &channel);
 
             CDiscordClient *m_Client;
             Guild m_Guild;

@@ -25,92 +25,74 @@
 #include "GuildAdmin.hpp"
 #include "DiscordClient.hpp"
 #include <models/DiscordException.hpp>
+#include "../helpers/Helper.hpp"
 
 namespace DiscordBot
 {
     void CGuildAdmin::ModifyMember(const CModifyMember &mod)
     {
-        static const std::map<Modifications, std::pair<Permission, std::string>> MOD_PERMS = {
-            {Modifications::NICK, {Permission::MANAGE_NICKNAMES, "MANAGE_NICKNAMES"}},
-            {Modifications::ROLES, {Permission::MANAGE_ROLES, "MANAGE_ROLES"}},
-            {Modifications::DEAF, {Permission::DEAFEN_MEMBERS, "DEAFEN_MEMBERS"}},
-            {Modifications::MUTE, {Permission::MUTE_MEMBERS, "MUTE_MEMBERS"}},
-            {Modifications::MOVE, {Permission::MOVE_MEMBERS, "MOVE_MEMBERS"}}
+        static const std::map<size_t, std::pair<Permission, std::string>> MOD_PERMS = {
+            {Adler32("nick"), {Permission::MANAGE_NICKNAMES, "MANAGE_NICKNAMES"}},
+            {Adler32("roles"), {Permission::MANAGE_ROLES, "MANAGE_ROLES"}},
+            {Adler32("deaf"), {Permission::DEAFEN_MEMBERS, "DEAFEN_MEMBERS"}},
+            {Adler32("mute"), {Permission::MUTE_MEMBERS, "MUTE_MEMBERS"}},
+            {Adler32("channel_id"), {Permission::MOVE_MEMBERS, "MOVE_MEMBERS"}}
         };
 
         if(!mod.GetUserRef())
             throw CDiscordClientException("Error: A null user can't be modified", DiscordClientErrorType::MISSING_USER_REF);
 
-        if(mod.GetMods() == Modifications::NONE)    //Nothing to do here.
+        auto values = mod.GetValues();
+        bool HasRoles = mod.HasRoles();
+
+        if(values.empty() && !HasRoles)    //Nothing to do here.
             return;
 
         GuildMember member = m_Client->GetMember(m_Guild, mod.GetUserRef()->ID);
         GuildMember Bot;
 
         CJSON js;
-        for (int i = 1; i <= (int)Modifications::MOVE; i *= 2)
-        {
-            Modifications m = mod.GetMods() & (Modifications)i;
-            if(m == Modifications::NONE)
-                continue;
 
-            auto Perm = MOD_PERMS.at(m);
+        for (auto &&e : values)
+        {
+            size_t Adler = Adler32(e.first.c_str());
+
+            auto Perm = MOD_PERMS.at(Adler);
             Bot = CheckBotPermissions(Perm.first, "Missing right to modify user: '" + Perm.second + "'");
 
-            switch (m)
+            if(Adler == Adler32("nick") && mod.GetUserRef()->ID == Bot->UserRef->ID)
             {
-                case Modifications::NICK:
-                {
-                    js.AddPair("nick", mod.GetNick());
-                    if(mod.GetUserRef()->ID == Bot->UserRef->ID)
-                    {
-                        CheckBotPermissions(Permission::CHANGE_NICKNAME, "Missing right to modify user: 'CHANGE_NICKNAME'");
-                        RenameSelf(js.Serialize());    
-                    }                    
-                } break;
+                CJSON tmp;
+                tmp.AddPair(e.first, e.second);
 
-                case Modifications::ROLES:
-                {
-                    std::vector<std::string> IDs;
-                    auto Roles = mod.GetRoles();
-                    for (auto e : Roles)
-                        IDs.push_back(e->ID);
+                CheckBotPermissions(Permission::CHANGE_NICKNAME, "Missing right to modify user: 'CHANGE_NICKNAME'");
+                RenameSelf(tmp.Serialize());    
 
-                    js.AddPair("roles", IDs);
-                } break;
-
-                case Modifications::DEAF:
-                {
-                    if(!member->State)
-                        throw CDiscordClientException("User can't be deafen, because he are not connected to a voice channel.", DiscordClientErrorType::MEMBER_NOT_IN_VC);
-
-                    js.AddPair("deaf", mod.IsDeafed());
-                } break;
-
-                case Modifications::MUTE:
-                {
-                    if(!member->State)
-                        throw CDiscordClientException("User can't be muted, because he are not connected to a voice channel.", DiscordClientErrorType::MEMBER_NOT_IN_VC);
-
-                    js.AddPair("mute", mod.IsMuted());
-                } break;
-
-                case Modifications::MOVE:
-                {
-                    if(!member->State)
-                        throw CDiscordClientException("User can't be moved, because he are not connected to a voice channel.", DiscordClientErrorType::MEMBER_NOT_IN_VC);
-
-                    Channel c = mod.GetChannel();
-                    if(c)
-                        js.AddPair("channel_id", c->ID.load());
-                    else
-                        js.AddPair("channel_id", nullptr); //Kicks the user.
-                } break;        
+                continue;
             }
+
+            if(Adler == Adler32("nick") || (Adler == Adler32("channel_id") && e.second != "null"))
+                js.AddPair(e.first, e.second);
+            else
+                js.AddJSON(e.first, e.second);
         }
 
+        if(HasRoles)
+        {
+            auto Perm = MOD_PERMS.at(Adler32("roles"));
+            Bot = CheckBotPermissions(Perm.first, "Missing right to modify user: '" + Perm.second + "'");
+
+            std::vector<std::string> IDs;
+            auto Roles = mod.GetRoles();
+            
+            for (auto &&e : Roles)
+                IDs.push_back(e->ID);
+
+            js.AddPair("roles", IDs);         
+        }
+        
         //Modification is already done.
-        if(mod.GetMods() == Modifications::NICK && mod.GetUserRef()->ID == Bot->UserRef->ID)
+        if(values.size() == 1 && values.find("nick") != values.end() && mod.GetUserRef()->ID == Bot->UserRef->ID)
             return;
 
         auto res = m_Client->Patch("/guilds/" + m_Guild->ID + "/members/" + mod.GetUserRef()->ID, js.Serialize());
@@ -173,6 +155,40 @@ namespace DiscordBot
             throw CDiscordClientException("Can't kick user. Error: " + res->body + " HTTP Code: " + std::to_string(res->statusCode), DiscordClientErrorType::HTTP_ERROR);
     }
 
+    void CGuildAdmin::CreateChannel(const CModifyChannel &channel)
+    {
+        std::string js = ModifyChannelToJS(channel);
+        auto res = m_Client->Post("/guilds/" + m_Guild->ID + "/channels", js);
+        if(res->statusCode != 201)
+            throw CDiscordClientException("Can't create channel. Error: " + res->body + " HTTP Code: " + std::to_string(res->statusCode), DiscordClientErrorType::HTTP_ERROR);
+    }
+
+    void CGuildAdmin::ModifyChannel(const CModifyChannel &channel)
+    {
+        if(!channel.GetChannelRef())
+            return;
+
+        std::string js = ModifyChannelToJS(channel);
+
+        auto res = m_Client->Patch("/channels/" + channel.GetChannelRef()->ID, js);
+        if(res->statusCode != 200)
+            throw CDiscordClientException("Can't modify channel. Error: " + res->body + " HTTP Code: " + std::to_string(res->statusCode), DiscordClientErrorType::HTTP_ERROR);
+    }
+
+    void CGuildAdmin::DeleteChannel(Channel channel, const std::string &reason)
+    {
+        CheckBotPermissions(Permission::MANAGE_CHANNELS, "Missing right to manage channels: 'MANAGE_CHANNELS'");
+        if(!channel)
+            return;
+
+        CJSON js;
+        js.AddPair("reason", reason);
+
+        auto res = m_Client->Delete("/channels/" + channel->ID, js.Serialize());
+        if(res->statusCode != 200)
+            throw CDiscordClientException("Can't delete channel. Error: " + res->body + " HTTP Code: " + std::to_string(res->statusCode), DiscordClientErrorType::HTTP_ERROR);
+    }
+
     //--------------------------Private--------------------------//
 
     GuildMember CGuildAdmin::CheckBotPermissions(Permission p, const std::string &errMsg)
@@ -204,6 +220,50 @@ namespace DiscordBot
         auto res = m_Client->Patch("/guilds/" + m_Guild->ID + "/members/@me/nick", js);
         if(res->statusCode != 200)
             throw CDiscordClientException("Error during member modification. Error: " + res->body + " HTTP Code: " + std::to_string(res->statusCode), DiscordClientErrorType::HTTP_ERROR);
+    }
+
+    std::string CGuildAdmin::ModifyChannelToJS(const CModifyChannel &channel)
+    {
+        CheckBotPermissions(Permission::MANAGE_CHANNELS, "Missing right to manage channels: 'MANAGE_CHANNELS'");
+        CJSON js;
+
+        auto values = channel.GetValues();
+        bool HasOverwrites = channel.HasOverwrites();
+
+        if(values.empty() && !HasOverwrites)    //Nothing to do here.
+            return "";
+
+        for (auto &&e : values)
+        {
+            size_t Adler = Adler32(e.first.c_str());
+            if(Adler == Adler32("name") ||
+               Adler == Adler32("topic") ||
+               Adler == Adler32("parent_id"))
+                js.AddPair(e.first, e.second);
+            else
+                js.AddJSON(e.first, e.second);
+        }
+        
+        if(HasOverwrites)
+        {
+            std::vector<std::string> OWJS;
+            auto overwrites = channel.GetOverwrites();
+            for (auto &&e : overwrites)
+            {
+                CJSON tmp;
+                tmp.AddPair("id", e->ID.load());
+                tmp.AddPair("type", e->Type.load());
+                tmp.AddPair("allow", std::to_string((int)e->Allow));
+                tmp.AddPair("deny", std::to_string((int)e->Deny));
+
+                OWJS.push_back(tmp.Serialize());
+            } 
+
+            CJSON tmp;
+            js.AddJSON("permission_overwrites", tmp.Serialize(OWJS));
+        }
+
+        return js.Serialize();
     }
     
 } // namespace DiscordBot

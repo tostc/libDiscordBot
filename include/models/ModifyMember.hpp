@@ -31,30 +31,10 @@
 
 namespace DiscordBot
 {
-    enum class Modifications
-    {
-        NONE = 0,
-        NICK = 1,
-        ROLES = 2,
-        DEAF = 4,
-        MUTE = 8,
-        MOVE = 16
-    };
-
-    inline Modifications operator |(Modifications lhs, Modifications rhs)  
-    {
-        return static_cast<Modifications>(static_cast<unsigned>(lhs) |static_cast<unsigned>(rhs));
-    }
-
-    inline Modifications operator &(Modifications lhs, Modifications rhs)  
-    {
-        return static_cast<Modifications>(static_cast<unsigned>(lhs) & static_cast<unsigned>(rhs));
-    }
-
     class CModifyMember
     {
         public:
-            CModifyMember() : m_Mods(Modifications::NONE) {}
+            CModifyMember() : m_HasRoles(false) {}
             CModifyMember(User userRef) : CModifyMember() 
             {
                 m_UserRef = userRef;
@@ -72,11 +52,6 @@ namespace DiscordBot
             {
                 m_UserRef = UserRef;
             }
-
-            inline std::string GetNick() const
-            {
-                return m_Nick;
-            }
             
             /**
              * @brief Sets the new nickname of a user.
@@ -85,8 +60,7 @@ namespace DiscordBot
              */
             inline void SetNick(std::string Nick)
             {
-                m_Nick = Nick;
-                m_Mods = m_Mods | Modifications::NICK;
+                m_Values["nick"] = Nick;
             }
 
             inline std::vector<Role> GetRoles() const
@@ -102,12 +76,7 @@ namespace DiscordBot
             inline void SetRoles(std::vector<Role> Roles)
             {
                 m_Roles = Roles;
-                m_Mods = m_Mods | Modifications::ROLES;
-            }
-
-            inline bool IsDeafed() const
-            {
-                return m_Deaf;
+                m_HasRoles = true;
             }
             
             /**
@@ -117,13 +86,7 @@ namespace DiscordBot
              */
             inline void SetDeaf(bool Deaf)
             {
-                m_Deaf = Deaf;
-                m_Mods = m_Mods | Modifications::DEAF;
-            }
-
-            inline bool IsMuted() const
-            {
-                return m_Mute;
+                m_Values["deaf"] = Deaf ? "true" : "false";
             }
             
             /**
@@ -133,13 +96,7 @@ namespace DiscordBot
              */
             inline void SetMute(bool Mute)
             {
-                m_Mute = Mute;
-                m_Mods = m_Mods | Modifications::MUTE;
-            }
-
-            inline Channel GetChannel() const
-            {
-                return m_Channel;
+                m_Values["mute"] = Mute ? "true" : "false";
             }
             
             /**
@@ -151,25 +108,26 @@ namespace DiscordBot
              */
             inline void SetChannel(Channel c)
             {
-                m_Channel = c;
-                m_Mods = m_Mods | Modifications::MOVE;
+                m_Values["channel_id"] = c ? c->ID.load() : "null";
             }
 
-            inline Modifications GetMods() const
+            inline std::map<std::string, std::string> GetValues() const
             {
-                return m_Mods;
+                return m_Values;
+            }
+
+            inline bool HasRoles() const
+            {
+                return m_HasRoles;
             }
 
             ~CModifyMember() {}
         private:
-            Modifications m_Mods;
-
             User m_UserRef;
-            std::string m_Nick;
+            std::map<std::string, std::string> m_Values;
+
             std::vector<Role> m_Roles;
-            bool m_Deaf;
-            bool m_Mute;
-            Channel m_Channel;
+            bool m_HasRoles;
 
     };
 } // namespace DiscordBot
