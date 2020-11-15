@@ -23,11 +23,12 @@ set(MBEDTLS_LIBRARY ${PROJECT_BINARY_DIR}/${LINK_SUB_DIR}${CMAKE_STATIC_LIBRARY_
 set(MBEDX509_LIBRARY ${PROJECT_BINARY_DIR}/${LINK_SUB_DIR}${CMAKE_STATIC_LIBRARY_PREFIX}mbedx509${CMAKE_STATIC_LIBRARY_SUFFIX})
 set(MBEDTLS_LIBRARIES "${MBEDCRYPTO_LIBRARY};${MBEDTLS_LIBRARY};${MBEDX509_LIBRARY}")
 
-set(PTHREAD "")
+set(ADDITIONAL_LIBS "")
 set(ZLIB_LIB "")
 set(ZLIB_ROOT ${PROJECT_BINARY_DIR}/zlib) # IXWebsocket doesn't delivery zlib anymore, so this is the new build path.
 set(ZLIB_PROJECT_ROOT ${PROJECT_SOURCE_DIR}/externals/zlib-1.2.11)
 set(LINK_DIRS "")
+set(ZLIB_BINARY_DIR ${PROJECT_BINARY_DIR}/externals/zlib-1.2.11)
 
 set(libsodium_src ${PROJECT_SOURCE_DIR}/externals/libsodium)
 
@@ -41,9 +42,9 @@ set(ARCHIVE_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR})
 if(MSVC)
 	set(CMAKE_DEBUG_POSTFIX "d")
 	set(BUILD_CMD_MBED msbuild /p:OutputPath=${PROJECT_BINARY_DIR} /p:OutDir=${PROJECT_BINARY_DIR} "${PROJECT_BINARY_DIR}/externals/mbedtls/mbed TLS.sln")
-    set(BUILD_CMD_WEBSOCKET msbuild /p:OutputPath=${PROJECT_BINARY_DIR} /p:OutDir=${PROJECT_BINARY_DIR} "${PROJECT_BINARY_DIR}/externals/IXWebSocket/ixwebsocket.sln")
+  set(BUILD_CMD_WEBSOCKET msbuild /p:OutputPath=${PROJECT_BINARY_DIR} /p:OutDir=${PROJECT_BINARY_DIR} "${PROJECT_BINARY_DIR}/externals/IXWebSocket/ixwebsocket.sln")
 	
-	add_definitions(-DSODIUM_STATIC=1 -DSODIUM_EXPORT=.)
+	add_definitions(-DSODIUM_STATIC=1 -DSODIUM_EXPORT=. -DDLL_BUILD)
 endif(MSVC)
 
 set(SKIP_INSTALL_LIBRARIES on)
@@ -71,10 +72,9 @@ endif()
 add_subdirectory(${ZLIB_PROJECT_ROOT})
                               
 if(UNIX)
-  set(ZLIB_BINARY_DIR ${PROJECT_BINARY_DIR}/externals/zlib-1.2.11)
   set(ZLIB_LIBS ${ZLIB_BINARY_DIR}/libz.a)
 else(UNIX)
-  set(ZLIB_LIBS ${ZLIB_BINARY_DIR}/zlibstatic.lib ${ZLIB_BINARY_DIR}/zlibstatic.a)
+  set(ZLIB_LIBS ${ZLIB_BINARY_DIR}/Release/zlibstatic.lib)
 endif(UNIX)
 
 add_custom_target(zlib_copy ALL
@@ -109,7 +109,7 @@ endif()
 add_subdirectory(${PROJECT_SOURCE_DIR}/externals/opus EXCLUDE_FROM_ALL)
 
 if(NOT WIN32)
-	set(PTHREAD pthread)
+	set(ADDITIONAL_LIBS pthread)
 	set(LINK_DIRS "${PROJECT_BINARY_DIR}/src/libsodium/.libs/")
 
   set(ZLIB_LIB "${ZLIB_ROOT}/lib/${CMAKE_STATIC_LIBRARY_PREFIX}z${CMAKE_STATIC_LIBRARY_SUFFIX}")
@@ -125,7 +125,8 @@ if(NOT WIN32)
 else(NOT WIN32)
 	if(MSVC)
 		set(LINK_DIRS ${LINK_DIRS} "${PROJECT_BINARY_DIR}")
-		set(ZLIB_LIB "zlibstatic${CMAKE_STATIC_LIBRARY_SUFFIX}")
+    set(ZLIB_LIB "zlibstatic${CMAKE_STATIC_LIBRARY_SUFFIX}")
+    set(ADDITIONAL_LIBS "crypt32")
 	
 		ExternalProject_Add(libsodium_build
                     SOURCE_DIR ${libsodium_src}
@@ -184,4 +185,4 @@ install(TARGETS ${PROJECT_NAME} EXPORT ${PROJECT_NAME}
 )
 
 set_target_properties(${PROJECT_NAME} PROPERTIES SOVERSION ${PROJECT_VERSION}${VERSION_SUFFIX})
-target_link_libraries(${PROJECT_NAME} libsodium${CMAKE_STATIC_LIBRARY_SUFFIX} ixwebsocket ${CMAKE_STATIC_LIBRARY_PREFIX}mbedtls${CMAKE_STATIC_LIBRARY_SUFFIX} ${CMAKE_STATIC_LIBRARY_PREFIX}mbedcrypto${CMAKE_STATIC_LIBRARY_SUFFIX} ${CMAKE_STATIC_LIBRARY_PREFIX}mbedx509${CMAKE_STATIC_LIBRARY_SUFFIX} zlibstatic opus ${PTHREAD})
+target_link_libraries(${PROJECT_NAME} libsodium${CMAKE_STATIC_LIBRARY_SUFFIX} ixwebsocket ${CMAKE_STATIC_LIBRARY_PREFIX}mbedtls${CMAKE_STATIC_LIBRARY_SUFFIX} ${CMAKE_STATIC_LIBRARY_PREFIX}mbedcrypto${CMAKE_STATIC_LIBRARY_SUFFIX} ${CMAKE_STATIC_LIBRARY_PREFIX}mbedx509${CMAKE_STATIC_LIBRARY_SUFFIX} zlibstatic opus ${ADDITIONAL_LIBS})

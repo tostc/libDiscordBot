@@ -339,7 +339,7 @@ namespace DiscordBot
              * 
              * @return Returns a new DiscordClient object.
              */
-            static DISCORDBOT_EXPORT DiscordClient Create(const std::string &Token, Intent Intents = Intent::DEFAULTS);
+            static DiscordClient Create(const std::string &Token, Intent Intents = Intent::DEFAULTS);
 
             /**
              * @return Returns the Version of the library.
