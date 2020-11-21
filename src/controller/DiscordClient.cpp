@@ -486,6 +486,15 @@ namespace DiscordBot
                                 // json.ParseObject();
                                 json.GetValue<std::string>("user") >> m_BotUser >> m_Users;
 
+                                auto Unavailables = json.GetValue<std::vector<std::string>>("guilds");
+                                for (auto &&e : Unavailables)
+                                {
+                                    CJSON tmp;
+                                    tmp.ParseObject(e);
+
+                                    m_Unavailables.push_back(tmp.GetValue<std::string>("id"));
+                                }
+
                                 // m_BotUser = CreateUser(json);
 
                                 llog << linfo << "Connected with Discord! " << m_Socket.getUrl() << lendl;
@@ -553,15 +562,43 @@ namespace DiscordBot
                                 std::string OwnerID = json.GetValue<std::string>("owner_id");
                                 guild->Owner = GetMember(guild, OwnerID);
                                 m_Guilds->insert({guild->ID, guild});
+
+                                auto IT = std::find(m_Unavailables.begin(), m_Unavailables.end(), guild->ID);
+                                if(IT != m_Unavailables.end())
+                                {
+                                    m_Unavailables.erase(IT);
+
+                                    if(m_Controller)
+                                        m_Controller->OnGuildAvailable(guild);
+                                }
+                                else if(m_Controller)
+                                    m_Controller->OnGuildJoin(guild);
                             }break;
 
                             case Adler32("GUILD_DELETE"):
                             {
                                 json.ParseObject(Pay.D);
 
-                                m_VoiceSockets->erase(json.GetValue<std::string>("id"));
-                                m_MusicQueues->erase(json.GetValue<std::string>("id"));
-                                m_Guilds->erase(json.GetValue<std::string>("id"));
+                                auto IT = m_Guilds->find(json.GetValue<std::string>("id"));
+                                if(IT != m_Guilds->end())
+                                {
+                                    bool Unavailable = json.GetValue<bool>("unavailable");
+                                    auto InnerIT = std::find(m_Unavailables.begin(), m_Unavailables.end(), IT->second->ID);
+
+                                    if(Unavailable && m_Controller && InnerIT != m_Unavailables.end())
+                                    {
+                                        m_Unavailables.erase(InnerIT);
+                                        m_Controller->OnGuildUnavailable(IT->second);
+                                    }
+                                    else if(!Unavailable && m_Controller)
+                                        m_Controller->OnGuildLeave(IT->second);
+                                    else
+                                        m_Unavailables.push_back(IT->second->ID);
+
+                                    m_VoiceSockets->erase(IT->second->ID);
+                                    m_MusicQueues->erase(IT->second->ID);
+                                    m_Guilds->erase(IT);
+                                }
 
                                 llog << linfo << "GUILD_DELETE" << lendl;
                             }break;
@@ -750,6 +787,13 @@ namespace DiscordBot
                             case Adler32("VOICE_STATE_UPDATE"):
                             {
                                 json.ParseObject(Pay.D);
+
+                                auto G = m_Guilds->find(json.GetValue<std::string>("guild_id"));
+                                auto M = G->second->Members->find(json.GetValue<std::string>("user_id"));
+                                Channel c;
+                                if(M->second->State)
+                                    c = M->second->State->ChannelRef;   //Saves the old channel.
+
                                 VoiceState Tmp = CreateVoiceState(json, nullptr);
 
                                 if (m_Controller && Tmp->GuildRef)
@@ -764,7 +808,21 @@ namespace DiscordBot
 
                                         auto IT = Tmp->GuildRef->Members->find(Tmp->UserRef->ID);
                                         if(IT != Tmp->GuildRef->Members->end())
+                                        {
                                             m_Controller->OnVoiceStateUpdate(Tmp->GuildRef, IT->second);
+
+                                            auto AIT = m_Admins->find(Tmp->GuildRef->ID);
+                                            if(AIT != m_Admins->end())
+                                            {
+                                                auto Admin = std::dynamic_pointer_cast<CGuildAdmin>(AIT->second);
+
+                                                if(!c)
+                                                    c = Tmp->ChannelRef;
+                                                    
+                                                if(c)
+                                                    Admin->OnUserVoiceStateChanged(c, IT->second);
+                                            }
+                                        }
                                     }
                                 }   
                             }break;
@@ -811,12 +869,47 @@ namespace DiscordBot
                             /*------------------------GUILD_MESSAGES Intent------------------------*/
 
                             case Adler32("MESSAGE_CREATE"):
+                            case Adler32("MESSAGE_UPDATE"):
+                            case Adler32("MESSAGE_DELETE"):
                             {
                                 json.ParseObject(Pay.D);
                                 Message msg = CreateMessage(json);
 
-                                if (m_Controller)
-                                    m_Controller->OnMessage(msg);
+                                std::shared_ptr<CGuildAdmin> Admin;
+                                auto AIT = m_Admins->find(msg->GuildRef->ID);
+                                if(AIT != m_Admins->end())
+                                    Admin = std::dynamic_pointer_cast<CGuildAdmin>(AIT->second);
+
+                                switch (Adler32(Pay.T.c_str()))
+                                {
+                                    case Adler32("MESSAGE_CREATE"):
+                                    {
+                                        if (m_Controller)
+                                            m_Controller->OnMessage(msg);
+
+                                        if(Admin)
+                                            Admin->OnMessageEvent(ActionType::MESSAGE_CREATED, msg->ChannelRef, msg);
+                                    }break;
+
+                                    case Adler32("MESSAGE_UPDATE"):
+                                    {
+                                        if (m_Controller)
+                                            m_Controller->OnMessageEdited(msg);
+
+                                        if(Admin)
+                                            Admin->OnMessageEvent(ActionType::MESSAGE_EDITED, msg->ChannelRef, msg);
+                                    }break;
+
+                                    case Adler32("MESSAGE_DELETE"):
+                                    {
+                                        if (m_Controller)
+                                            m_Controller->OnMessageDeleted(msg);
+
+                                        if(Admin)
+                                            Admin->OnMessageEvent(ActionType::MESSAGE_DELETED, msg->ChannelRef, msg);
+                                    }break;
+                                }
+
                             }break;
 
                             /*------------------------GUILD_MESSAGES Intent------------------------*/

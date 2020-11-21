@@ -25,6 +25,7 @@
 #include "GuildAdmin.hpp"
 #include "DiscordClient.hpp"
 #include <models/DiscordException.hpp>
+#include <vector>
 #include "../helpers/Helper.hpp"
 
 namespace DiscordBot
@@ -187,6 +188,96 @@ namespace DiscordBot
         auto res = m_Client->Delete("/channels/" + channel->ID, js.Serialize());
         if(res->statusCode != 200)
             throw CDiscordClientException("Can't delete channel. Error: " + res->body + " HTTP Code: " + std::to_string(res->statusCode), DiscordClientErrorType::HTTP_ERROR);
+    }
+
+    void CGuildAdmin::AddChannelAction(Channel channel, Action action)
+    {
+        std::lock_guard<std::mutex> lock(m_Lock);
+        std::string ID;
+        if(channel)
+            ID = channel->ID;
+
+        ActionType Types = action->GetTypes();
+        for (uint32_t i = 1; i < (uint32_t)ActionType::TOTAL_ACTIONS; i <<= 1)
+        {
+            ActionType Type = Types & (ActionType)i;
+            if(Type != ActionType::NONE)
+            {
+                auto IT = m_Actions.find(ID);
+                if(IT == m_Actions.end())
+                    m_Actions.insert({ID, {{Type, action}}});
+                else
+                {
+                    auto InnerIT = IT->second.find(Type);
+                    if(InnerIT != IT->second.end())
+                        throw CDiscordClientException("Action is already registered!", DiscordClientErrorType::ACTION_ALREADY_REG);
+
+                    IT->second.insert({Type, action});
+                }
+            }
+        }
+    }
+
+    void CGuildAdmin::RemoveChannelAction(Channel channel, ActionType types) 
+    {
+        std::lock_guard<std::mutex> lock(m_Lock);
+        std::string ID;
+        if(channel)
+            ID = channel->ID;
+
+        for (uint32_t i = 1; i < (uint32_t)ActionType::TOTAL_ACTIONS; i <<= 1)
+        {
+            ActionType Type = types & (ActionType)i;
+            auto IT = m_Actions.find(ID);
+            if(IT != m_Actions.end())
+                IT->second.erase(Type);
+        }
+    }
+
+    void CGuildAdmin::OnUserVoiceStateChanged(Channel c, GuildMember m)
+    {
+        std::lock_guard<std::mutex> lock(m_Lock);
+        std::vector<std::string> IDs = {
+            "",
+            c->ID
+        };
+
+        for (auto ID : IDs)
+        {
+            auto IT = m_Actions.find(ID);
+            if(IT != m_Actions.end())
+            {
+                ActionType Type = ActionType::NONE;
+                if(m->State)
+                    Type = ActionType::USER_JOIN;
+                else
+                    Type = ActionType::USER_LEAVE;
+
+                auto InnerIT = IT->second.find(Type);
+                if(InnerIT != IT->second.end())
+                    FireAction(Type, InnerIT->second, c, m);
+            }
+        }
+    }
+
+    void CGuildAdmin::OnMessageEvent(ActionType Type, Channel c, Message m)
+    {
+        std::lock_guard<std::mutex> lock(m_Lock);
+        std::vector<std::string> IDs = {
+            "",
+            c->ID
+        };
+
+        for (auto ID : IDs)
+        {
+            auto IT = m_Actions.find(ID);
+            if(IT != m_Actions.end())
+            {
+                auto InnerIT = IT->second.find(Type);
+                if(InnerIT != IT->second.end())
+                    FireAction(Type, InnerIT->second, c, m);
+            }
+        }
     }
 
     //--------------------------Private--------------------------//

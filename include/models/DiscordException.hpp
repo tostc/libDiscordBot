@@ -36,6 +36,7 @@ namespace DiscordBot
         HTTP_ERROR,             //!< There was an error with the request.
         PARAMETER_IS_NULL,      //!< Throws if a required parameter is a nullptr.
         MISSING_USER_REF,       //!< Throws if a user reference is null.
+        ACTION_ALREADY_REG,     //!< Throws if the given action is already registered.
     };
 
     class CDiscordClientException : public std::exception

@@ -26,6 +26,8 @@
 #define GUILDADMIN_HPP
 
 #include <controller/IGuildAdmin.hpp>
+#include <mutex>
+#include <map>
 
 namespace DiscordBot
 {
@@ -45,10 +47,25 @@ namespace DiscordBot
             void CreateChannel(const CModifyChannel &channel) override;
             void ModifyChannel(const CModifyChannel &channel) override;
             void DeleteChannel(Channel channel, const std::string &reason) override;
+            void AddChannelAction(Channel channel, Action action) override;
+            void RemoveChannelAction(Channel channel, ActionType types) override;
+
+            // Internal events for the actions.
+            void OnUserVoiceStateChanged(Channel c, GuildMember m);
+            void OnMessageEvent(ActionType Type, Channel c, Message m);
 
             ~CGuildAdmin() {}
 
         private:
+            template<class T>
+            void FireAction(ActionType Type, Action a, Channel c, T val)
+            {
+                auto action = std::dynamic_pointer_cast<CAction<T>>(a);
+
+                if(action->Filter(Type, c, val))
+                    action->FireAction(Type, c, val);
+            }
+
             GuildMember CheckBotPermissions(Permission p, const std::string &errMsg);
 
             /**
@@ -58,8 +75,11 @@ namespace DiscordBot
             void RenameSelf(const std::string &js);
             std::string ModifyChannelToJS(const CModifyChannel &channel);
 
+            std::mutex m_Lock;
+
             CDiscordClient *m_Client;
             Guild m_Guild;
+            std::map<std::string, std::map<ActionType, Action>> m_Actions;
     };
 } // namespace DiscordBot
 

@@ -32,6 +32,7 @@
 #include <models/GuildMember.hpp>
 #include <models/ModifyMember.hpp>
 #include <models/ModifyChannel.hpp>
+#include <models/Action.hpp>
 
 namespace DiscordBot
 {
@@ -128,6 +129,24 @@ namespace DiscordBot
              * @throw CDiscordClientException on error.
              */
             virtual void DeleteChannel(Channel channel, const std::string &reason) = 0;
+
+            /**
+             * @brief Add an action to a channel which is triggered, if a given event occured.
+             * 
+             * @param channel: Channel to add the action to or null for all channels.
+             * @param action: Action which is triggered.
+             * 
+             * @throw CDiscordClientException on error.
+             */
+            virtual void AddChannelAction(Channel channel, Action action) = 0;
+
+            /**
+             * @brief Removes an action from a channel.
+             * 
+             * @param channel: Channel to remove the action from or null.
+             * @param types: Action types to remove
+             */
+            virtual void RemoveChannelAction(Channel channel, ActionType types) = 0;
 
             virtual ~IGuildAdmin() = default;
     };

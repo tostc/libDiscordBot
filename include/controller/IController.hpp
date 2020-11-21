@@ -138,6 +138,52 @@ namespace DiscordBot
             void OnMessage(Message msg);
 
             /**
+             * @brief Called if a message is updated.
+             * 
+             * @param msg: Message object which contains the update data.
+             * 
+             * @note The GUILD_MESSAGES intent needs to be set to receive this event. This intent is set by default. @see Intent
+             */
+            virtual void OnMessageEdited(Message msg) {}
+
+            /**
+             * @brief Called if a message is deleted.
+             * 
+             * @param msg: Partial message object which contains the message id, guild and channel.
+             * 
+             * @note The GUILD_MESSAGES intent needs to be set to receive this event. This intent is set by default. @see Intent
+             */
+            virtual void OnMessageDeleted(Message msg) {}
+
+            /**
+             * @brief Called if a guild becomes available, either after OnReady or if a guild becomes available again.
+             * 
+             * @param guild: Guild which comes available.
+             */
+            virtual void OnGuildAvailable(Guild guild) {}
+
+            /**
+             * @brief Called if the bot joins a new guild.
+             * 
+             * @param guild: The joined guild.
+             */
+            virtual void OnGuildJoin(Guild guild) {}
+
+            /**
+             * @brief Called if a guild becomes unavailable.
+             * 
+             * @param guild: Guild which comes unavailable.
+             */
+            virtual void OnGuildUnavailable(Guild guild) {}
+
+            /**
+             * @brief Called if the bot leaves a guild.
+             * 
+             * @param guild: The leaved guild.
+             */
+            virtual void OnGuildLeave(Guild guild) {}
+
+            /**
              * @brief Called if a audio source finished playing.
              * 
              * @param guild: Guild where the audio source finished.

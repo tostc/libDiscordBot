@@ -400,6 +400,9 @@ namespace DiscordBot
             std::string m_SessionID;
             User m_BotUser;
 
+            // Unavailable guild IDs.
+            std::vector<std::string> m_Unavailables;
+
             //Map of all users in different servers.
             atomic<Users> m_Users;
 
