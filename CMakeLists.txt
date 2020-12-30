@@ -25,7 +25,7 @@ set(MBEDTLS_LIBRARIES "${MBEDCRYPTO_LIBRARY};${MBEDTLS_LIBRARY};${MBEDX509_LIBRA
 
 set(ADDITIONAL_LIBS "")
 set(ZLIB_LIB "")
-set(ZLIB_ROOT ${PROJECT_BINARY_DIR}/zlib) # IXWebsocket doesn't delivery zlib anymore, so this is the new build path.
+set(ZLIB_ROOT ${PROJECT_BINARY_DIR}/zlib) # IXWebsocket doesn't deliver zlib anymore, so this is the new build path.
 set(ZLIB_PROJECT_ROOT ${PROJECT_SOURCE_DIR}/externals/zlib-1.2.11)
 set(LINK_DIRS "")
 set(ZLIB_BINARY_DIR ${PROJECT_BINARY_DIR}/externals/zlib-1.2.11)
@@ -163,7 +163,8 @@ set(SRCS
     "${PROJECT_SOURCE_DIR}/src/controller/JSONCmdsConfig.cpp"
     "${PROJECT_SOURCE_DIR}/src/controller/GuildAdmin.cpp"
     "${PROJECT_SOURCE_DIR}/src/commands/RightsCommand.cpp"
-    "${PROJECT_SOURCE_DIR}/src/commands/HelpCommand.cpp")
+    "${PROJECT_SOURCE_DIR}/src/commands/HelpCommand.cpp"
+    "${PROJECT_SOURCE_DIR}/src/commands/PrefixCommand.cpp")
 
 add_library(${PROJECT_NAME} SHARED ${SRCS})
 

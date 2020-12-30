@@ -216,6 +216,11 @@ namespace DiscordBot
             }
 
             /**
+             * @return Gets the prefix for a given guild or the default prefix, if no ones is configured.
+             */
+            std::string GetPrefix(Guild g);
+
+            /**
              * @return Gets the commands config.
              */
             inline CommandsConfig GetCmdConfig()
@@ -261,7 +266,7 @@ namespace DiscordBot
             virtual void OnMessage(Message msg, bool &Handled) {}
     
             IDiscordClient *Client;
-            std::string Prefix;     //!< Command prefix.
+            std::string Prefix;         //!< Default command prefix.
             CommandsConfig CmdsConfig;  //!< Member to save and load the config for the different commands. @see ICommandsConfig for more informations
 
         private:

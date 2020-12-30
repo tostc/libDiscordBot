@@ -22,30 +22,28 @@
  * SOFTWARE.
  */
 
-#include "HelpCommand.hpp"
-#include <IDiscordClient.hpp>
+#ifndef PREFIXCOMMAND_HPP
+#define PREFIXCOMMAND_HPP
+
+#include <controller/ICommand.hpp>
+#include <controller/IController.hpp>
 
 namespace DiscordBot
 {
-    CHelpCommand::CHelpCommand(IController *controller, IDiscordClient *client) : m_Controller(controller), m_Client(client)
+    class CPrefixCommand : public ICommand
     {
-        RegisterCommandHandler("h", std::bind(&CHelpCommand::Help, this, std::placeholders::_1));
-        RegisterCommandHandler("help", std::bind(&CHelpCommand::Help, this, std::placeholders::_1));
-    }
+        public:
+            CPrefixCommand(IController *controller, IDiscordClient *client);
+            ~CPrefixCommand() {}
+        private:
+            void SetPrefix(CommandContext ctx);
+            void RemovePrefix(CommandContext ctx);
+            void ShowPrefix(CommandContext ctx);
 
-    void CHelpCommand::Help(CommandContext ctx)
-    {
-        std::string Dialog;
-        const int BufferSize = 200;
-        char Buf[BufferSize];
+            IController *m_Controller;
+            IDiscordClient *m_Client;
+    };
+} // namespace DiscordBo
 
-        auto Cmds = m_Controller->GetCommands(ctx->Msg->GuildRef, ctx->Msg->Member);
-        for (auto &&e : Cmds)
-        {
-            int Size = snprintf(Buf, BufferSize, "%s%-20s%2s-%2s%s", m_Controller->GetPrefix(ctx->Msg->GuildRef).c_str(), e.Cmd.c_str(), "", "", e.Description.c_str());
-            Dialog += std::string(Buf, Buf + Size) + '\n';
-        }
 
-        m_Client->SendMessage(ctx->Msg->ChannelRef, "```\n" + Dialog + "```");
-    }
-} // namespace DiscordBot
+#endif //PREFIXCOMMAND_HPP

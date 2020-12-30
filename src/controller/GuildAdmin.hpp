@@ -26,6 +26,7 @@
 #define GUILDADMIN_HPP
 
 #include <controller/IGuildAdmin.hpp>
+#include <models/Message.hpp>
 #include <mutex>
 #include <map>
 

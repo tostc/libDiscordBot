@@ -26,6 +26,7 @@
 #include <IDiscordClient.hpp>
 #include "../commands/HelpCommand.hpp"
 #include "../commands/RightsCommand.hpp"
+#include "../commands/PrefixCommand.hpp"
 #include "JSONCmdsConfig.hpp"
 
 namespace DiscordBot
@@ -79,6 +80,10 @@ namespace DiscordBot
         RegisterCommand<CRightsCommand>({"remover", "Removes roles from a command. E.g. Commandname Rolename/-s", -1, " ", AccessMode::OWNER}, this, Client);
         RegisterCommand<CRightsCommand>({"resetr", "Removes all roles of a command.", 1, " ", AccessMode::OWNER}, this, Client);
         RegisterCommand<CRightsCommand>({"getr", "Gets all roles for the command.", 1, " ", AccessMode::OWNER}, this, Client);
+
+        RegisterCommand<CPrefixCommand>({"setp", "Sets the guild command prefix.", 1, " ", AccessMode::OWNER}, this, Client);
+        RegisterCommand<CPrefixCommand>({"removep", "Removes the guild command prefix.", 0, "", AccessMode::OWNER}, this, Client);
+        RegisterCommand<CPrefixCommand>({"showp", "Shows the guild command prefix.", 0, "", AccessMode::EVERYBODY}, this, Client);
     }
 
     /**
@@ -97,6 +102,11 @@ namespace DiscordBot
         }
 
         return Ret;
+    }
+
+    std::string IController::GetPrefix(Guild g)
+    {
+        return CmdsConfig->GetPrefix(g->ID, Prefix);
     }
 
     /**
@@ -148,11 +158,13 @@ namespace DiscordBot
 
         if(!Handled)
         {
+            std::string GuildPrefix = GetPrefix(msg->GuildRef);
+
             //Checks if the command start with the prefix.
-            if(msg->Content.compare(0, Prefix.size(), Prefix) == 0)
+            if(msg->Content.compare(0, GuildPrefix.size(), GuildPrefix) == 0)
             {
-                size_t Pos = msg->Content.find_first_of(' ', Prefix.size());
-                std::string Cmd = msg->Content.substr(Prefix.size(), Pos - Prefix.size());
+                size_t Pos = msg->Content.find_first_of(' ', GuildPrefix.size());
+                std::string Cmd = msg->Content.substr(GuildPrefix.size(), Pos - GuildPrefix.size());
 
                 auto IT = m_CommandDescs.find(Cmd);
                 if(IT != m_CommandDescs.end())

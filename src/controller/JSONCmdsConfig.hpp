@@ -39,13 +39,21 @@ namespace DiscordBot
             std::vector<std::string> GetRoles(const std::string &Guild, const std::string &Command) override;
             void DeleteCommand(const std::string &Guild, const std::string &Command) override;
             void RemoveRoles(const std::string &Guild, const std::string &Command, const std::vector<std::string> &Roles) override;
+            
+            void ChangePrefix(const std::string &Guild, const std::string &Prefix) override;
+            void RemovePrefix(const std::string &Guild) override;
+            std::string GetPrefix(const std::string &Guild, const std::string &Default) override;
 
             ~CJSONCmdsConfig() {}
         private:
-            void SaveDB();
+            void SaveCmdDB();
+            void SavePrefixDB();
 
-            using Database = std::map<std::string, std::map<std::string, std::vector<std::string>>>;
-            Database m_Database;
+            using CmdDatabase = std::map<std::string, std::map<std::string, std::vector<std::string>>>;
+            CmdDatabase m_CmdDatabase;
+
+            using PrefixDatabase = std::map<std::string, std::string>;
+            PrefixDatabase m_PrefixDatabase;
     };
 } // namespace DiscordBot
 
