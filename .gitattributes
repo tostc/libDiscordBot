@@ -1,0 +1,6 @@
+*.c linguist-detectable=false
+*.asm linguist-detectable=false
+*.inc linguist-detectable=false
+*.cs linguist-detectable=false
+*.adb linguist-detectable=false
+*.pas linguist-detectable=false
