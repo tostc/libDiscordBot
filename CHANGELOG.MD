@@ -1,4 +1,4 @@
-## Version 2.2.2-beta (31.12.2020)
+## Version 2.2.3-beta (31.12.2020)
 - Added the renaming of users
 - Added the moving of users
 - Added the muting of users
