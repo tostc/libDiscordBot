@@ -1,4 +1,4 @@
-## Version 2.2.2-beta ()
+## Version 2.2.2-beta (31.12.2020)
 - Added the renaming of users
 - Added the moving of users
 - Added the muting of users
@@ -6,6 +6,7 @@
 - Discords object fields are now atomic.
 - Guild administration interface added.
 - Added command to change the command prefix for a guild. Thanks to @niansa for this suggestion.
+- Added version.rc file for windows.
 
 ## Version 2.2.1-alpha (06.10.2020)
 - Added fix from issue #9 to build the library flawsless for the raspberry pi.

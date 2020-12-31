@@ -108,6 +108,8 @@ endif()
 
 add_subdirectory(${PROJECT_SOURCE_DIR}/externals/opus EXCLUDE_FROM_ALL)
 
+set(SRCS "")
+
 if(NOT WIN32)
 	set(ADDITIONAL_LIBS pthread)
 	set(LINK_DIRS "${PROJECT_BINARY_DIR}/src/libsodium/.libs/")
@@ -136,6 +138,10 @@ else(NOT WIN32)
                     INSTALL_COMMAND ""
                     TEST_COMMAND "")
 	endif(MSVC)
+	
+	configure_file("${PROJECT_SOURCE_DIR}/version.rc.in" version.rc @ONLY)
+	set(SRCS "${CMAKE_CURRENT_BINARY_DIR}/version.rc")
+
 endif(NOT WIN32)
 
 message(${PROJECT_VERSION})
@@ -155,6 +161,7 @@ link_directories(${PROJECT_BINARY_DIR}
                  ${LINK_DIRS})
 
 set(SRCS
+	  ${SRCS}
     "${PROJECT_SOURCE_DIR}/src/controller/DiscordClient.cpp"
     "${PROJECT_SOURCE_DIR}/src/controller/VoiceSocket.cpp"
     "${PROJECT_SOURCE_DIR}/src/controller/ICommand.cpp"
