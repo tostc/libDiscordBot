@@ -1,3 +1,7 @@
+# Read me
+
+You are currently on the development branch of the libDiscordBot library. Keep in mind that you can encounter bugs/errors, the API isn't at this point fixed and/or the project might not build.
+
 # libDiscordBot
 libDiscordBot is an easy-to-use C++ library which helps you to create quickly a Discord bot. It's inspired by [Discord.Net](https://github.com/discord-net/Discord.Net) for C#.
 
@@ -55,6 +59,19 @@ make
 For Windows open the *.sln file inside the build directory
 
 3. Copy and rename the project_template directory somewhere to get starting. Follow the introduction inside the README.MD of the template.
+
+## Crosscompiling
+
+To crosscompile the library there are toolchain files inside the crosscompile folder.
+How to use
+
+1. Do the same steps (1 - 2) as describe above except the `cmake ../` step.
+2. The current way to set the root of your compiler toolchain is currently sadly to insert the path inside the `crosscompile/TOOLCHAINFILE.cmake` file as ROOT_PATH.
+4. Call cmake with the following parameters.
+```
+cmake ../ -DCMAKE_TOOLCHAIN_FILE=../crosscompile/TOOLCHAINFILE.cmake
+```
+5. You can now compile your programm.
 
 ### First bot
 

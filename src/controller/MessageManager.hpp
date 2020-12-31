@@ -32,7 +32,7 @@
 #include <functional>
 #include <atomic>
 #include <memory>
-#include "Helper.hpp"
+#include "../helpers/Helper.hpp"
 
 namespace DiscordBot
 {

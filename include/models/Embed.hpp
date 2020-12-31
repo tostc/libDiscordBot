@@ -27,6 +27,7 @@
 
 #include <memory>
 #include <string>
+#include <models/atomic.hpp>
 
 namespace DiscordBot
 {
@@ -35,10 +36,10 @@ namespace DiscordBot
         public:
             CEmbed(/* args */) {}
 
-            std::string Title;
-            std::string Description;
-            std::string Type;
-            std::string URL;
+            atomic<std::string> Title;
+            atomic<std::string> Description;
+            atomic<std::string> Type;
+            atomic<std::string> URL;
 
             ~CEmbed() {}
         private:

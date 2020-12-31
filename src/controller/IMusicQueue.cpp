@@ -24,7 +24,7 @@
 
 #include <controller/IMusicQueue.hpp>
 #include <algorithm>
-#include "Helper.hpp"
+#include "../helpers/Helper.hpp"
 
 namespace DiscordBot
 {

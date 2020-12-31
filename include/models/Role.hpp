@@ -28,6 +28,8 @@
 #include <string>
 #include <memory>
 #include <stdlib.h>
+#include <atomic>
+#include <models/atomic.hpp>
 
 namespace DiscordBot
 {
@@ -85,14 +87,14 @@ namespace DiscordBot
         public:
             CRole(/* args */) {}
 
-            std::string ID;
-            std::string Name;
-            uint32_t Color;     //Color of the role.
-            bool Hoist;
-            int Position;
+            atomic<std::string> ID;
+            atomic<std::string> Name;
+            std::atomic<uint32_t> Color;     //Color of the role.
+            std::atomic<bool> Hoist;
+            std::atomic<int> Position;
             Permission Permissions;
-            bool Managed;
-            bool Mentionable;
+            std::atomic<bool> Managed;
+            std::atomic<bool> Mentionable;
 
             ~CRole() {}
     };

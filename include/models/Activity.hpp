@@ -27,6 +27,8 @@
 
 #include <memory>
 #include <string>
+#include <atomic>
+#include <models/atomic.hpp>
 
 namespace DiscordBot
 {
@@ -58,8 +60,8 @@ namespace DiscordBot
         public:
             CParty() {}
 
-            std::string ID;
-            std::vector<int> Size;    //(current_size, max_size)	used to show the party's current and maximum size
+            atomic<std::string> ID;
+            atomic<std::vector<int>> Size;    //(current_size, max_size)	used to show the party's current and maximum size
 
             ~CParty() {}
     };
@@ -71,9 +73,9 @@ namespace DiscordBot
         public:
             CSecrets() {}
 
-            std::string Join;
-            std::string Spectate;
-            std::string Match;
+            atomic<std::string> Join;
+            atomic<std::string> Spectate;
+            atomic<std::string> Match;
 
             ~CSecrets() {}
     };
@@ -85,20 +87,20 @@ namespace DiscordBot
         public:
             CActivity(/* args */) {}
 
-            std::string Name;
+            atomic<std::string> Name;
             ActivityType Type;
-            std::string URL;
-            int CreatedAt;
-            int StartTime;
-            int EndTime;
-            std::string AppID;
-            std::string Details;
-            std::string State;
+            atomic<std::string> URL;
+            std::atomic<int> CreatedAt;
+            std::atomic<int> StartTime;
+            std::atomic<int> EndTime;
+            atomic<std::string> AppID;
+            atomic<std::string> Details;
+            atomic<std::string> State;
             //Emoji
             Party PartyObject;
             //Asset
             Secrets Secret;
-            bool Instance;
+            std::atomic<bool> Instance;
             ActivityFlags Flags;            
 
             ~CActivity() {}

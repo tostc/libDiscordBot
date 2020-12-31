@@ -36,7 +36,17 @@ namespace DiscordBot
             in.close();
 
             CJSON json;
-            m_Database = json.Deserialize<Database>(str); 
+            m_CmdDatabase = json.Deserialize<CmdDatabase>(str); 
+        }
+
+        in.open("databs_prefixes.json", std::ios::in);
+        if(in.is_open())
+        {
+            std::string str((std::istreambuf_iterator<char>(in)), std::istreambuf_iterator<char>());
+            in.close();
+
+            CJSON json;
+            m_PrefixDatabase = json.Deserialize<PrefixDatabase>(str); 
         }
     }
 
@@ -44,7 +54,7 @@ namespace DiscordBot
     {
         // m_Database[Guild][Command].insert(m_Database[Guild][Command].end(), Roles.begin(), Roles.end());
 
-        std::vector<std::string> &DBRoles = m_Database[Guild][Command];
+        std::vector<std::string> &DBRoles = m_CmdDatabase[Guild][Command];
         for (auto &&e : Roles)
         {
             auto IT = std::find(DBRoles.begin(), DBRoles.end(), e);
@@ -52,13 +62,13 @@ namespace DiscordBot
                 DBRoles.push_back(e);
         }
 
-        SaveDB();
+        SaveCmdDB();
     }
 
     std::vector<std::string> CJSONCmdsConfig::GetRoles(const std::string &Guild, const std::string &Command)
     {
-        auto GIT = m_Database.find(Guild);
-        if (GIT != m_Database.end())
+        auto GIT = m_CmdDatabase.find(Guild);
+        if (GIT != m_CmdDatabase.end())
         {
             auto CIT = GIT->second.find(Command);
             if (CIT != GIT->second.end())
@@ -70,21 +80,21 @@ namespace DiscordBot
 
     void CJSONCmdsConfig::DeleteCommand(const std::string &Guild, const std::string &Command)
     {
-        auto GIT = m_Database.find(Guild);
-        if (GIT != m_Database.end())
+        auto GIT = m_CmdDatabase.find(Guild);
+        if (GIT != m_CmdDatabase.end())
         {
             if(GIT->second.find(Command) != GIT->second.end())
             {
                 GIT->second.erase(Command);
-                SaveDB();
+                SaveCmdDB();
             }
         }
     }
 
     void CJSONCmdsConfig::RemoveRoles(const std::string &Guild, const std::string &Command, const std::vector<std::string> &Roles)
     {
-        auto GIT = m_Database.find(Guild);
-        if (GIT != m_Database.end())
+        auto GIT = m_CmdDatabase.find(Guild);
+        if (GIT != m_CmdDatabase.end())
         {
             auto CIT = GIT->second.find(Command);
             if (CIT != GIT->second.end())
@@ -101,17 +111,53 @@ namespace DiscordBot
                 if(DBRoles.empty())
                     DeleteCommand(Guild, Command);
                 else
-                    SaveDB();
+                    SaveCmdDB();
             }
         }
     }
 
-    void CJSONCmdsConfig::SaveDB()
+    void CJSONCmdsConfig::ChangePrefix(const std::string &Guild, const std::string &Prefix)
+    {
+        m_PrefixDatabase[Guild] = Prefix;
+        SavePrefixDB();
+    }
+
+    void CJSONCmdsConfig::RemovePrefix(const std::string &Guild)
+    {
+        m_PrefixDatabase.erase(Guild);
+        SavePrefixDB();
+    }
+
+    std::string CJSONCmdsConfig::GetPrefix(const std::string &Guild, const std::string &Default)
+    {
+        std::string Ret = Default;
+
+        auto IT = m_PrefixDatabase.find(Guild);
+        if(IT != m_PrefixDatabase.end())
+            Ret = IT->second;
+
+        return Ret;
+    }
+
+    void CJSONCmdsConfig::SaveCmdDB()
     {
         CJSON json;
-        std::string str = json.Serialize(m_Database);
+        std::string str = json.Serialize(m_CmdDatabase);
 
         std::ofstream out("databs.json", std::ios::out);
+        if (out.is_open())
+        {
+            out << str;
+            out.close();
+        }
+    }
+
+    void CJSONCmdsConfig::SavePrefixDB()
+    {
+        CJSON json;
+        std::string str = json.Serialize(m_PrefixDatabase);
+
+        std::ofstream out("databs_prefixes.json", std::ios::out);
         if (out.is_open())
         {
             out << str;

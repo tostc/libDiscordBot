@@ -30,6 +30,7 @@
 #include <models/User.hpp>
 #include <string>
 #include <models/Role.hpp>
+#include <models/atomic.hpp>
 
 namespace DiscordBot
 {
@@ -49,8 +50,8 @@ namespace DiscordBot
         public:
             CPermissionOverwrites() {}
 
-            std::string ID;     //!< User or role id
-            std::string Type;   //!< role or user
+            atomic<std::string> ID;     //!< User or role id
+            atomic<std::string> Type;   //!< role or user
             Permission Allow;
             Permission Deny;
 
@@ -64,24 +65,24 @@ namespace DiscordBot
         public:
             CChannel() : Position(0), NSFW(false), Bitrate(0), UserLimit(0), RateLimit(0) {}
 
-            std::string ID;
+            atomic<std::string> ID;
             ChannelTypes Type;
-            std::string GuildID;
-            int Position;
-            std::vector<PermissionOverwrites> Overwrites;
-            std::string Name;
-            std::string Topic;
-            bool NSFW;
-            std::string LastMessageID;
-            int Bitrate;
-            int UserLimit;
-            int RateLimit;
-            std::vector<User> Recipients;
-            std::string Icon;
-            std::string OwnerID;
-            std::string AppID;
-            std::string ParentID;
-            std::string LastPinTimestamp;
+            atomic<std::string> GuildID;
+            std::atomic<int> Position;
+            atomic<std::vector<PermissionOverwrites>> Overwrites;
+            atomic<std::string> Name;
+            atomic<std::string> Topic;
+            std::atomic<bool> NSFW;
+            atomic<std::string> LastMessageID;
+            std::atomic<int> Bitrate;
+            std::atomic<int> UserLimit;
+            std::atomic<int> RateLimit;
+            atomic<std::vector<User>> Recipients;
+            atomic<std::string> Icon;
+            atomic<std::string> OwnerID;
+            atomic<std::string> AppID;
+            atomic<std::string> ParentID;
+            atomic<std::string> LastPinTimestamp;
 
             ~CChannel() {}
 

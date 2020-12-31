@@ -60,6 +60,21 @@ namespace DiscordBot
              */
             virtual void RemoveRoles(const std::string &Guild, const std::string &Command, const std::vector<std::string> &Roles) = 0;
 
+            /**
+             * @brief Changes the prefix for a given guild.
+             */
+            virtual void ChangePrefix(const std::string &Guild, const std::string &Prefix) = 0;
+
+            /**
+             * @brief Removes a prefix from a guild.
+             */
+            virtual void RemovePrefix(const std::string &Guild) = 0;
+
+            /**
+             * @return Returns the guild prefix or the default prefix.
+             */
+            virtual std::string GetPrefix(const std::string &Guild, const std::string &Default) = 0;
+
             virtual ~ICommandsConfig() {}
     };
 

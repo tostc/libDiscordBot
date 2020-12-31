@@ -33,6 +33,7 @@
 #include <controller/Factory.hpp>
 #include <config.h>
 #include <models/OnlineState.hpp>
+#include <controller/IGuildAdmin.hpp>
 
 namespace DiscordBot
 {
@@ -309,9 +310,24 @@ namespace DiscordBot
             virtual User GetBotUser() = 0;
 
             /**
+             * @return Gets the bot guild member of a given guild.
+             */
+            virtual GuildMember GetBotMember(Guild guild) = 0;
+
+            /**
              * @return Gets the list of all connected servers.
              */
             virtual Guilds GetGuilds() = 0;
+
+            /**
+             * @return Gets a guild object by its id or null.
+             */
+            virtual Guild GetGuild(const std::string &GID) = 0;
+
+            /**
+             * @return Gets the administrator interface for a given guild. Or null if g is null.
+             */
+            virtual GuildAdmin GetAdminInterface(Guild g) = 0;
 
             /**
              * @return Gets a list of all users.
@@ -323,7 +339,7 @@ namespace DiscordBot
              * 
              * @return Returns a new DiscordClient object.
              */
-            static DISCORDBOT_EXPORT DiscordClient Create(const std::string &Token, Intent Intents = Intent::DEFAULTS);
+            static DiscordClient Create(const std::string &Token, Intent Intents = Intent::DEFAULTS);
 
             /**
              * @return Returns the Version of the library.

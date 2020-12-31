@@ -40,8 +40,11 @@
 #include <models/Activity.hpp>
 #include <atomic>
 #include "MessageManager.hpp"
-#include "../model/Payload.hpp"
+#include "../models/Payload.hpp"
 #include "VoiceSocket.hpp"
+#include <models/atomic.hpp>
+#include "GuildAdmin.hpp"
+#include "../helpers/JSONHelpers.hpp"
 
 #undef SendMessage
 
@@ -289,22 +292,80 @@ namespace DiscordBot
             }
 
             /**
+             * @return Gets the bot guild member of a given guild.
+             */
+            GuildMember GetBotMember(Guild guild) override
+            {
+                GuildMember ret;
+                if(guild)
+                {
+                    auto IT = guild->Members->find(m_BotUser->ID);
+                    if(IT != guild->Members->end())
+                        ret = IT->second;
+                }
+
+                return ret;
+            }
+
+            /**
              * @return Gets the list of all connected servers.
              */
-            Guilds GetGuilds()
+            Guilds GetGuilds() override
             {
                 return m_Guilds;
             }
 
             /**
+             * @return Gets a guild object by its id or null.
+             */
+            Guild GetGuild(const std::string &GID) override
+            {
+                auto IT = m_Guilds->find(GID);
+                if(IT != m_Guilds->end())
+                    return IT->second;
+
+                return nullptr;
+            }
+
+            GuildAdmin GetAdminInterface(Guild g) override
+            {
+                if(!g || g->ID == "")
+                    return nullptr;
+
+                auto IT = m_Admins->find(g->ID);
+                if(IT == m_Admins->end())
+                {
+                    auto ret = GuildAdmin(new CGuildAdmin(this, g));
+                    m_Admins->insert({g->ID, ret});
+
+                    return ret;
+                }
+
+                return IT->second;
+            }
+
+            /**
              * @return Gets a list of all users.
              */
-            Users GetUsers()
+            Users GetUsers() override
             {
                 return m_Users;
             }
 
             ~CDiscordClient() {}
+
+
+            ix::HttpResponsePtr Get(const std::string &URL);
+            ix::HttpResponsePtr Post(const std::string &URL, const std::string &Body);
+            ix::HttpResponsePtr Put(const std::string &URL, const std::string &Body);
+            ix::HttpResponsePtr Patch(const std::string &URL, const std::string &Body);
+            ix::HttpResponsePtr Delete(const std::string &URL, const std::string &Body = "");
+
+            GuildMember GetMember(Guild guild, const std::string &UserID);
+            User GetUserOrAdd(const std::string &js)
+            {
+                return m_Users | js;
+            }
         private:
             enum
             {
@@ -314,17 +375,16 @@ namespace DiscordBot
                 QUIT
             };
 
-            const char *BASE_URL = "https://discordapp.com/api";
+            const char *BASE_URL = "https://discord.com/api";
+            std::string USER_AGENT;
+
             using VoiceSockets = std::map<std::string, VoiceSocket>;
             using AudioSources = std::map<std::string, AudioSource>;
             using MusicQueues = std::map<std::string, MusicQueue>;
+            using AdminInterfaces = std::map<std::string, GuildAdmin>;
 
             CMessageManager m_EVManger;
             Intent m_Intents;
-
-            std::mutex m_MusicQueueLock;
-            std::mutex m_AudioSourcesLock;
-            std::mutex m_VoiceSocketsLock;
 
             std::string m_Token;
             std::shared_ptr<SGateway> m_Gateway;
@@ -340,18 +400,23 @@ namespace DiscordBot
             std::string m_SessionID;
             User m_BotUser;
 
+            // Unavailable guild IDs.
+            std::vector<std::string> m_Unavailables;
+
             //Map of all users in different servers.
-            Users m_Users;
+            atomic<Users> m_Users;
 
             //All Guilds where the bot is in.
-            Guilds m_Guilds;
+            atomic<Guilds> m_Guilds;
+
+            atomic<AdminInterfaces> m_Admins;
 
             //All open voice connections.
-            VoiceSockets m_VoiceSockets;
+            atomic<VoiceSockets> m_VoiceSockets;
 
-            AudioSources m_AudioSources;
+            atomic<AudioSources> m_AudioSources;
 
-            MusicQueues m_MusicQueues;
+            atomic<MusicQueues> m_MusicQueues;
 
             bool m_IsAFK;
             OnlineState m_State;
@@ -413,14 +478,9 @@ namespace DiscordBot
             std::string OnlineStateToStr(OnlineState state);
             OnlineState StrToOnlineState(const std::string &state);
 
-            GuildMember GetMember(Guild guild, const std::string &UserID);
-
-            User CreateUser(CJSON &json);
             GuildMember CreateMember(CJSON &json, Guild guild);
             VoiceState CreateVoiceState(CJSON &json, Guild guild);
-            Channel CreateChannel(CJSON &json);
             Message CreateMessage(CJSON &json);
-            Role CreateRole(CJSON &json);
             Activity CreateActivity(CJSON &json);
     };
 } // namespace DiscordBot

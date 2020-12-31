@@ -32,6 +32,23 @@
 
 namespace DiscordBot
 {
+    enum class MentionTypes
+    {
+        USER,
+        NICKNAME,
+        CHANNEL,
+        ROLE,
+        EMOJI,
+        CUSTOM_EMOJI,
+        CUSTOM_ANIM_EMOJI
+    };
+
+    struct SMention
+    {
+        MentionTypes Type;
+        std::string ID;
+    };
+
     class CMessage
     {
         public:
@@ -47,6 +64,15 @@ namespace DiscordBot
             std::string EditedTimestamp;
             bool Mention;
             std::vector<GuildMember> Mentions;  //!< Could contains  dummy Guild Members if this is a dm. Only the UserRef field is filled.
+            std::vector<Role> RoleMentions;
+            std::vector<Channel> ChannelMentions;   //!< Only textual channels that are visible to everyone.
+
+            /**
+             * @brief Parses a parameter for the Discords messaging format. https://discord.com/developers/docs/reference#message-formatting
+             * 
+             * @return Returns a list of mentions.
+             */
+            std::vector<SMention> ParseParam(const std::string &Param);
 
             ~CMessage() {}
         private:

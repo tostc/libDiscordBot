@@ -29,6 +29,8 @@
 #include <models/Channel.hpp>
 #include <models/User.hpp>
 #include <string>
+#include <atomic>
+#include <models/atomic.hpp>
 
 namespace DiscordBot
 {
@@ -43,13 +45,13 @@ namespace DiscordBot
             Guild GuildRef;
             Channel ChannelRef;
             User UserRef;
-            std::string SessionID;
-            bool Deaf;
-            bool Mute;
-            bool SelfDeaf;
-            bool SelfMute;
-            bool SelfStream;
-            bool Supress;
+            atomic<std::string> SessionID;
+            std::atomic<bool> Deaf;
+            std::atomic<bool> Mute;
+            std::atomic<bool> SelfDeaf;
+            std::atomic<bool> SelfMute;
+            std::atomic<bool> SelfStream;
+            std::atomic<bool> Supress;
 
             ~CVoiceState() {}
         private:

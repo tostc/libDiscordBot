@@ -30,6 +30,8 @@
 #include <vector>
 #include <models/OnlineState.hpp>
 #include <models/Activity.hpp>
+#include <atomic>
+#include <models/atomic.hpp>
 
 namespace DiscordBot
 {
@@ -63,16 +65,16 @@ namespace DiscordBot
         public:
             CUser(/* args */) : Bot(false), System(false), MFAEnabled(false), Verified(false) {}
 
-            std::string ID;
-            std::string Username;
-            std::string Discriminator;
-            std::string Avatar;
-            bool Bot;
-            bool System;
-            bool MFAEnabled;
-            std::string Locale;
-            bool Verified;
-            std::string Email;
+            atomic<std::string> ID;
+            atomic<std::string> Username;
+            atomic<std::string> Discriminator;
+            atomic<std::string> Avatar;
+            std::atomic<bool> Bot;
+            std::atomic<bool> System;
+            std::atomic<bool> MFAEnabled;
+            atomic<std::string> Locale;
+            std::atomic<bool> Verified;
+            atomic<std::string> Email;
             UserFlags Flags;
             PremiumTypes PremiumType;
             UserFlags PublicFlags;
@@ -82,7 +84,7 @@ namespace DiscordBot
             OnlineState Desktop;
             OnlineState Mobile;
             OnlineState Web;
-            std::vector<Activity> Activities;
+            atomic<std::vector<Activity>> Activities;
 
             ~CUser() {}
 

@@ -1,0 +1,18 @@
+SET(CMAKE_SYSTEM_NAME Linux)
+SET(CMAKE_SYSTEM_VERSION 1)
+
+unset(CMAKE_C_IMPLICIT_INCLUDE_DIRECTORIES)
+unset(CMAKE_CXX_IMPLICIT_INCLUDE_DIRECTORIES)
+
+set(ROOT_PATH "")                       # Path to the root of the tools. Tested with https://github.com/abhiTronix/raspberry-pi-cross-compilers
+set(HOST_NAME "arm-linux-gnueabihf")    # For Autoconf
+
+SET(CMAKE_C_COMPILER ${ROOT_PATH}/bin/${HOST_NAME}-gcc)
+SET(CMAKE_CXX_COMPILER ${ROOT_PATH}/bin/${HOST_NAME}-g++)
+
+SET(CMAKE_FIND_ROOT_PATH ${ROOT_PATH})
+set(CMAKE_BUILD_WITH_INSTALL_RPATH ON)
+
+set(CMAKE_FIND_ROOT_PATH_MODE_PROGRAM NEVER)
+set(CMAKE_FIND_ROOT_PATH_MODE_LIBRARY BOTH)
+set(CMAKE_FIND_ROOT_PATH_MODE_INCLUDE BOTH)

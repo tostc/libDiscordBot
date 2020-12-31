@@ -42,7 +42,7 @@ namespace DiscordBot
         auto Cmds = m_Controller->GetCommands(ctx->Msg->GuildRef, ctx->Msg->Member);
         for (auto &&e : Cmds)
         {
-            int Size = snprintf(Buf, BufferSize, "%s%-20s%2s-%2s%s", m_Controller->GetPrefix().c_str(), e.Cmd.c_str(), "", "", e.Description.c_str());
+            int Size = snprintf(Buf, BufferSize, "%s%-20s%2s-%2s%s", m_Controller->GetPrefix(ctx->Msg->GuildRef).c_str(), e.Cmd.c_str(), "", "", e.Description.c_str());
             Dialog += std::string(Buf, Buf + Size) + '\n';
         }
 

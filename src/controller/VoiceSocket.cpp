@@ -23,14 +23,14 @@
  */
 
 #include "VoiceSocket.hpp"
-#include "../model/Payload.hpp"
+#include "../models/Payload.hpp"
 #include <Log.hpp>
 #include <opus.h>
 #include <sodium.h>
 #include <time.h>
 #include <stdlib.h>
 #include <queue>
-#include "Helper.hpp"
+#include "../helpers/Helper.hpp"
 
 namespace DiscordBot
 {
