@@ -1,7 +1,3 @@
-# Read me
-
-You are currently on the development branch of the libDiscordBot library. Keep in mind that you can encounter bugs/errors, the API isn't at this point fixed and/or the project might not build.
-
 # libDiscordBot
 libDiscordBot is an easy-to-use C++ library which helps you to create quickly a Discord bot. It's inspired by [Discord.Net](https://github.com/discord-net/Discord.Net) for C#.
 
