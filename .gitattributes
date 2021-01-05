@@ -1,3 +1,4 @@
+externals/* linguist-vendored
 *.c linguist-detectable=false
 *.asm linguist-detectable=false
 *.inc linguist-detectable=false
