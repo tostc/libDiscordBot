@@ -1,4 +1,4 @@
-externals/** linguist-vendored
+externals/zlib-1.2.11/* linguist-vendored
 *.c linguist-detectable=false
 *.asm linguist-detectable=false
 *.inc linguist-detectable=false
