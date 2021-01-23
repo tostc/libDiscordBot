@@ -69,15 +69,9 @@ cmake ../ -DCMAKE_TOOLCHAIN_FILE=../crosscompile/TOOLCHAINFILE.cmake
 ```
 5. You can now compile your programm.
 
-### First bot
+## First bot
 
 Please visit the [wiki page](https://github.com/tostc/libDiscordBot/wiki/Your-first-bot).
-
-## Checklist
-- [ ] Administration
-- [x] Rights management(with Roles)
-- [ ] Wrap all Discord objects
-- [ ] Wrap all Discord events
 
 ## Applications which uses libDiscordBot
 
