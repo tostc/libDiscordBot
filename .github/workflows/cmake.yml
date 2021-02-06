@@ -45,12 +45,12 @@ jobs:
       working-directory: ${{github.workspace}}
       run: cmake --install build
       
-    - name: Debug
-      run: ls
-      
     - name: Pack
       working-directory: ${{github.workspace}}/publish
       run: cmake -E tar cJfv ../$OUTPUT_NAME .
+      
+    - name: Debug
+      run: ls
       
     - uses: actions/upload-artifact@v2
       with:
