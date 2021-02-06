@@ -40,14 +40,14 @@ jobs:
       shell: bash
       # Execute the build.  You can specify a specific target with "--target <NAME>"
       run: cmake --build . --config $BUILD_TYPE
-
-    - name: Pack
-      working-directory: ${{github.workspace}}/publish
-      run: cmake -E tar cJfv ../$OUTPUT_NAME .
       
     - name: Publish
       working-directory: ${{github.workspace}}
       run: cmake --install build
+      
+    - name: Pack
+      working-directory: ${{github.workspace}}/publish
+      run: cmake -E tar cJfv ../$OUTPUT_NAME .
       
     - uses: actions/upload-artifact@v2
       with:
