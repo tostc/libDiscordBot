@@ -5,7 +5,6 @@ on: [push]
 env:
   # Customize the CMake build type here (Release, Debug, RelWithDebInfo, etc.)
   BUILD_TYPE: Release
-  OUTPUT_NAME: libDiscordBot_linux.tar.gz
 
 jobs:
   build:
@@ -13,12 +12,28 @@ jobs:
     # well on Windows or Mac.  You can convert this to a matrix build if you need
     # cross-platform coverage.
     # See: https://docs.github.com/en/free-pro-team@latest/actions/learn-github-actions/managing-complex-workflows#using-a-build-matrix
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}g
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+        compiler: [ g++-10 ]
+        include:
+          - os: ubuntu-latest
+            compiler: g++-10
+            target: Linux
+
+          - os: windows-latest
+            compiler: cl
+            target: Windows
 
     steps:
     - uses: actions/checkout@v2
       with:
         submodules: recursive
+        
+    - name: Add msbuild to PATH
+      if: ${{ matrix.os == 'windows-latest' }}
+      uses: microsoft/setup-msbuild@v1.0.2
 
     - name: Create Build Environment
       # Some projects don't allow in-source building, so create a separate build directory
@@ -47,13 +62,13 @@ jobs:
       
     - name: Pack
       working-directory: ${{github.workspace}}/publish
-      run: cmake -E tar cJfv ../$OUTPUT_NAME .
+      run: cmake -E tar cJfv ../libDiscordBot-${{matrix.os}}.tar.gz .
      
     - name: Release
       uses: svenstaro/upload-release-action@v2
       with:
         repo_token: ${{ secrets.GITHUB_TOKEN }}
-        file: ${{github.workspace}}/${{env.OUTPUT_NAME}}
-        asset_name: ${{env.OUTPUT_NAME}}
+        file: ${{github.workspace}}/libDiscordBot-${{matrix.os}}.tar.gz
+        asset_name: libDiscordBot-${{matrix.os}}.tar.gz
         tag: ${{ github.ref }}
       
