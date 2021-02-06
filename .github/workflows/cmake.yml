@@ -5,6 +5,7 @@ on: [push]
 env:
   # Customize the CMake build type here (Release, Debug, RelWithDebInfo, etc.)
   BUILD_TYPE: Release
+  OUTPUT_NAME: libDiscordBot_linux.tar.gz
 
 jobs:
   build:
@@ -32,10 +33,24 @@ jobs:
       # Note the current convention is to use the -S and -B options here to specify source 
       # and build directories, but this is only available with CMake 3.13 and higher.  
       # The CMake binaries on the Github Actions machines are (as of this writing) 3.12
-      run: cmake $GITHUB_WORKSPACE -DCMAKE_BUILD_TYPE=$BUILD_TYPE
+      run: cmake $GITHUB_WORKSPACE -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DCMAKE_INSTALL_PREFIX=../publish
 
     - name: Build
       working-directory: ${{github.workspace}}/build
       shell: bash
       # Execute the build.  You can specify a specific target with "--target <NAME>"
       run: cmake --build . --config $BUILD_TYPE
+
+    - name: Pack
+      working-directory: ${{github.workspace}}/publish
+      run: cmake -E tar cJfv ../$OUTPUT_NAME .
+      
+    - name: Publish
+      working-directory: ${{github.workspace}}
+      run: cmake --install build
+      
+    - uses: actions/upload-artifact@v2
+      with:
+        name: $OUTPUT_NAME
+        path: ${{github.workspace}}/$OUTPUT_NAME
+      
