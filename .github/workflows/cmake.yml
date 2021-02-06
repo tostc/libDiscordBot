@@ -16,7 +16,7 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest, windows-latest]
-        compiler: [ g++-10 ]
+        #compiler: [ g++-10 ]
         include:
           - os: ubuntu-latest
             compiler: g++-10
