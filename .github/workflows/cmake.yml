@@ -51,6 +51,6 @@ jobs:
       
     - uses: actions/upload-artifact@v2
       with:
-        name: $OUTPUT_NAME
-        path: ${{github.workspace}}/$OUTPUT_NAME
+        name: ${{OUTPUT_NAME}}
+        path: ${{github.workspace}}/${{OUTPUT_NAME}}
       
