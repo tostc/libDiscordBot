@@ -1,3 +1,5 @@
+![Build passed](https://github.com/tostc/libDiscordBot/workflows/CMake/badge.svg)
+
 # libDiscordBot
 libDiscordBot is an easy-to-use C++ library which helps you to create quickly a Discord bot. It's inspired by [Discord.Net](https://github.com/discord-net/Discord.Net) for C#.
 
