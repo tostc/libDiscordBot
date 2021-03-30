@@ -1,6 +1,1 @@
-*.c linguist-detectable=false
-*.asm linguist-detectable=false
-*.inc linguist-detectable=false
-*.cs linguist-detectable=false
-*.adb linguist-detectable=false
-*.pas linguist-detectable=false
+externals/zlib-1.2.11/* linguist-vendored
