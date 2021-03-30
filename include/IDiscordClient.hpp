@@ -263,6 +263,7 @@ namespace DiscordBot
              * @param Text: Text to send;
              * @param TTS: True to enable tts.
              */
+            [[deprecated("Will be remove in the next release. Please use CChannel::SendMessage instead!")]]
             virtual void SendMessage(Channel channel, const std::string Text, Embed embed = nullptr, bool TTS = false) = 0;
 
             /**

@@ -22,7 +22,12 @@
  * SOFTWARE.
  */
 
+#include <IDiscordClient.hpp>
+#include <tinyformat.h>
+
+#include "../controller/DiscordClient.hpp"
 #include <models/Message.hpp>
+#include <Log.hpp>
 
 namespace DiscordBot
 {
@@ -63,6 +68,61 @@ namespace DiscordBot
 
             beg++;
         }
+
+        return Ret;
+    }
+
+    void CMessage::CreateReaction(const std::string &Emoji)
+    {
+        if(!ChannelRef && ChannelRef->Type != ChannelTypes::GUILD_TEXT && ChannelRef->Type != ChannelTypes::DM)
+            return;
+
+        auto res = dynamic_cast<CDiscordClient*>(m_Client)->Put(tfm::format("/channels/%s/messages/%s/reactions/%s/@me", ChannelRef->ID.load(), ID, UriEscape(Emoji)), "");
+        if (res->statusCode != 204)
+            llog << lerror << "Failed to send message HTTP: " << res->statusCode << " MSG: " << res->errorMsg << " Body: " << res->body << lendl;
+    }
+
+    void CMessage::DeleteAllReactions()
+    {
+        if(!ChannelRef && ChannelRef->Type != ChannelTypes::GUILD_TEXT && ChannelRef->Type != ChannelTypes::DM)
+            return;
+
+        auto res = dynamic_cast<CDiscordClient*>(m_Client)->Delete(tfm::format("/channels/%s/messages/%s/reactions", ChannelRef->ID.load(), ID));
+        if (res->statusCode != 200)
+            llog << lerror << "Failed to send message HTTP: " << res->statusCode << " MSG: " << res->errorMsg << " Body: " << res->body << lendl;
+    }
+
+    std::vector<User> CMessage::GetReactions(const std::string &Emoji)
+    {
+        std::vector<User> Ret;
+        if(!ChannelRef && ChannelRef->Type != ChannelTypes::GUILD_TEXT && ChannelRef->Type != ChannelTypes::DM)
+            return Ret;
+
+        auto res = dynamic_cast<CDiscordClient*>(m_Client)->Get(tfm::format("/channels/%s/messages/%s/reactions/%s", ChannelRef->ID.load(), ID, UriEscape(Emoji)));
+        if (res->statusCode != 200)
+            llog << lerror << "Failed to send message HTTP: " << res->statusCode << " MSG: " << res->errorMsg << " Body: " << res->body << lendl;
+        else
+        {
+            CJSON js;
+            auto arr = js.Deserialize<std::vector<std::string>>(res->body);
+
+            for (auto &&u : arr)
+            {
+                User tmp;
+                u >> tmp;
+
+                Ret.push_back(tmp);
+            }
+        }
+
+        return Ret;
+    }
+
+    std::string CMessage::UriEscape(const std::string &Uri)
+    {
+        std::string Ret;
+        for (auto &&c : Uri)
+            Ret += "%" + tfm::format("%X", (uint8_t)c);
 
         return Ret;
     }

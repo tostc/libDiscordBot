@@ -34,6 +34,8 @@
 #include <type_traits>
 #include <utility>
 
+#include <IDiscordClient.hpp>
+
 namespace DiscordBot
 {
     //--------------------------Abstract operators for json parsing (forward)--------------------------//
@@ -111,12 +113,12 @@ namespace DiscordBot
     }
 
     template<class T>
-    typename std::enable_if<std::is_same<T, Channel>::value, Channel>::type Deserialize(std::pair<std::string, atomic<std::map<std::string, User>>&> js)
+    typename std::enable_if<std::is_same<T, Channel>::value, Channel>::type Deserialize(IDiscordClient *client, std::string data, atomic<std::map<std::string, User>>& Users)
     {
-        Channel Ret = Channel(new CChannel());
+        Channel Ret = Channel(new CChannel(client));
 
         CJSON json;
-        json.ParseObject(js.first);
+        json.ParseObject(data);
 
         Ret->ID = json.GetValue<std::string>("id");
         Ret->Type = (ChannelTypes)json.GetValue<int>("type");
@@ -149,7 +151,7 @@ namespace DiscordBot
         Array = json.GetValue<std::vector<std::string>>("recipients");
         for (auto &&e : Array)
         {
-            User user = js.second | e;
+            User user = Users | e;
             Ret->Recipients->push_back(user);
         }
 

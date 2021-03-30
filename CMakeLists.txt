@@ -151,6 +151,7 @@ configure_file("${PROJECT_SOURCE_DIR}/docs/Doxyfile.in" Doxyfile @ONLY)
 
 include_directories("${PROJECT_BINARY_DIR}"
                     "${PROJECT_SOURCE_DIR}/externals/IXWebSocket"
+                    "${PROJECT_SOURCE_DIR}/externals/tinyformat"
                     "${PROJECT_SOURCE_DIR}/externals/CJSON"
                     "${PROJECT_SOURCE_DIR}/externals/CLog"
                     "${libsodium_src}/src/libsodium/include/"
@@ -171,7 +172,9 @@ set(SRCS
     "${PROJECT_SOURCE_DIR}/src/controller/GuildAdmin.cpp"
     "${PROJECT_SOURCE_DIR}/src/commands/RightsCommand.cpp"
     "${PROJECT_SOURCE_DIR}/src/commands/HelpCommand.cpp"
-    "${PROJECT_SOURCE_DIR}/src/commands/PrefixCommand.cpp")
+    "${PROJECT_SOURCE_DIR}/src/commands/PrefixCommand.cpp"
+    "${PROJECT_SOURCE_DIR}/src/models/Channel.cpp"
+    "${PROJECT_SOURCE_DIR}/src/models/Message.cpp")
 
 add_library(${PROJECT_NAME} SHARED ${SRCS})
 

@@ -242,6 +242,7 @@ namespace DiscordBot
              * @param Text: Text to send;
              * @param TTS: True to enable tts.
              */
+            [[deprecated("Will be remove in the next release. Please use CChannel::SendMessage instead!")]]
             void SendMessage(Channel channel, const std::string Text, Embed embed = nullptr, bool TTS = false) override;
 
             /**
@@ -356,10 +357,12 @@ namespace DiscordBot
 
 
             ix::HttpResponsePtr Get(const std::string &URL);
-            ix::HttpResponsePtr Post(const std::string &URL, const std::string &Body);
+            ix::HttpResponsePtr Post(const std::string &URL, const std::string &Body, const std::string &ContentType = "application/json");
             ix::HttpResponsePtr Put(const std::string &URL, const std::string &Body);
             ix::HttpResponsePtr Patch(const std::string &URL, const std::string &Body);
             ix::HttpResponsePtr Delete(const std::string &URL, const std::string &Body = "");
+
+            Message CreateMessage(CJSON &json);
 
             GuildMember GetMember(Guild guild, const std::string &UserID);
             User GetUserOrAdd(const std::string &js)
@@ -480,7 +483,6 @@ namespace DiscordBot
 
             GuildMember CreateMember(CJSON &json, Guild guild);
             VoiceState CreateVoiceState(CJSON &json, Guild guild);
-            Message CreateMessage(CJSON &json);
             Activity CreateActivity(CJSON &json);
     };
 } // namespace DiscordBot

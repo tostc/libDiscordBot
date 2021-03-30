@@ -27,6 +27,7 @@
 #include <sodium.h>
 #include <models/DiscordException.hpp>
 #include "../helpers/Helper.hpp"
+#include "../helpers/MultipartFormData.hpp"
 
 #define CLOG_IMPLEMENTATION
 #include <Log.hpp>
@@ -154,19 +155,7 @@ namespace DiscordBot
 
     void CDiscordClient::SendMessage(Channel channel, const std::string Text, Embed embed, bool TTS)
     {
-        if(channel->Type != ChannelTypes::GUILD_TEXT && channel->Type != ChannelTypes::DM)
-            return;
-
-        CJSON json;
-        json.AddPair("content", Text);
-        json.AddPair("tts", TTS);
-
-        if(embed)
-            json.AddJSON("embed", embed | Serialize);
-
-        auto res = Post("/channels/" + channel->ID + "/messages", json.Serialize());
-        if (res->statusCode != 200)
-            llog << lerror << "Failed to send message HTTP: " << res->statusCode << " MSG: " << res->errorMsg << lendl;
+        channel->SendMessage(Text, embed, TTS);
     }
 
     void CDiscordClient::SendMessage(User user, const std::string Text, Embed embed, bool TTS)
@@ -181,7 +170,7 @@ namespace DiscordBot
         {
             json.ParseObject(res->body);
             Channel c;
-            (res->body & m_Users) >> c;
+            c = Deserialize<Channel>(this, res->body, m_Users);
 
             SendMessage(c, Text, embed, TTS);
         }
@@ -529,7 +518,7 @@ namespace DiscordBot
                                 for (auto &&e : Array)
                                 {
                                     Channel Tmp;
-                                    (e & m_Users) >> Tmp;
+                                    Tmp = Deserialize<Channel>(this, e, m_Users);
                                     
                                     Tmp->GuildID = guild->ID;
                                     guild->Channels->insert({Tmp->ID, Tmp});
@@ -610,7 +599,8 @@ namespace DiscordBot
                             case Adler32("CHANNEL_CREATE"):
                             {
                                 Channel Tmp;
-                                (Pay.D & m_Users) >> Tmp;
+                                Tmp = Deserialize<Channel>(this, Pay.D, m_Users);
+                                
 
                                 auto IT = m_Guilds->find(Tmp->GuildID);
                                 if(IT != m_Guilds->end())
@@ -620,7 +610,7 @@ namespace DiscordBot
                             case Adler32("CHANNEL_UPDATE"):
                             {
                                 Channel Tmp;
-                                (Pay.D & m_Users) >> Tmp;
+                                Tmp = Deserialize<Channel>(this, Pay.D, m_Users);
 
                                 auto IT = m_Guilds->find(Tmp->GuildID);
                                 if(IT != m_Guilds->end())
@@ -633,7 +623,7 @@ namespace DiscordBot
                             case Adler32("CHANNEL_DELETE"):
                             {
                                 Channel Tmp;
-                                (Pay.D & m_Users) >> Tmp;
+                                Tmp = Deserialize<Channel>(this, Pay.D, m_Users);
 
                                 auto IT = m_Guilds->find(Tmp->GuildID);
                                 if(IT != m_Guilds->end())
@@ -874,7 +864,7 @@ namespace DiscordBot
                             {
                                 json.ParseObject(Pay.D);
                                 Message msg = CreateMessage(json);
-
+                                
                                 std::shared_ptr<CGuildAdmin> Admin;
                                 auto AIT = m_Admins->find(msg->GuildRef->ID);
                                 if(AIT != m_Admins->end())
@@ -1080,13 +1070,13 @@ namespace DiscordBot
         return m_HTTPClient.get(std::string(BASE_URL) + URL, args);
     }
 
-    ix::HttpResponsePtr CDiscordClient::Post(const std::string &URL, const std::string &Body)
+    ix::HttpResponsePtr CDiscordClient::Post(const std::string &URL, const std::string &Body, const std::string &ContentType)
     {
         ix::HttpRequestArgsPtr args = ix::HttpRequestArgsPtr(new ix::HttpRequestArgs());
 
         //Adds the bot token.
         args->extraHeaders["Authorization"] = "Bot " + m_Token;
-        args->extraHeaders["Content-Type"] = "application/json";
+        args->extraHeaders["Content-Type"] = ContentType;
         args->extraHeaders["User-Agent"] = USER_AGENT;
 
         return m_HTTPClient.post(std::string(BASE_URL) + URL, Body, args);
@@ -1352,7 +1342,7 @@ namespace DiscordBot
 
     Message CDiscordClient::CreateMessage(CJSON &json)
     {
-        Message Ret = Message(new CMessage());
+        Message Ret = Message(new CMessage(this));
         Channel channel;
 
         Guilds::iterator IT = m_Guilds->find(json.GetValue<std::string>("guild_id"));
@@ -1367,7 +1357,7 @@ namespace DiscordBot
         //Creates a dummy object for DMs.
         if (!channel)
         {
-            channel = Channel(new CChannel());
+            channel = Channel(new CChannel(this));
             channel->ID = json.GetValue<std::string>("channel_id");
             channel->Type = ChannelTypes::DM;
         }

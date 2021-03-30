@@ -32,6 +32,8 @@
 
 namespace DiscordBot
 {
+    class IDiscordClient;
+
     enum class MentionTypes
     {
         USER,
@@ -52,7 +54,7 @@ namespace DiscordBot
     class CMessage
     {
         public:
-            CMessage(/* args */) {}
+            CMessage(IDiscordClient *client) : m_Client(client) {}
 
             std::string ID;
             Channel ChannelRef;     //!< Could contain a dummy channel if this is a dm. Only the id field is filled.
@@ -74,9 +76,34 @@ namespace DiscordBot
              */
             std::vector<SMention> ParseParam(const std::string &Param);
 
-            ~CMessage() {}
+            /**
+             * @brief Adds a reaction to this message.
+             * 
+             * @param Emoji: UTF8 Emoji to add.
+             * 
+             * @attention The bot needs following permissions `READ_MESSAGE_HISTORY` and `ADD_REACTIONS`
+             */
+            void CreateReaction(const std::string &Emoji);
+
+            /**
+             * @brief Removes all reactions from this message.
+             * 
+             * @attention The bot needs following permission `MANAGE_MESSAGES`
+             */
+            void DeleteAllReactions();
+
+            /**
+             * @param Emoji: UTF8 Emoji to get.
+             * 
+             * @return Gets a list of all Users which have reacted with the given emoji.
+             */
+            std::vector<User> GetReactions(const std::string &Emoji);
+
+            ~CMessage() = default;
         private:
-        /* data */
+            std::string UriEscape(const std::string &Uri);
+
+            IDiscordClient *m_Client;
     };
 
     using Message = std::shared_ptr<CMessage>;

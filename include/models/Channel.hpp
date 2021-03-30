@@ -28,12 +28,19 @@
 #include <memory>
 #include <vector>
 #include <models/User.hpp>
+#include <models/File.hpp>
 #include <string>
 #include <models/Role.hpp>
 #include <models/atomic.hpp>
+#include <models/Embed.hpp>
 
 namespace DiscordBot
-{
+{  
+    class IDiscordClient;
+    class CMessage;
+
+    using Message = std::shared_ptr<CMessage>;
+
     enum class ChannelTypes
     {
         GUILD_TEXT,
@@ -63,7 +70,7 @@ namespace DiscordBot
     class CChannel
     {
         public:
-            CChannel() : Position(0), NSFW(false), Bitrate(0), UserLimit(0), RateLimit(0) {}
+            CChannel(IDiscordClient *client) : Position(0), NSFW(false), Bitrate(0), UserLimit(0), RateLimit(0), m_Client(client) {}
 
             atomic<std::string> ID;
             ChannelTypes Type;
@@ -84,10 +91,29 @@ namespace DiscordBot
             atomic<std::string> ParentID;
             atomic<std::string> LastPinTimestamp;
 
+            /**
+             * @brief Sends a message wit attachment to a given channel.
+             * 
+             * @param File: File to attach.
+             * @param Text: Text to send;
+             * @param TTS: True to enable tts.
+             * 
+             * @return Returns a message object.
+             */
+            Message SendMessage(CFile &File, const std::string &Text, Embed embed = nullptr, bool TTS = false);
+
+            /**
+             * @brief Sends a message to a given channel.
+             * 
+             * @param Text: Text to send;
+             * @param TTS: True to enable tts.
+             */
+            Message SendMessage(const std::string &Text, Embed embed = nullptr, bool TTS = false);
+
             ~CChannel() {}
 
         private:
-        /* data */
+            IDiscordClient *m_Client;
     };
 
     using Channel = std::shared_ptr<CChannel>;
