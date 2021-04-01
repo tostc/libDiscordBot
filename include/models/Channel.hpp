@@ -92,7 +92,7 @@ namespace DiscordBot
             atomic<std::string> LastPinTimestamp;
 
             /**
-             * @brief Sends a message wit attachment to a given channel.
+             * @brief Sends a message with attachment to a given channel.
              * 
              * @param File: File to attach.
              * @param Text: Text to send;

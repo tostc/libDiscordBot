@@ -45,6 +45,7 @@
 #include <models/atomic.hpp>
 #include "GuildAdmin.hpp"
 #include "../helpers/JSONHelpers.hpp"
+#include "../helpers/Factory/ObjectFactory.hpp"
 
 #undef SendMessage
 
@@ -359,7 +360,7 @@ namespace DiscordBot
             ix::HttpResponsePtr Get(const std::string &URL);
             ix::HttpResponsePtr Post(const std::string &URL, const std::string &Body, const std::string &ContentType = "application/json");
             ix::HttpResponsePtr Put(const std::string &URL, const std::string &Body);
-            ix::HttpResponsePtr Patch(const std::string &URL, const std::string &Body);
+            ix::HttpResponsePtr Patch(const std::string &URL, const std::string &Body, const std::string &ContentType = "application/json");
             ix::HttpResponsePtr Delete(const std::string &URL, const std::string &Body = "");
 
             Message CreateMessage(CJSON &json);
@@ -380,6 +381,8 @@ namespace DiscordBot
 
             const char *BASE_URL = "https://discord.com/api";
             std::string USER_AGENT;
+
+            CObjectFactory m_ObjFactory;
 
             using VoiceSockets = std::map<std::string, VoiceSocket>;
             using AudioSources = std::map<std::string, AudioSource>;

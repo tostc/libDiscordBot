@@ -49,6 +49,8 @@ namespace DiscordBot
             json.AddJSON("embed", embed | Serialize);
 
         auto res = dynamic_cast<CDiscordClient*>(m_Client)->Post(tfm::format("/channels/%s/messages", ID), CMultipartFormData::CreateFormData(File, json.Serialize()), "multipart/form-data; boundary=libDiscordBot");
+        llog << linfo << res->headers["X-RateLimit-Remaining"] << lendl;
+        
         if (res->statusCode != 200)
             llog << lerror << "Failed to send message HTTP: " << res->statusCode << " MSG: " << res->errorMsg << " Body: " << res->body << lendl;
 

@@ -1094,13 +1094,13 @@ namespace DiscordBot
         return m_HTTPClient.put(std::string(BASE_URL) + URL, Body, args);
     }
 
-    ix::HttpResponsePtr CDiscordClient::Patch(const std::string &URL, const std::string &Body)
+    ix::HttpResponsePtr CDiscordClient::Patch(const std::string &URL, const std::string &Body, const std::string &ContentType)
     {
         ix::HttpRequestArgsPtr args = ix::HttpRequestArgsPtr(new ix::HttpRequestArgs());
 
         //Adds the bot token.
         args->extraHeaders["Authorization"] = "Bot " + m_Token;
-        args->extraHeaders["Content-Type"] = "application/json";
+        args->extraHeaders["Content-Type"] = ContentType;
         args->extraHeaders["User-Agent"] = USER_AGENT;
 
         return m_HTTPClient.patch(std::string(BASE_URL) + URL, Body, args);
@@ -1120,7 +1120,7 @@ namespace DiscordBot
             return m_HTTPClient.request(std::string(BASE_URL) + URL, "DELETE", Body, args);
         }
         else
-            return m_HTTPClient.del(std::string(BASE_URL) + URL, args);
+            return m_HTTPClient.request(std::string(BASE_URL) + URL, "DELETE", "", args);
     }
 
     void CDiscordClient::OnQueueWaitFinish(const std::string &Guild, AudioSource Source)
@@ -1342,76 +1342,7 @@ namespace DiscordBot
 
     Message CDiscordClient::CreateMessage(CJSON &json)
     {
-        Message Ret = Message(new CMessage(this));
-        Channel channel;
 
-        Guilds::iterator IT = m_Guilds->find(json.GetValue<std::string>("guild_id"));
-        if (IT != m_Guilds->end())
-        {
-            Ret->GuildRef = IT->second;
-            std::map<std::string, Channel>::iterator CIT = Ret->GuildRef->Channels->find(json.GetValue<std::string>("channel_id"));
-            if (CIT != Ret->GuildRef->Channels->end())
-                channel = CIT->second;
-        }
-
-        //Creates a dummy object for DMs.
-        if (!channel)
-        {
-            channel = Channel(new CChannel(this));
-            channel->ID = json.GetValue<std::string>("channel_id");
-            channel->Type = ChannelTypes::DM;
-        }
-
-        Ret->ID = json.GetValue<std::string>("id");
-        Ret->ChannelRef = channel;
-
-        std::string UserJson = json.GetValue<std::string>("author");
-        if (!UserJson.empty())
-        {
-            User user = m_Users | UserJson;
-            Ret->Author = user;
-
-            //Gets the guild member, if this message is not a dm.
-            if (Ret->GuildRef)
-            {
-                auto MIT = Ret->GuildRef->Members->find(Ret->Author->ID);
-                if (MIT != Ret->GuildRef->Members->end())
-                    Ret->Member = MIT->second;
-                else
-                    Ret->Member = GetMember(Ret->GuildRef, Ret->Author->ID);
-            }
-        }
-
-        Ret->Content = json.GetValue<std::string>("content");
-        Ret->Timestamp = json.GetValue<std::string>("timestamp");
-        Ret->EditedTimestamp = json.GetValue<std::string>("edited_timestamp");
-        Ret->Mention = json.GetValue<bool>("mention_everyone");
-
-        std::vector<std::string> Array = json.GetValue<std::vector<std::string>>("mentions");
-        for (auto &&e : Array)
-        {
-            User user = m_Users | e;
-            bool Found = false;
-
-            if (Ret->GuildRef)
-            {
-                auto MIT = Ret->GuildRef->Members->find(Ret->Author->ID);
-                if (MIT != Ret->GuildRef->Members->end())
-                {
-                    Found = true;
-                    Ret->Mentions.push_back(MIT->second);
-                }
-            }
-
-            //Create a fake Guildmember for DMs.
-            if (!Found)
-            {
-                Ret->Mentions.push_back(GuildMember(new CGuildMember()));
-                Ret->Mentions.back()->UserRef = user;
-            }
-        }
-
-        return Ret;
     }
 
     Activity CDiscordClient::CreateActivity(CJSON &json)

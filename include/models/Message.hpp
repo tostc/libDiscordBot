@@ -99,6 +99,19 @@ namespace DiscordBot
              */
             std::vector<User> GetReactions(const std::string &Emoji);
 
+            /**
+             * @brief Edits the message to a given channel.
+             * 
+             * @param Text: Text to send;
+             * @param TTS: True to enable tts.
+             */
+            void Edit(const std::string &Text, Embed embed = nullptr, bool TTS = false);
+
+            /**
+             * @brief Just deletes the message.
+             */
+            void Delete();
+
             ~CMessage() = default;
         private:
             std::string UriEscape(const std::string &Uri);

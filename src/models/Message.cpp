@@ -26,6 +26,7 @@
 #include <tinyformat.h>
 
 #include "../controller/DiscordClient.hpp"
+#include "../helpers/MultipartFormData.hpp"
 #include <models/Message.hpp>
 #include <Log.hpp>
 
@@ -74,17 +75,18 @@ namespace DiscordBot
 
     void CMessage::CreateReaction(const std::string &Emoji)
     {
-        if(!ChannelRef && ChannelRef->Type != ChannelTypes::GUILD_TEXT && ChannelRef->Type != ChannelTypes::DM)
+        if(!ChannelRef || ChannelRef->Type != ChannelTypes::GUILD_TEXT && ChannelRef->Type != ChannelTypes::DM)
             return;
 
         auto res = dynamic_cast<CDiscordClient*>(m_Client)->Put(tfm::format("/channels/%s/messages/%s/reactions/%s/@me", ChannelRef->ID.load(), ID, UriEscape(Emoji)), "");
+        llog << linfo << res->headers["X-RateLimit-Remaining"] << lendl;
         if (res->statusCode != 204)
             llog << lerror << "Failed to send message HTTP: " << res->statusCode << " MSG: " << res->errorMsg << " Body: " << res->body << lendl;
     }
 
     void CMessage::DeleteAllReactions()
     {
-        if(!ChannelRef && ChannelRef->Type != ChannelTypes::GUILD_TEXT && ChannelRef->Type != ChannelTypes::DM)
+        if(!ChannelRef || ChannelRef->Type != ChannelTypes::GUILD_TEXT && ChannelRef->Type != ChannelTypes::DM)
             return;
 
         auto res = dynamic_cast<CDiscordClient*>(m_Client)->Delete(tfm::format("/channels/%s/messages/%s/reactions", ChannelRef->ID.load(), ID));
@@ -95,10 +97,11 @@ namespace DiscordBot
     std::vector<User> CMessage::GetReactions(const std::string &Emoji)
     {
         std::vector<User> Ret;
-        if(!ChannelRef && ChannelRef->Type != ChannelTypes::GUILD_TEXT && ChannelRef->Type != ChannelTypes::DM)
+        if(!ChannelRef || ChannelRef->Type != ChannelTypes::GUILD_TEXT && ChannelRef->Type != ChannelTypes::DM)
             return Ret;
 
         auto res = dynamic_cast<CDiscordClient*>(m_Client)->Get(tfm::format("/channels/%s/messages/%s/reactions/%s", ChannelRef->ID.load(), ID, UriEscape(Emoji)));
+        llog << linfo << res->headers["X-RateLimit-Remaining"] << lendl;
         if (res->statusCode != 200)
             llog << lerror << "Failed to send message HTTP: " << res->statusCode << " MSG: " << res->errorMsg << " Body: " << res->body << lendl;
         else
@@ -116,6 +119,35 @@ namespace DiscordBot
         }
 
         return Ret;
+    }
+
+    void CMessage::Edit(const std::string &Text, Embed embed, bool TTS)
+    {
+        if(!ChannelRef || ChannelRef->Type != ChannelTypes::GUILD_TEXT && ChannelRef->Type != ChannelTypes::DM)
+            return;
+
+        CJSON json;
+        json.AddPair("content", Text);
+        json.AddPair("tts", TTS);
+
+        if(embed)
+            json.AddJSON("embed", embed | Serialize);
+
+        auto res = dynamic_cast<CDiscordClient*>(m_Client)->Patch(tfm::format("/channels/%s/messages/%s", ChannelRef->ID.load(), ID), json.Serialize());
+        llog << linfo << res->headers["X-RateLimit-Remaining"] << lendl;
+
+        if (res->statusCode != 200)
+            llog << lerror << "Failed to send message HTTP: " << res->statusCode << " MSG: " << res->errorMsg << " Body: " << res->body << lendl;
+    }
+
+    void CMessage::Delete()
+    {
+        if(!ChannelRef || ChannelRef->Type != ChannelTypes::GUILD_TEXT && ChannelRef->Type != ChannelTypes::DM)
+            return;
+
+        auto res = dynamic_cast<CDiscordClient*>(m_Client)->Delete(tfm::format("/channels/%s/messages/%s", ChannelRef->ID.load(), ID));
+        if (res->statusCode != 204)
+            llog << lerror << "Failed to send message HTTP: " << res->statusCode << " MSG: " << res->errorMsg << " Body: " << res->body << lendl;
     }
 
     std::string CMessage::UriEscape(const std::string &Uri)

@@ -174,7 +174,8 @@ set(SRCS
     "${PROJECT_SOURCE_DIR}/src/commands/HelpCommand.cpp"
     "${PROJECT_SOURCE_DIR}/src/commands/PrefixCommand.cpp"
     "${PROJECT_SOURCE_DIR}/src/models/Channel.cpp"
-    "${PROJECT_SOURCE_DIR}/src/models/Message.cpp")
+    "${PROJECT_SOURCE_DIR}/src/models/Message.cpp"
+    "${PROJECT_SOURCE_DIR}/src/helpers/Factory/ObjectFactory.cpp")
 
 add_library(${PROJECT_NAME} SHARED ${SRCS})
 
