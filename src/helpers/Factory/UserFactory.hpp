@@ -1,0 +1,72 @@
+/*
+ * MIT License
+ *
+ * Copyright (c) 2021 Christian Tost
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ */
+
+#ifndef USERFACTORY_HPP
+#define USERFACTORY_HPP
+
+#include "ISerializeFactory.hpp"
+#include <models/User.hpp>
+#include "../../controller/DiscordClient.hpp"
+
+namespace DiscordBot
+{
+    class CUserFactory : public TSerializeFactory<CUser>
+    {
+        public:
+            CUserFactory(CDiscordClient *client) : TSerializeFactory(client) {}
+
+            User Deserialize(CJSON &json) override
+            {
+                User Ret = User(new CUser(m_Client));
+
+                Ret->ID = json.GetValue<std::string>("id");
+                Ret->Username = json.GetValue<std::string>("username");
+                Ret->Discriminator = json.GetValue<std::string>("discriminator");
+                Ret->Avatar = json.GetValue<std::string>("avatar");
+                Ret->Bot = json.GetValue<bool>("bot");
+                Ret->System = json.GetValue<bool>("system");
+                Ret->MFAEnabled = json.GetValue<bool>("mfa_enabled");
+                Ret->Locale = json.GetValue<std::string>("locale");
+                Ret->Verified = json.GetValue<bool>("verified");
+                Ret->Email = json.GetValue<std::string>("email");
+                Ret->Flags = (UserFlags)json.GetValue<int>("flags");
+                Ret->PremiumType = (PremiumTypes)json.GetValue<int>("premium_type");
+                Ret->PublicFlags = (UserFlags)json.GetValue<int>("public_flags");
+
+                Ret->State = OnlineState::ONLINE;
+                Ret->Desktop = OnlineState::ONLINE;
+                Ret->Mobile = OnlineState::OFFLINE;
+                Ret->Web = OnlineState::ONLINE;
+
+                // m_Users[Ret->ID] = Ret;
+
+                return Ret;
+            }
+
+            ~CUserFactory() {}
+    };
+} // namespace DiscordBot
+
+
+#endif //USERFACTORY_HPP

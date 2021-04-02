@@ -38,6 +38,8 @@ namespace DiscordBot
         public:
             ISerializeFactory(CDiscordClient *client) : m_Client(client) {}
 
+            virtual ~ISerializeFactory() = default;
+
         protected:
             CDiscordClient *m_Client;
     };
@@ -46,11 +48,13 @@ namespace DiscordBot
     class TSerializeFactory : public ISerializeFactory
     {
         public:
+            using Type = T;
+
             TSerializeFactory(CDiscordClient *client) : ISerializeFactory(client) {}
 
             virtual std::string Serialize(std::shared_ptr<T> Obj)
             {
-                return "";
+                return "{}";
             }
 
             virtual std::shared_ptr<T> Deserialize(CJSON &JS)

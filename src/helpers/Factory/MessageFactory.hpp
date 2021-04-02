@@ -38,11 +38,6 @@ namespace DiscordBot
         public:
             CMessageFactory(CDiscordClient *client) : TSerializeFactory(client) {}
 
-            std::string Serialize(std::shared_ptr<CMessage> Obj) override
-            {
-                
-            }
-
             std::shared_ptr<CMessage> Deserialize(CJSON &json) override
             {
                 Message Ret = Message(new CMessage(m_Client));

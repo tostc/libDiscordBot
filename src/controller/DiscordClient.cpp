@@ -160,20 +160,8 @@ namespace DiscordBot
 
     void CDiscordClient::SendMessage(User user, const std::string Text, Embed embed, bool TTS)
     {
-        CJSON json;
-        json.AddPair("recipient_id", user->ID.load());
-
-        auto res = Post("/users/@me/channels", json.Serialize());
-        if (res->statusCode != 200)
-            llog << lerror << "Failed to send message HTTP: " << res->statusCode << " MSG: " << res->errorMsg << lendl;
-        else
-        {
-            json.ParseObject(res->body);
-            Channel c;
-            c = Deserialize<Channel>(this, res->body, m_Users);
-
-            SendMessage(c, Text, embed, TTS);
-        }
+        auto Channel = user->CreateDM();
+        Channel->SendMessage(Text, embed, TTS);
     }
 
     AudioSource CDiscordClient::GetAudioSource(Guild guild)
@@ -472,8 +460,8 @@ namespace DiscordBot
                                 json.ParseObject(Pay.D);
                                 m_SessionID = json.GetValue<std::string>("session_id");
 
-                                // json.ParseObject();
-                                json.GetValue<std::string>("user") >> m_BotUser >> m_Users;
+                                m_BotUser = CObjectFactory::Deserialize<CUser>(this, json.GetValue<std::string>("user"));
+                                m_Users->insert({m_BotUser->ID.load(), m_BotUser});
 
                                 auto Unavailables = json.GetValue<std::vector<std::string>>("guilds");
                                 for (auto &&e : Unavailables)
@@ -508,8 +496,7 @@ namespace DiscordBot
                                 std::vector<std::string> Array = json.GetValue<std::vector<std::string>>("roles");
                                 for (auto &&e : Array)
                                 {
-                                    Role Tmp;
-                                    e >> Tmp;
+                                    Role Tmp = CObjectFactory::Deserialize<CRole>(this, e);
                                     guild->Roles->insert({Tmp->ID, Tmp});
                                 }
 
@@ -517,8 +504,7 @@ namespace DiscordBot
                                 Array = json.GetValue<std::vector<std::string>>("channels");
                                 for (auto &&e : Array)
                                 {
-                                    Channel Tmp;
-                                    Tmp = Deserialize<Channel>(this, e, m_Users);
+                                    Channel Tmp = CObjectFactory::Deserialize<CChannel>(this, e);
                                     
                                     Tmp->GuildID = guild->ID;
                                     guild->Channels->insert({Tmp->ID, Tmp});
@@ -598,8 +584,7 @@ namespace DiscordBot
 
                             case Adler32("CHANNEL_CREATE"):
                             {
-                                Channel Tmp;
-                                Tmp = Deserialize<Channel>(this, Pay.D, m_Users);
+                                Channel Tmp = CObjectFactory::Deserialize<CChannel>(this, Pay.D);
                                 
 
                                 auto IT = m_Guilds->find(Tmp->GuildID);
@@ -609,8 +594,7 @@ namespace DiscordBot
 
                             case Adler32("CHANNEL_UPDATE"):
                             {
-                                Channel Tmp;
-                                Tmp = Deserialize<Channel>(this, Pay.D, m_Users);
+                                Channel Tmp = CObjectFactory::Deserialize<CChannel>(this, Pay.D);
 
                                 auto IT = m_Guilds->find(Tmp->GuildID);
                                 if(IT != m_Guilds->end())
@@ -622,8 +606,7 @@ namespace DiscordBot
 
                             case Adler32("CHANNEL_DELETE"):
                             {
-                                Channel Tmp;
-                                Tmp = Deserialize<Channel>(this, Pay.D, m_Users);
+                                Channel Tmp = CObjectFactory::Deserialize<CChannel>(this, Pay.D);
 
                                 auto IT = m_Guilds->find(Tmp->GuildID);
                                 if(IT != m_Guilds->end())
@@ -730,7 +713,7 @@ namespace DiscordBot
                             case Adler32("PRESENCE_UPDATE"):
                             { 
                                 json.ParseObject(Pay.D);
-                                User user = m_Users | json.GetValue<std::string>("user");
+                                User user = GetUserOrAdd(json.GetValue<std::string>("user"));
 
                                 if(!json.GetValue<std::string>("game").empty())
                                 {
@@ -862,8 +845,7 @@ namespace DiscordBot
                             case Adler32("MESSAGE_UPDATE"):
                             case Adler32("MESSAGE_DELETE"):
                             {
-                                json.ParseObject(Pay.D);
-                                Message msg = CreateMessage(json);
+                                Message msg = CObjectFactory::Deserialize<CMessage>(this, Pay.D);
                                 
                                 std::shared_ptr<CGuildAdmin> Admin;
                                 auto AIT = m_Admins->find(msg->GuildRef->ID);
@@ -1248,7 +1230,7 @@ namespace DiscordBot
 
         //Gets the user which is associated with the member.
         if (!UserInfo.empty())
-            member = m_Users | UserInfo;
+            member = GetUserOrAdd(UserInfo);
 
         Ret->GuildID = guild->ID;
         Ret->UserRef = member;
@@ -1338,11 +1320,6 @@ namespace DiscordBot
         Ret->Supress = json.GetValue<bool>("suppress");
 
         return Ret;
-    }
-
-    Message CDiscordClient::CreateMessage(CJSON &json)
-    {
-
     }
 
     Activity CDiscordClient::CreateActivity(CJSON &json)

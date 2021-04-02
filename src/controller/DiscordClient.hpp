@@ -44,7 +44,6 @@
 #include "VoiceSocket.hpp"
 #include <models/atomic.hpp>
 #include "GuildAdmin.hpp"
-#include "../helpers/JSONHelpers.hpp"
 #include "../helpers/Factory/ObjectFactory.hpp"
 
 #undef SendMessage
@@ -253,6 +252,7 @@ namespace DiscordBot
              * @param Text: Text to send;
              * @param TTS: True to enable tts.
              */
+            [[deprecated("Will be remove in the next release. Please use CUser::CreateDM instead!")]]
             void SendMessage(User user, const std::string Text, Embed embed = nullptr, bool TTS = false) override;
 
             /**
@@ -363,12 +363,20 @@ namespace DiscordBot
             ix::HttpResponsePtr Patch(const std::string &URL, const std::string &Body, const std::string &ContentType = "application/json");
             ix::HttpResponsePtr Delete(const std::string &URL, const std::string &Body = "");
 
-            Message CreateMessage(CJSON &json);
-
             GuildMember GetMember(Guild guild, const std::string &UserID);
             User GetUserOrAdd(const std::string &js)
             {
-                return m_Users | js;
+                CJSON json;
+                json.ParseObject(js);
+
+                auto IT = m_Users->find(json.GetValue<std::string>("id"));
+                if(IT != m_Users->end())
+                    return IT->second;
+
+                auto Ret = CObjectFactory::Deserialize<CUser>(this, js);
+                m_Users->insert({Ret->ID.load(), Ret});
+
+                return Ret;
             }
         private:
             enum
@@ -381,8 +389,6 @@ namespace DiscordBot
 
             const char *BASE_URL = "https://discord.com/api";
             std::string USER_AGENT;
-
-            CObjectFactory m_ObjFactory;
 
             using VoiceSockets = std::map<std::string, VoiceSocket>;
             using AudioSources = std::map<std::string, AudioSource>;

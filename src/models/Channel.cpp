@@ -23,7 +23,7 @@
  */
 
 #include <JSON.hpp>
-#include "../helpers/JSONHelpers.hpp"
+#include "../helpers/Factory/ObjectFactory.hpp"
 #include "../helpers/MultipartFormData.hpp"
 
 #include <models/Channel.hpp>
@@ -46,7 +46,7 @@ namespace DiscordBot
         json.AddPair("tts", TTS);
 
         if(embed)
-            json.AddJSON("embed", embed | Serialize);
+            json.AddJSON("embed", CObjectFactory::Serialize(dynamic_cast<CDiscordClient*>(m_Client), embed));
 
         auto res = dynamic_cast<CDiscordClient*>(m_Client)->Post(tfm::format("/channels/%s/messages", ID), CMultipartFormData::CreateFormData(File, json.Serialize()), "multipart/form-data; boundary=libDiscordBot");
         llog << linfo << res->headers["X-RateLimit-Remaining"] << lendl;
@@ -54,10 +54,7 @@ namespace DiscordBot
         if (res->statusCode != 200)
             llog << lerror << "Failed to send message HTTP: " << res->statusCode << " MSG: " << res->errorMsg << " Body: " << res->body << lendl;
 
-        json.ParseObject(res->body);
-
-        //TODO: UGLY PLEASE REMOVE
-        return dynamic_cast<CDiscordClient*>(m_Client)->CreateMessage(json);
+        return CObjectFactory::Deserialize<CMessage>(dynamic_cast<CDiscordClient*>(m_Client), res->body);
     }
 
     Message CChannel::SendMessage(const std::string &Text, Embed embed, bool TTS)
@@ -70,15 +67,12 @@ namespace DiscordBot
         json.AddPair("tts", TTS);
 
         if(embed)
-            json.AddJSON("embed", embed | Serialize);
+            json.AddJSON("embed", CObjectFactory::Serialize(dynamic_cast<CDiscordClient*>(m_Client), embed));
 
         auto res = dynamic_cast<CDiscordClient*>(m_Client)->Post(tfm::format("/channels/%s/messages", ID), json.Serialize());
         if (res->statusCode != 200)
             llog << lerror << "Failed to send message HTTP: " << res->statusCode << " MSG: " << res->errorMsg << " Body: " << res->body << lendl;
 
-        json.ParseObject(res->body);
-
-        //TODO: UGLY PLEASE REMOVE
-        return dynamic_cast<CDiscordClient*>(m_Client)->CreateMessage(json);
+        return CObjectFactory::Deserialize<CMessage>(dynamic_cast<CDiscordClient*>(m_Client), res->body);
     }
 } // namespace DiscordBot

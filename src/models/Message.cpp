@@ -111,9 +111,7 @@ namespace DiscordBot
 
             for (auto &&u : arr)
             {
-                User tmp;
-                u >> tmp;
-
+                User tmp = dynamic_cast<CDiscordClient*>(m_Client)->GetUserOrAdd(u);
                 Ret.push_back(tmp);
             }
         }
@@ -131,7 +129,7 @@ namespace DiscordBot
         json.AddPair("tts", TTS);
 
         if(embed)
-            json.AddJSON("embed", embed | Serialize);
+            json.AddJSON("embed", CObjectFactory::Serialize(dynamic_cast<CDiscordClient*>(m_Client), embed));
 
         auto res = dynamic_cast<CDiscordClient*>(m_Client)->Patch(tfm::format("/channels/%s/messages/%s", ChannelRef->ID.load(), ID), json.Serialize());
         llog << linfo << res->headers["X-RateLimit-Remaining"] << lendl;

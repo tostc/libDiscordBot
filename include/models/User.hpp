@@ -60,10 +60,14 @@ namespace DiscordBot
         NITRO = 2
     };
 
+    class CChannel;
+    using Channel = std::shared_ptr<CChannel>;
+
+    class CDiscordClient;
     class CUser
     {
         public:
-            CUser(/* args */) : Bot(false), System(false), MFAEnabled(false), Verified(false) {}
+            CUser(CDiscordClient *client) : Bot(false), System(false), MFAEnabled(false), Verified(false), m_Client(client) {}
 
             atomic<std::string> ID;
             atomic<std::string> Username;
@@ -86,9 +90,12 @@ namespace DiscordBot
             OnlineState Web;
             atomic<std::vector<Activity>> Activities;
 
+            Channel CreateDM();
+
             ~CUser() {}
 
         private:
+            CDiscordClient *m_Client;
     };
 
     using User = std::shared_ptr<CUser>;

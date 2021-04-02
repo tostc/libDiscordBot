@@ -22,22 +22,39 @@
  * SOFTWARE.
  */
 
+#ifndef ROLEFACTORY_HPP
+#define ROLEFACTORY_HPP
+
+#include "ISerializeFactory.hpp"
+#include <models/Role.hpp>
 #include "../../controller/DiscordClient.hpp"
-#include "MessageFactory.hpp"
-#include "ObjectFactory.hpp"
-#include "ChannelFactory.hpp"
-#include "UserFactory.hpp"
-#include "RoleFactory.hpp"
-#include "EmbedFactory.hpp"
-#include <tuple>
 
 namespace DiscordBot
 {
-    std::map<std::type_index, CObjectFactory::Factory> CObjectFactory::m_Factories = {
-        {typeid(CMessage), CObjectFactory::CreateFactory<CMessageFactory>()},
-        {typeid(CChannel), CObjectFactory::CreateFactory<CChannelFactory>()},
-        {typeid(CUser), CObjectFactory::CreateFactory<CUserFactory>()},
-        {typeid(CRole), CObjectFactory::CreateFactory<CRoleFactory>()},
-        {typeid(CEmbed), CObjectFactory::CreateFactory<CEmbedFactory>()},
+    class CRoleFactory : public TSerializeFactory<CRole>
+    {
+        public:
+            CRoleFactory(CDiscordClient *client) : TSerializeFactory(client) {}
+
+            Role Deserialize(CJSON &json) override
+            {
+                Role ret = Role(new CRole());
+
+                ret->ID = json.GetValue<std::string>("id");
+                ret->Name = json.GetValue<std::string>("name");
+                ret->Color = json.GetValue<uint32_t>("color");
+                ret->Hoist = json.GetValue<bool>("hoist");
+                ret->Position = json.GetValue<int>("position");
+                ret->Permissions = (Permission)json.GetValue<uint32_t>("permissions");
+                ret->Managed = json.GetValue<bool>("managed");
+                ret->Mentionable = json.GetValue<bool>("mentionable");
+
+                return ret;
+            }
+
+            ~CRoleFactory() {}
     };
 } // namespace DiscordBot
+
+
+#endif //CROLEFACTORY_HPP

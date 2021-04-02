@@ -22,22 +22,40 @@
  * SOFTWARE.
  */
 
+#ifndef EMBEDFACTORY_HPP
+#define EMBEDFACTORY_HPP
+
+#include "ISerializeFactory.hpp"
+#include <models/Embed.hpp>
+
 #include "../../controller/DiscordClient.hpp"
-#include "MessageFactory.hpp"
-#include "ObjectFactory.hpp"
-#include "ChannelFactory.hpp"
-#include "UserFactory.hpp"
-#include "RoleFactory.hpp"
-#include "EmbedFactory.hpp"
-#include <tuple>
 
 namespace DiscordBot
 {
-    std::map<std::type_index, CObjectFactory::Factory> CObjectFactory::m_Factories = {
-        {typeid(CMessage), CObjectFactory::CreateFactory<CMessageFactory>()},
-        {typeid(CChannel), CObjectFactory::CreateFactory<CChannelFactory>()},
-        {typeid(CUser), CObjectFactory::CreateFactory<CUserFactory>()},
-        {typeid(CRole), CObjectFactory::CreateFactory<CRoleFactory>()},
-        {typeid(CEmbed), CObjectFactory::CreateFactory<CEmbedFactory>()},
+    class CEmbedFactory : public TSerializeFactory<CEmbed>
+    {
+        public:
+            CEmbedFactory(CDiscordClient *client) : TSerializeFactory(client) {}
+
+            std::string Serialize(Embed obj) override
+            {
+                CJSON js;
+
+                js.AddPair("title", obj->Title.load());
+                js.AddPair("description", obj->Description.load());
+
+                if(!obj->URL->empty())
+                    js.AddPair("url", obj->URL.load());
+
+                if(!obj->Type->empty())
+                    js.AddPair("type", obj->Type.load());
+
+                return js.Serialize();
+            }
+
+            ~CEmbedFactory() {}
     };
 } // namespace DiscordBot
+
+
+#endif //EMBEDFACTORY_HPP

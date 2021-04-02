@@ -25,7 +25,7 @@
 #ifndef OBJECTFACTORY_HPP
 #define OBJECTFACTORY_HPP
 
-#include <controller/Factory.hpp>
+#include <functional>
 #include "ISerializeFactory.hpp"
 #include <JSON.hpp>
 #include <string>
@@ -40,32 +40,40 @@ namespace DiscordBot
     class CObjectFactory
     {
         public:
-            CObjectFactory(CDiscordClient *client);
+            // CObjectFactory(CDiscordClient *client);
 
             template<class T>
-            std::string Serialize(std::shared_ptr<T> Obj)
+            static std::string Serialize(CDiscordClient *client, std::shared_ptr<T> Obj)
             {
                 auto IT = m_Factories.find(typeid(T));
-                return std::dynamic_pointer_cast<T>(IT->second->Create())->Serialize(Obj);
+                return std::dynamic_pointer_cast<TSerializeFactory<T>>(IT->second(client))->Serialize(Obj);
             }
 
             template<class T>
-            std::shared_ptr<T> Deserialize(const std::string &JS)
+            static std::shared_ptr<T> Deserialize(CDiscordClient *client, const std::string &JS)
             {
                 CJSON json;
                 json.ParseObject(JS);
 
                 auto IT = m_Factories.find(typeid(T));
-                return std::dynamic_pointer_cast<T>(IT->second->Create())->Deserialize(json);
+                return std::dynamic_pointer_cast<TSerializeFactory<T>>(IT->second(client))->Deserialize(json);
             }
 
-            ~CObjectFactory() = default;
+            // ~CObjectFactory() = default;
 
         private:
-            using Factory = std::shared_ptr<IFactory<ISerializeFactory>>;
+            using Factory = std::function<std::shared_ptr<ISerializeFactory>(CDiscordClient *client)>; //std::shared_ptr<IFactory<ISerializeFactory>>;
+            
+            template<class T>
+            static Factory CreateFactory()
+            {
+                return std::bind([](CDiscordClient *client) {
+                    return std::shared_ptr<T>(new T(client));
+                }, std::placeholders::_1);
+            }
 
-            CDiscordClient *m_Client;
-            std::map<std::type_index, Factory> m_Factories;
+            // CDiscordClient *m_Client;
+            static std::map<std::type_index, Factory> m_Factories;
     };
 } // namespace DiscordBot
 

@@ -22,22 +22,28 @@
  * SOFTWARE.
  */
 
-#include "../../controller/DiscordClient.hpp"
-#include "MessageFactory.hpp"
-#include "ObjectFactory.hpp"
-#include "ChannelFactory.hpp"
-#include "UserFactory.hpp"
-#include "RoleFactory.hpp"
-#include "EmbedFactory.hpp"
-#include <tuple>
+#include <Log.hpp>
+#include <JSON.hpp>
+#include <models/User.hpp>
+#include <models/Channel.hpp>
+#include "../controller/DiscordClient.hpp"
+#include "../helpers/Factory/ObjectFactory.hpp"
 
 namespace DiscordBot
 {
-    std::map<std::type_index, CObjectFactory::Factory> CObjectFactory::m_Factories = {
-        {typeid(CMessage), CObjectFactory::CreateFactory<CMessageFactory>()},
-        {typeid(CChannel), CObjectFactory::CreateFactory<CChannelFactory>()},
-        {typeid(CUser), CObjectFactory::CreateFactory<CUserFactory>()},
-        {typeid(CRole), CObjectFactory::CreateFactory<CRoleFactory>()},
-        {typeid(CEmbed), CObjectFactory::CreateFactory<CEmbedFactory>()},
-    };
+    Channel CUser::CreateDM()
+    {
+        CJSON json;
+        json.AddPair("recipient_id", ID.load());
+
+        auto res = dynamic_cast<CDiscordClient*>(m_Client)->Post("/users/@me/channels", json.Serialize());
+        if (res->statusCode != 200)
+            llog << lerror << "Failed to send message HTTP: " << res->statusCode << " MSG: " << res->errorMsg << lendl;
+        else
+        {
+            return CObjectFactory::Deserialize<CChannel>(m_Client, res->body);
+        }
+
+        return nullptr;
+    }
 } // namespace DiscordBot
