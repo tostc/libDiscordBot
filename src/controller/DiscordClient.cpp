@@ -586,7 +586,6 @@ namespace DiscordBot
                             {
                                 Channel Tmp = CObjectFactory::Deserialize<CChannel>(this, Pay.D);
                                 
-
                                 auto IT = m_Guilds->find(Tmp->GuildID);
                                 if(IT != m_Guilds->end())
                                     IT->second->Channels->insert({Tmp->ID, Tmp});
@@ -959,10 +958,6 @@ namespace DiscordBot
             if (!m_HeartACKReceived)
             {
                 m_Socket.stop();
-
-                // m_Users->clear();
-                // m_Guilds->clear();
-
                 m_VoiceSockets->clear();
 
                 if (m_Controller)
@@ -981,8 +976,6 @@ namespace DiscordBot
             int64_t Beg = GetTimeMillis();
             while (((GetTimeMillis() - Beg) < m_HeartbeatInterval) && !m_Terminate)
                 std::this_thread::sleep_for(std::chrono::milliseconds(1));
-
-            // std::this_thread::sleep_for(std::chrono::milliseconds(m_HeartbeatInterval));
         }
     }
 
