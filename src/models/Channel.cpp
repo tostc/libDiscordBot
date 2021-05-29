@@ -26,6 +26,8 @@
 #include "../helpers/Factory/ObjectFactory.hpp"
 #include "../helpers/MultipartFormData.hpp"
 
+#include <models/PermissionException.hpp>
+#include <models/DiscordException.hpp>
 #include <models/Channel.hpp>
 #include <models/Message.hpp>
 #include <IDiscordClient.hpp>
@@ -38,8 +40,7 @@ namespace DiscordBot
 {
     Message CChannel::SendMessage(CFile &File, const std::string &Text, Embed embed, bool TTS)
     {
-        if(Type != ChannelTypes::GUILD_TEXT && Type != ChannelTypes::DM)
-            return nullptr;
+        BasicSendMessageCheck(TTS);
 
         CJSON json;
         json.AddPair("content", Text);
@@ -52,15 +53,14 @@ namespace DiscordBot
         llog << linfo << res->headers["X-RateLimit-Remaining"] << lendl;
         
         if (res->statusCode != 200)
-            llog << lerror << "Failed to send message HTTP: " << res->statusCode << " MSG: " << res->errorMsg << " Body: " << res->body << lendl;
+            throw CDiscordClientException("Failed to send message. Error: " + res->body + " HTTP Code: " + std::to_string(res->statusCode));
 
         return CObjectFactory::Deserialize<CMessage>(dynamic_cast<CDiscordClient*>(m_Client), res->body);
     }
 
     Message CChannel::SendMessage(const std::string &Text, Embed embed, bool TTS)
     {
-        if(Type != ChannelTypes::GUILD_TEXT && Type != ChannelTypes::DM)
-            return nullptr;
+        BasicSendMessageCheck(TTS);
 
         CJSON json;
         json.AddPair("content", Text);
@@ -71,8 +71,86 @@ namespace DiscordBot
 
         auto res = dynamic_cast<CDiscordClient*>(m_Client)->Post(tfm::format("/channels/%s/messages", ID), json.Serialize());
         if (res->statusCode != 200)
-            llog << lerror << "Failed to send message HTTP: " << res->statusCode << " MSG: " << res->errorMsg << " Body: " << res->body << lendl;
+            throw CDiscordClientException("Failed to send message. Error: " + res->body + " HTTP Code: " + std::to_string(res->statusCode));
 
         return CObjectFactory::Deserialize<CMessage>(dynamic_cast<CDiscordClient*>(m_Client), res->body);
+    }
+
+    void CChannel::Modify(const CModifyChannel &Modifications)
+    {
+        ManageChannelsCheck();
+        CJSON js;
+
+        auto values = Modifications.GetValues();
+        bool HasOverwrites = Modifications.HasOverwrites();
+
+        if(values.empty() && !HasOverwrites)    //Nothing to do here.
+            return;
+
+        for (auto &&e : values)
+        {
+            size_t Adler = Adler32(e.first.c_str());
+            if(Adler == Adler32("name") ||
+               Adler == Adler32("topic") ||
+               Adler == Adler32("parent_id"))
+                js.AddPair(e.first, e.second);
+            else
+                js.AddJSON(e.first, e.second);
+        }
+        
+        if(HasOverwrites)
+        {
+            std::vector<std::string> OWJS;
+            auto overwrites = Modifications.GetOverwrites();
+            for (auto &&e : overwrites)
+            {
+                CJSON tmp;
+                tmp.AddPair("id", e->ID.load());
+                tmp.AddPair("type", e->Type.load());
+                tmp.AddPair("allow", std::to_string((int)e->Allow));
+                tmp.AddPair("deny", std::to_string((int)e->Deny));
+
+                OWJS.push_back(tmp.Serialize());
+            } 
+
+            CJSON tmp;
+            js.AddJSON("permission_overwrites", tmp.Serialize(OWJS));
+        }
+
+        auto res = dynamic_cast<CDiscordClient*>(m_Client)->Patch(tfm::format("/channels/%s", ID), js.Serialize());
+        if(res->statusCode != 200)
+            throw CDiscordClientException("Can't modify channel. Error: " + res->body + " HTTP Code: " + std::to_string(res->statusCode));
+    }
+
+    void CChannel::Delete(const std::string &Reason)
+    {
+        ManageChannelsCheck();
+
+        CJSON js;
+        js.AddPair("reason", Reason);
+
+        auto res = dynamic_cast<CDiscordClient*>(m_Client)->Delete(tfm::format("/channels/%s", ID), js.Serialize());
+        if (res->statusCode != 200)
+            throw CDiscordClientException("Can't delete channel. Error: " + res->body + " HTTP Code: " + std::to_string(res->statusCode));
+    }
+
+    void CChannel::BasicSendMessageCheck(bool NeedTTS)
+    {
+        if(Type != ChannelTypes::GUILD_TEXT && Type != ChannelTypes::DM)
+            throw CDiscordClientException("Channel is not a text channel!");
+
+        Guild guild = dynamic_cast<CDiscordClient*>(m_Client)->GetGuild(GuildID);
+        if(!dynamic_cast<CDiscordClient*>(m_Client)->CheckPermissions(guild, Permission::SEND_MESSAGES, Overwrites.load()))
+            throw CPermissionException("Missing permission: 'SEND_MESSAGES'");
+
+        if(NeedTTS && !dynamic_cast<CDiscordClient*>(m_Client)->CheckPermissions(guild, Permission::SEND_TTS_MESSAGES, Overwrites.load()))
+            throw CPermissionException("Missing permission: 'SEND_TTS_MESSAGES'");
+    }
+
+    void CChannel::ManageChannelsCheck()
+    {
+        Guild guild = dynamic_cast<CDiscordClient*>(m_Client)->GetGuild(GuildID);
+        if(!dynamic_cast<CDiscordClient*>(m_Client)->CheckPermissions(guild, Permission::MANAGE_CHANNELS, Overwrites.load()))
+            throw CPermissionException("Missing permission: 'MANAGE_CHANNELS'");
     }
 } // namespace DiscordBot

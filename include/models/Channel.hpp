@@ -98,6 +98,11 @@ namespace DiscordBot
              * @param Text: Text to send;
              * @param TTS: True to enable tts.
              * 
+             * @note Needs the 'SEND_MESSAGE' permission to send messages. For TTS you need also 'SEND_TTS_MESSAGES'
+             * 
+             * @throw CPermissionException On missing permissions.
+             * @throw CDiscordClientException If the current channel is not a text channel.
+             * 
              * @return Returns a message object.
              */
             Message SendMessage(CFile &File, const std::string &Text, Embed embed = nullptr, bool TTS = false);
@@ -107,12 +112,50 @@ namespace DiscordBot
              * 
              * @param Text: Text to send;
              * @param TTS: True to enable tts.
+             * 
+             * @note Needs the 'SEND_MESSAGE' permission to send messages. For TTS you need also 'SEND_TTS_MESSAGES'
+             * 
+             * @throw CPermissionException On missing permissions.
+             * @throw CDiscordClientException If the current channel is not a text channel.
+             * 
+             * @return Returns a message object.
              */
             Message SendMessage(const std::string &Text, Embed embed = nullptr, bool TTS = false);
 
-            ~CChannel() {}
+            /**
+             * @brief Modifies this channel.
+             * 
+             * @note The bot needs following permission `MANAGE_CHANNELS`
+             * 
+             * @throw CPermissionException On missing permissions.
+             * @throw CDiscordClientException On error.
+             */
+            void Modify(const CModifyChannel &Modifications);
 
+            /**
+             * @brief Deletes this channel. This can't be undone.
+             * 
+             * @param Reason: Reason why the bot delete this channel.
+             * 
+             * @note The bot needs following permission `MANAGE_CHANNELS`
+             * 
+             * @throw CPermissionException On missing permissions.
+             * @throw CDiscordClientException On error.
+             */
+            void Delete(const std::string &Reason);
+
+            ~CChannel() {}
         private:
+            /**
+             * @brief Checks if the current channel is a text channel. Also checks if the bot has permissions to send messages.
+             */
+            void BasicSendMessageCheck(bool NeedTTS);
+
+            /**
+             * @brief Checks if the bot can manage channels.
+             */
+            void ManageChannelsCheck();
+
             IDiscordClient *m_Client;
     };
 

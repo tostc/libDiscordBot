@@ -26,6 +26,7 @@
 #include <iostream>
 #include <sodium.h>
 #include <models/DiscordException.hpp>
+#include <models/Role.hpp>
 #include "../helpers/Helper.hpp"
 #include "../helpers/MultipartFormData.hpp"
 
@@ -155,7 +156,14 @@ namespace DiscordBot
 
     void CDiscordClient::SendMessage(Channel channel, const std::string Text, Embed embed, bool TTS)
     {
-        channel->SendMessage(Text, embed, TTS);
+        try
+        {
+            channel->SendMessage(Text, embed, TTS);
+        }
+        catch(const std::exception& e)
+        {
+            llog << lerror << "Catched thrown error: " << e.what() << lendl;
+        }
     }
 
     void CDiscordClient::SendMessage(User user, const std::string Text, Embed embed, bool TTS)
@@ -1032,6 +1040,30 @@ namespace DiscordBot
             if(IT != m_Guilds->end())
                 m_Controller->OnEndSpeaking(IT->second);
         }
+    }
+
+    bool CDiscordClient::CheckPermissions(Guild guild, Permission Needed, std::vector<PermissionOverwrites> Overwrites)
+    {
+        GuildMember Member = GetMember(guild, m_BotUser->ID.load());
+
+        bool HasPermission = false;
+        for (auto it = Member->Roles->begin(); it < Member->Roles->end(); it++)
+        {
+            Permission Perm = it->get()->Permissions;
+            for (auto &&p : Overwrites)
+            {
+                Perm &= ~p->Deny;
+                Perm |= p->Allow;
+            }            
+
+            if((Perm & Needed) == Needed)
+            {
+                HasPermission = true;
+                break;
+            }
+        }
+
+        return HasPermission;
     }
 
     ix::HttpResponsePtr CDiscordClient::Get(const std::string &URL)

@@ -25,6 +25,7 @@
 #include "GuildAdmin.hpp"
 #include "DiscordClient.hpp"
 #include <models/DiscordException.hpp>
+#include <models/PermissionException.hpp>
 #include <vector>
 #include "../helpers/Helper.hpp"
 
@@ -32,136 +33,78 @@ namespace DiscordBot
 {
     void CGuildAdmin::ModifyMember(const CModifyMember &mod)
     {
-        static const std::map<size_t, std::pair<Permission, std::string>> MOD_PERMS = {
-            {Adler32("nick"), {Permission::MANAGE_NICKNAMES, "MANAGE_NICKNAMES"}},
-            {Adler32("roles"), {Permission::MANAGE_ROLES, "MANAGE_ROLES"}},
-            {Adler32("deaf"), {Permission::DEAFEN_MEMBERS, "DEAFEN_MEMBERS"}},
-            {Adler32("mute"), {Permission::MUTE_MEMBERS, "MUTE_MEMBERS"}},
-            {Adler32("channel_id"), {Permission::MOVE_MEMBERS, "MOVE_MEMBERS"}}
-        };
-
-        if(!mod.GetUserRef())
-            throw CDiscordClientException("Error: A null user can't be modified", DiscordClientErrorType::MISSING_USER_REF);
-
-        auto values = mod.GetValues();
-        bool HasRoles = mod.HasRoles();
-
-        if(values.empty() && !HasRoles)    //Nothing to do here.
-            return;
-
-        GuildMember member = m_Client->GetMember(m_Guild, mod.GetUserRef()->ID);
-        GuildMember Bot;
-
-        CJSON js;
-
-        for (auto &&e : values)
+        try
         {
-            size_t Adler = Adler32(e.first.c_str());
-
-            auto Perm = MOD_PERMS.at(Adler);
-            Bot = CheckBotPermissions(Perm.first, "Missing right to modify user: '" + Perm.second + "'");
-
-            if(Adler == Adler32("nick") && mod.GetUserRef()->ID == Bot->UserRef->ID)
-            {
-                CJSON tmp;
-                tmp.AddPair(e.first, e.second);
-
-                CheckBotPermissions(Permission::CHANGE_NICKNAME, "Missing right to modify user: 'CHANGE_NICKNAME'");
-                RenameSelf(tmp.Serialize());    
-
-                continue;
-            }
-
-            if(Adler == Adler32("nick") || (Adler == Adler32("channel_id") && e.second != "null"))
-                js.AddPair(e.first, e.second);
-            else
-                js.AddJSON(e.first, e.second);
+            auto Member = m_Client->GetMember(m_Guild, mod.GetUserRef()->ID);
+            Member->Modify(mod);
         }
-
-        if(HasRoles)
+        catch(const CPermissionException& e)
         {
-            auto Perm = MOD_PERMS.at(Adler32("roles"));
-            Bot = CheckBotPermissions(Perm.first, "Missing right to modify user: '" + Perm.second + "'");
-
-            std::vector<std::string> IDs;
-            auto Roles = mod.GetRoles();
-            
-            for (auto &&e : Roles)
-                IDs.push_back(e->ID);
-
-            js.AddPair("roles", IDs);         
+            throw CDiscordClientException(e.what(), DiscordClientErrorType::MISSING_PERMISSION);
         }
         
-        //Modification is already done.
-        if(values.size() == 1 && values.find("nick") != values.end() && mod.GetUserRef()->ID == Bot->UserRef->ID)
-            return;
-
-        auto res = m_Client->Patch("/guilds/" + m_Guild->ID + "/members/" + mod.GetUserRef()->ID, js.Serialize());
-        if(res->statusCode != 204)
-            throw CDiscordClientException("Error during member modification. Error: " + res->body + " HTTP Code: " + std::to_string(res->statusCode), DiscordClientErrorType::HTTP_ERROR);
     }
 
     void CGuildAdmin::BanMember(User member, const std::string &Reason, int DeleteMsgDays)
     {
-        CheckBotPermissions(Permission::BAN_MEMBERS, "Missing right to ban users: 'BAN_MEMBERS'");
-        CJSON js;
-        if(!Reason.empty())
-            js.AddPair("reason", Reason);
-
-        if(DeleteMsgDays != -1)
-            js.AddPair("delete_message_days", DeleteMsgDays);
-
-        auto res = m_Client->Put("/guilds/" + m_Guild->ID + "/bans/" + member->ID, js.Serialize());
-        if(res->statusCode != 204)
-            throw CDiscordClientException("Can't ban user. Error: " + res->body + " HTTP Code: " + std::to_string(res->statusCode), DiscordClientErrorType::HTTP_ERROR);
+        try
+        {
+            auto Member = m_Client->GetMember(m_Guild, member->ID);
+            m_Guild->Ban(Member);
+        }
+        catch(const CPermissionException& e)
+        {
+            throw CDiscordClientException("Missing right to ban members: 'BAN_MEMBERS'", DiscordClientErrorType::MISSING_PERMISSION);
+        }
     }
 
     void CGuildAdmin::UnbanMember(User user)    
     {
-        CheckBotPermissions(Permission::BAN_MEMBERS, "Missing right to unban users: 'BAN_MEMBERS'");
-        auto res = m_Client->Delete("/guilds/" + m_Guild->ID + "/bans/" + user->ID);
-        if(res->statusCode != 204)
-            throw CDiscordClientException("Can't unban user. Error: " + res->body + " HTTP Code: " + std::to_string(res->statusCode), DiscordClientErrorType::HTTP_ERROR);
+        try
+        {
+            m_Guild->Unban(user);
+        }
+        catch(const std::exception& e)
+        {
+            throw CDiscordClientException("Missing right to unban users: 'BAN_MEMBERS'", DiscordClientErrorType::MISSING_PERMISSION);
+        }
     }
 
     std::vector<std::pair<std::string, User>> CGuildAdmin::GetGuildBans()    
     {
-        std::vector<std::pair<std::string, User>> ret;
-
-        CheckBotPermissions(Permission::BAN_MEMBERS, "Missing right to see the ban list: 'BAN_MEMBERS'");
-        auto res = m_Client->Get("/guilds/" + m_Guild->ID + "/bans");
-
-        if(res->statusCode != 200)
-            throw CDiscordClientException("Unable to get ban list. Error: " + res->body + " HTTP Code: " + std::to_string(res->statusCode), DiscordClientErrorType::HTTP_ERROR);
-
-        CJSON js;
-        auto list = js.Deserialize<std::vector<std::string>>(res->body);
-
-        for (auto e : list)
+        try
         {
-            js.ParseObject(e);
-
-            User user = m_Client->GetUserOrAdd(js.GetValue<std::string>("user"));
-            ret.push_back({js.GetValue<std::string>("reason"), user});
+            return m_Guild->GetBanList();
         }
-
-        return ret;        
+        catch(const std::exception& e)
+        {
+            throw CDiscordClientException("Missing right to see ban list: 'BAN_MEMBERS'", DiscordClientErrorType::MISSING_PERMISSION);
+        }    
     }
 
     void CGuildAdmin::KickMember(User member)    
     {
-        CheckBotPermissions(Permission::KICK_MEMBERS, "Missing right to kick a user: 'KICK_MEMBERS'");
-        auto res = m_Client->Delete("/guilds/" + m_Guild->ID + "/members/" + member->ID);
-        if(res->statusCode != 204)
-            throw CDiscordClientException("Can't kick user. Error: " + res->body + " HTTP Code: " + std::to_string(res->statusCode), DiscordClientErrorType::HTTP_ERROR);
+        try
+        {
+            auto Member = m_Client->GetMember(m_Guild, member->ID);
+            m_Guild->Kick(Member);
+        }
+        catch(const std::exception& e)
+        {
+            throw CDiscordClientException("Missing right to kick a user: 'KICK_MEMBERS'", DiscordClientErrorType::MISSING_PERMISSION);
+        }    
     }
 
     void CGuildAdmin::CreateChannel(const CModifyChannel &channel)
     {
-        std::string js = ModifyChannelToJS(channel);
-        auto res = m_Client->Post("/guilds/" + m_Guild->ID + "/channels", js);
-        if(res->statusCode != 201)
-            throw CDiscordClientException("Can't create channel. Error: " + res->body + " HTTP Code: " + std::to_string(res->statusCode), DiscordClientErrorType::HTTP_ERROR);
+        try
+        {
+            m_Guild->CreateChannel(channel);
+        }
+        catch(const CPermissionException& e)
+        {
+            throw CDiscordClientException("Missing right to manage channels: 'MANAGE_CHANNELS'", DiscordClientErrorType::MISSING_PERMISSION);
+        }
     }
 
     void CGuildAdmin::ModifyChannel(const CModifyChannel &channel)
@@ -169,25 +112,29 @@ namespace DiscordBot
         if(!channel.GetChannelRef())
             return;
 
-        std::string js = ModifyChannelToJS(channel);
-
-        auto res = m_Client->Patch("/channels/" + channel.GetChannelRef()->ID, js);
-        if(res->statusCode != 200)
-            throw CDiscordClientException("Can't modify channel. Error: " + res->body + " HTTP Code: " + std::to_string(res->statusCode), DiscordClientErrorType::HTTP_ERROR);
+        try
+        {
+            channel.GetChannelRef()->Modify(channel);
+        }
+        catch(const CPermissionException& e)
+        {
+            throw CDiscordClientException("Missing right to manage channels: 'MANAGE_CHANNELS'", DiscordClientErrorType::MISSING_PERMISSION);
+        }
     }
 
     void CGuildAdmin::DeleteChannel(Channel channel, const std::string &reason)
     {
-        CheckBotPermissions(Permission::MANAGE_CHANNELS, "Missing right to manage channels: 'MANAGE_CHANNELS'");
         if(!channel)
             return;
 
-        CJSON js;
-        js.AddPair("reason", reason);
-
-        auto res = m_Client->Delete("/channels/" + channel->ID, js.Serialize());
-        if(res->statusCode != 200)
-            throw CDiscordClientException("Can't delete channel. Error: " + res->body + " HTTP Code: " + std::to_string(res->statusCode), DiscordClientErrorType::HTTP_ERROR);
+        try
+        {
+            channel->Delete(reason);
+        }
+        catch(const CPermissionException& e)
+        {
+            throw CDiscordClientException("Missing right to manage channels: 'MANAGE_CHANNELS'", DiscordClientErrorType::MISSING_PERMISSION);
+        }
     }
 
     void CGuildAdmin::AddChannelAction(Channel channel, Action action)
@@ -279,82 +226,4 @@ namespace DiscordBot
             }
         }
     }
-
-    //--------------------------Private--------------------------//
-
-    GuildMember CGuildAdmin::CheckBotPermissions(Permission p, const std::string &errMsg)
-    {
-        auto bot = m_Client->GetBotMember(m_Guild);
-        if(!HasPermission(bot, p))
-            throw CDiscordClientException(errMsg, DiscordClientErrorType::MISSING_PERMISSION);
-
-        return bot;
-    }
-
-    bool CGuildAdmin::HasPermission(GuildMember member, Permission perm)
-    {
-        bool ret = false;
-        for (auto e : member->Roles.load())
-        {
-            if((e->Permissions & perm) == perm)
-            {
-                ret = true;
-                break;
-            }
-        }
-        
-        return ret;
-    }
-
-    void CGuildAdmin::RenameSelf(const std::string &js)
-    {
-        auto res = m_Client->Patch("/guilds/" + m_Guild->ID + "/members/@me/nick", js);
-        if(res->statusCode != 200)
-            throw CDiscordClientException("Error during member modification. Error: " + res->body + " HTTP Code: " + std::to_string(res->statusCode), DiscordClientErrorType::HTTP_ERROR);
-    }
-
-    std::string CGuildAdmin::ModifyChannelToJS(const CModifyChannel &channel)
-    {
-        CheckBotPermissions(Permission::MANAGE_CHANNELS, "Missing right to manage channels: 'MANAGE_CHANNELS'");
-        CJSON js;
-
-        auto values = channel.GetValues();
-        bool HasOverwrites = channel.HasOverwrites();
-
-        if(values.empty() && !HasOverwrites)    //Nothing to do here.
-            return "";
-
-        for (auto &&e : values)
-        {
-            size_t Adler = Adler32(e.first.c_str());
-            if(Adler == Adler32("name") ||
-               Adler == Adler32("topic") ||
-               Adler == Adler32("parent_id"))
-                js.AddPair(e.first, e.second);
-            else
-                js.AddJSON(e.first, e.second);
-        }
-        
-        if(HasOverwrites)
-        {
-            std::vector<std::string> OWJS;
-            auto overwrites = channel.GetOverwrites();
-            for (auto &&e : overwrites)
-            {
-                CJSON tmp;
-                tmp.AddPair("id", e->ID.load());
-                tmp.AddPair("type", e->Type.load());
-                tmp.AddPair("allow", std::to_string((int)e->Allow));
-                tmp.AddPair("deny", std::to_string((int)e->Deny));
-
-                OWJS.push_back(tmp.Serialize());
-            } 
-
-            CJSON tmp;
-            js.AddJSON("permission_overwrites", tmp.Serialize(OWJS));
-        }
-
-        return js.Serialize();
-    }
-    
 } // namespace DiscordBot

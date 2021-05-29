@@ -53,6 +53,7 @@ namespace DiscordBot
              * 
              * @throw CDiscordClientException on error.
              */
+            [[deprecated("Will be remove in the next release. Please use CGuildMember::Modify instead!")]]
             virtual void ModifyMember(const CModifyMember &mod) = 0;
 
             /**
@@ -66,6 +67,7 @@ namespace DiscordBot
              * 
              * @throw CDiscordClientException on error.
              */
+            [[deprecated("Will be remove in the next release. Please use CGuild::Ban instead!")]]
             virtual void BanMember(User member, const std::string &Reason = "", int DeleteMsgDays = -1) = 0;
 
             /**
@@ -78,6 +80,7 @@ namespace DiscordBot
              * 
              * @throw CDiscordClientException on error.
              */
+            [[deprecated("Will be remove in the next release. Please use CGuild::Unban instead!")]]
             virtual void UnbanMember(User user) = 0;
             
             /**
@@ -85,6 +88,7 @@ namespace DiscordBot
              * 
              * @return Returns a list of banned users of a guild. (ret.first = reason, ret.second = user)
              */
+            [[deprecated("Will be remove in the next release. Please use CGuild::GetGuildBans instead!")]]
             virtual std::vector<std::pair<std::string, User>> GetGuildBans() = 0;
 
             /**
@@ -94,6 +98,7 @@ namespace DiscordBot
              * 
              * @attention The bot needs following permission `KICK_MEMBERS`
              */
+            [[deprecated("Will be remove in the next release. Please use CGuild::Kick instead!")]]
             virtual void KickMember(User member) = 0;
 
             /**
@@ -105,6 +110,7 @@ namespace DiscordBot
              * 
              * @throw CDiscordClientException on error.
              */
+            [[deprecated("Will be remove in the next release. Please use CGuild::CreateChannel instead!")]]
             virtual void CreateChannel(const CModifyChannel &channel) = 0;
 
             /**
@@ -116,6 +122,7 @@ namespace DiscordBot
              * 
              * @throw CDiscordClientException on error.
              */
+            [[deprecated("Will be remove in the next release. Please use CChannel::Modify instead!")]]
             virtual void ModifyChannel(const CModifyChannel &channel) = 0;
 
             /**
@@ -128,6 +135,7 @@ namespace DiscordBot
              * 
              * @throw CDiscordClientException on error.
              */
+            [[deprecated("Will be remove in the next release. Please use CChannel::Delete instead!")]]
             virtual void DeleteChannel(Channel channel, const std::string &reason) = 0;
 
             /**

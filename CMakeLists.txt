@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.3.0)
-project(discordbot VERSION 2.2.3 LANGUAGES CXX)
+project(discordbot VERSION 2.2.4 LANGUAGES CXX)
 
 #----------------------------Setup any needed variable and include any needed module.----------------------------#
 
@@ -8,7 +8,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 include(${CMAKE_ROOT}/Modules/ExternalProject.cmake)
 
-set(VERSION_SUFFIX "-beta")
+set(VERSION_SUFFIX "-beta-dev")
 
 set(PROJECT_LIBRARY_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR})
 set(PROJECT_ARCHIVE_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR})

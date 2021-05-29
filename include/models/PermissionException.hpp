@@ -1,7 +1,7 @@
 /*
  * MIT License
  *
- * Copyright (c) 2020 Christian Tost
+ * Copyright (c) 2021 Christian Tost
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -22,45 +22,28 @@
  * SOFTWARE.
  */
 
-#ifndef DISCORDEXCEPTION_HPP
-#define DISCORDEXCEPTION_HPP
+#ifndef PERMISSIONEXCEPTION_HPP
+#define PERMISSIONEXCEPTION_HPP
 
-#include <string.h>
 #include <stdexcept>
+#include <string>
 
-namespace DiscordBot 
-{
-    enum class DiscordClientErrorType
-    {
-        MISSING_PERMISSION,     //!< Throws if your bot doesn't have the permission to execute an action inside a guild.
-        HTTP_ERROR,             //!< There was an error with the request.
-        PARAMETER_IS_NULL,      //!< Throws if a required parameter is a nullptr.
-        MISSING_USER_REF,       //!< Throws if a user reference is null.
-        ACTION_ALREADY_REG,     //!< Throws if the given action is already registered.
-    };
-
-    class CDiscordClientException : public std::exception
+namespace DiscordBot
+{    
+    class CPermissionException : public std::exception
     {
         public:
-            CDiscordClientException() {}
-            CDiscordClientException(DiscordClientErrorType Type) : m_ErrType(Type) {}
-            CDiscordClientException(const std::string &Msg, DiscordClientErrorType Type) : m_Msg(Msg), m_ErrType(Type) {}
-            CDiscordClientException(const std::string &Msg) : m_Msg(Msg) {}
-
+            CPermissionException() {}
+            CPermissionException(const std::string &Msg) : m_Msg(Msg) {}
+    
             const char *what() const noexcept override
             {
                 return m_Msg.c_str();
             }
-
-            DiscordClientErrorType ErrType() const noexcept
-            {
-                return m_ErrType;
-            }
-
+        
         private:
             std::string m_Msg;
-            DiscordClientErrorType m_ErrType;
     };
-}
+} // namespace DiscordBot
 
-#endif //DISCORDEXCEPTION_HPP
+#endif //PERMISSIONEXCEPTION_HPP

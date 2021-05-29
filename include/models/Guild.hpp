@@ -33,13 +33,18 @@
 #include <models/GuildMember.hpp>
 #include <models/Role.hpp>
 #include <models/atomic.hpp>
+#include <models/ModifyChannel.hpp>
 
 namespace DiscordBot
 {
+    class IDiscordClient;
+
     class CGuild
     {
         public:
-            CGuild(/* args */) {}
+            using BanList = std::vector<std::pair<std::string, User>>;
+
+            CGuild(IDiscordClient *Client) : m_Client(Client) {}
 
             atomic<std::string> ID;
             atomic<std::string> Name;
@@ -51,9 +56,74 @@ namespace DiscordBot
             atomic<std::map<std::string, Channel>> Channels; 
             atomic<std::map<std::string, Role>> Roles;
 
+            /**
+             * @brief Creates a new channel on the server.
+             * 
+             * @param ChannelInfo: Channel informations.
+             * 
+             * @note The bot needs following permission `MANAGE_CHANNELS`
+             * 
+             * @throw CPermissionException On missing permissions.
+             * @throw CDiscordClientException On error.
+             */
+            Channel CreateChannel(const CModifyChannel &ChannelInfo);
+
+            /**
+             * @brief Bans a member from the guild.
+             * 
+             * @param Member: Member to ban.
+             * @param Reason: Ban reason.
+             * @param DeleteMsgDays: Deletes all messages of the banned user. (0 - 7 are valid values. -1 ignores the value.)
+             * 
+             * @note The bot needs following permission `BAN_MEMBERS`
+             * 
+             * @throw CPermissionException On missing permissions.
+             * @throw CDiscordClientException On error.
+             */
+            void Ban(GuildMember Member, const std::string &Reason = "", int DeleteMsgDays = -1);
+
+            /**
+             * @brief Unbans a user.
+             * 
+             * @param user: User which is banned.
+             * 
+             * @note The bot needs following permission `BAN_MEMBERS`
+             * 
+             * @throw CPermissionException On missing permissions.
+             * @throw CDiscordClientException On error.
+             */
+            void Unban(User user);
+
+            /**
+             * @brief Kicks a member from the guild.
+             * 
+             * @param Member: Member to kick.
+             * 
+             * @note The bot needs following permission `KICK_MEMBERS`
+             * 
+             * @throw CPermissionException On missing permissions.
+             * @throw CDiscordClientException On error.
+             */
+            void Kick(GuildMember Member);
+
+            /**
+             * @note The bot needs following permission `BAN_MEMBERS`
+             *
+             * @throw CPermissionException On missing permissions.
+             * @throw CDiscordClientException On error.
+             *  
+             * @return Returns a list of banned users of a guild. (ret.first = reason, ret.second = user)
+             */
+            BanList GetBanList(); 
+
             ~CGuild() {}
         private:
-            /* data */
+            /**
+             * @brief Checks if the bot can ban users.
+             */
+            void BanMembersCheck();
+
+            IDiscordClient *m_Client;
     };
 
     using Guild = std::shared_ptr<CGuild>;

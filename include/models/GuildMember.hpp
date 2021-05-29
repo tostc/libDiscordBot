@@ -32,13 +32,16 @@
 #include <models/Role.hpp>
 #include <atomic>
 #include <models/atomic.hpp>
+#include <models/ModifyMember.hpp>
 
 namespace DiscordBot
 {
+    class IDiscordClient;
+
     class CGuildMember
     {
         public:
-            CGuildMember(/* args */) : Deaf(false), Mute(false) {}
+            CGuildMember(IDiscordClient *Client) : m_Client(Client), Deaf(false), Mute(false) {}
 
             atomic<std::string> GuildID;
             User UserRef;
@@ -51,9 +54,21 @@ namespace DiscordBot
 
             VoiceState State;
 
+            /**
+             * @brief Modifies a this member.
+             * 
+             * @param Modifications: Modification object.
+             * 
+             * @note The bot needs some permissions which you can find inside the ::CModifyMember class.
+             * 
+             * @throw CPermissionException On missing permissions.
+             * @throw CDiscordClientException On error.
+             */
+            void Modify(const CModifyMember &Modifications);
+
             ~CGuildMember() {}
         private:
-            /* data */
+            IDiscordClient *m_Client;
     };
 
     using GuildMember = std::shared_ptr<CGuildMember>;

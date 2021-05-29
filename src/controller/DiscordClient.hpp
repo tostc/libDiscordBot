@@ -356,6 +356,12 @@ namespace DiscordBot
 
             ~CDiscordClient() {}
 
+            // Internal APIs
+
+            /**
+             * @brief Checks the bots permissions.
+             */
+            bool CheckPermissions(Guild guild, Permission Needed, std::vector<PermissionOverwrites> Overwrites = std::vector<PermissionOverwrites>());
 
             ix::HttpResponsePtr Get(const std::string &URL);
             ix::HttpResponsePtr Post(const std::string &URL, const std::string &Body, const std::string &ContentType = "application/json");

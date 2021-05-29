@@ -74,13 +74,28 @@ namespace DiscordBot
 
     inline Permission operator| (Permission lhs, Permission rhs)  
     {
-        return static_cast<Permission>(static_cast<unsigned>(lhs) |static_cast<unsigned>(rhs));
+        return static_cast<Permission>(static_cast<unsigned>(lhs) | static_cast<unsigned>(rhs));
     }  
 
     inline Permission operator& (Permission lhs, Permission rhs)  
     {
         return static_cast<Permission>(static_cast<unsigned>(lhs) & static_cast<unsigned>(rhs));
+    }
+
+    inline Permission& operator|= (Permission &lhs, Permission rhs)  
+    {
+        return lhs = static_cast<Permission>(static_cast<unsigned>(lhs) | static_cast<unsigned>(rhs));
     }  
+
+    inline Permission& operator&= (Permission &lhs, Permission rhs)  
+    {
+        return lhs = static_cast<Permission>(static_cast<unsigned>(lhs) & static_cast<unsigned>(rhs));
+    }
+
+    inline Permission operator~ (const Permission p)  
+    {
+        return static_cast<Permission>(~static_cast<unsigned>(p));
+    }    
 
     class CRole
     {
