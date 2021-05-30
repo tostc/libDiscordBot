@@ -37,11 +37,10 @@ namespace DiscordBot
 {
     class CDiscordClient;
 
+    /*!< Unique interface to serialize an deserialize Discord objects */
     class CObjectFactory
     {
         public:
-            // CObjectFactory(CDiscordClient *client);
-
             template<class T>
             static std::string Serialize(CDiscordClient *client, std::shared_ptr<T> Obj)
             {
@@ -58,8 +57,6 @@ namespace DiscordBot
                 auto IT = m_Factories.find(typeid(T));
                 return std::dynamic_pointer_cast<TSerializeFactory<T>>(IT->second(client))->Deserialize(json);
             }
-
-            // ~CObjectFactory() = default;
 
         private:
             using Factory = std::function<std::shared_ptr<ISerializeFactory>(CDiscordClient *client)>; //std::shared_ptr<IFactory<ISerializeFactory>>;

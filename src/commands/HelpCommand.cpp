@@ -46,6 +46,6 @@ namespace DiscordBot
             Dialog += std::string(Buf, Buf + Size) + '\n';
         }
 
-        m_Client->SendMessage(ctx->Msg->ChannelRef, "```\n" + Dialog + "```");
+        ctx->Msg->ChannelRef->SendMessage(Dialog);
     }
 } // namespace DiscordBot

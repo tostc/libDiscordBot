@@ -25,9 +25,9 @@
 #ifndef CHANNELFACTORY_HPP
 #define CHANNELFACTORY_HPP
 
+#include "../../controller/DiscordClient.hpp"
 #include "ISerializeFactory.hpp"
 #include <models/Channel.hpp>
-#include "../../controller/DiscordClient.hpp"
 
 namespace DiscordBot
 {

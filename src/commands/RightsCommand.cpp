@@ -75,7 +75,7 @@ namespace DiscordBot
         std::string Cmd = ctx->Params.front();
         if(!m_Controller->CommandExists(Cmd))
         {
-            m_Client->SendMessage(ctx->Msg->ChannelRef, "Command '" + Cmd + "' doesn't exists! Can't remove rights!");
+            ctx->Msg->ChannelRef->SendMessage("Command '" + Cmd + "' doesn't exists! Can't remove rights!");
             return;
         }
 
@@ -92,7 +92,7 @@ namespace DiscordBot
         std::string Cmd = ctx->Params.front();
         if(!m_Controller->CommandExists(Cmd))
         {
-            m_Client->SendMessage(ctx->Msg->ChannelRef, "Command '" + Cmd + "' doesn't exists! Can't get rights!");
+            ctx->Msg->ChannelRef->SendMessage("Command '" + Cmd + "' doesn't exists! Can't get rights!");
             return;
         }
 
@@ -114,7 +114,7 @@ namespace DiscordBot
             if(Msg.empty())
                 Msg = AccessModeToString(m_Controller->GetAccessMode(Cmd));
 
-            m_Client->SendMessage(ctx->Msg->ChannelRef, Cmd + " = [" + Msg + "]");
+            ctx->Msg->ChannelRef->SendMessage(Cmd + " = [" + Msg + "]");
         }
     }
 
@@ -138,7 +138,7 @@ namespace DiscordBot
         Cmd = ctx->Params.front();
         if(!m_Controller->CommandExists(Cmd))
         {
-            m_Client->SendMessage(ctx->Msg->ChannelRef, "Command '" + Cmd + "' doesn't exists! Can't set rights!");
+            ctx->Msg->ChannelRef->SendMessage("Command '" + Cmd + "' doesn't exists! Can't set rights!");
             return false;
         }
 
@@ -147,7 +147,7 @@ namespace DiscordBot
             std::string RoleID = GetRoleID(ctx->Msg->GuildRef, ctx->Params[i]);
             if(RoleID.empty())
             {
-                m_Client->SendMessage(ctx->Msg->ChannelRef, "Role '" + ctx->Params[i] + "' doesn't exists! Can't set rights!");
+                ctx->Msg->ChannelRef->SendMessage("Role '" + ctx->Params[i] + "' doesn't exists! Can't set rights!");
                 return false;
             }
             else
@@ -156,7 +156,7 @@ namespace DiscordBot
 
         if(RoleIDs.empty())
         {
-            m_Client->SendMessage(ctx->Msg->ChannelRef, "No given roles for command '" + Cmd + "'! Can't set rights!");
+            ctx->Msg->ChannelRef->SendMessage("No given roles for command '" + Cmd + "'! Can't set rights!");
             return false;
         }
 

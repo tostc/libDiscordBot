@@ -91,6 +91,15 @@ namespace DiscordBot
         UpdateUserInfo();
     }
 
+    void CDiscordClient::UpdateUserInfo()
+    {        
+        // TODO: USE FACTORY
+        SendOP(OPCodes::PRESENCE_UPDATE, CreateUserInfoJSON());
+    }
+
+#pragma region TO_CHANNEL
+
+    // TODO: Create Factory
     std::string CDiscordClient::CreateUserInfoJSON()
     {
         CJSON json;
@@ -117,11 +126,7 @@ namespace DiscordBot
         return json.Serialize();
     }
 
-    void CDiscordClient::UpdateUserInfo()
-    {        
-        SendOP(OPCodes::PRESENCE_UPDATE, CreateUserInfoJSON());
-    }
-
+    // TODO: Move to CChannel
     void CDiscordClient::ChangeVoiceState(const std::string &Guild, const std::string &Channel)
     {
         CJSON json;
@@ -138,6 +143,7 @@ namespace DiscordBot
         SendOP(OPCodes::VOICE_STATE_UPDATE, json.Serialize());
     }
 
+    // TODO: Move to CChannel
     void CDiscordClient::Join(Channel channel)
     {
         if (!channel || channel->GuildID->empty() || channel->ID->empty())
@@ -146,6 +152,7 @@ namespace DiscordBot
         ChangeVoiceState(channel->GuildID, channel->ID);
     }
 
+    // TODO: Move to CChannel
     void CDiscordClient::Leave(Guild guild)
     {
         if (!guild)
@@ -153,25 +160,11 @@ namespace DiscordBot
 
         ChangeVoiceState(guild->ID);
     }
+#pragma endregion
 
-    void CDiscordClient::SendMessage(Channel channel, const std::string Text, Embed embed, bool TTS)
-    {
-        try
-        {
-            channel->SendMessage(Text, embed, TTS);
-        }
-        catch(const std::exception& e)
-        {
-            llog << lerror << "Catched thrown error: " << e.what() << lendl;
-        }
-    }
+#pragma region WHERE_TO_MOVE
 
-    void CDiscordClient::SendMessage(User user, const std::string Text, Embed embed, bool TTS)
-    {
-        auto Channel = user->CreateDM();
-        Channel->SendMessage(Text, embed, TTS);
-    }
-
+    // TODO: ???
     AudioSource CDiscordClient::GetAudioSource(Guild guild)
     {
         if(!guild)
@@ -199,71 +192,6 @@ namespace DiscordBot
     bool CDiscordClient::IsPlaying(Guild guild)
     {
         return GetAudioSource(guild) != nullptr;
-    }
-
-    void CDiscordClient::Run()
-    {
-        //Requests the gateway endpoint for bots.
-        auto res = Get("/gateway/bot");
-        if (res->statusCode == 200)
-        {
-            try
-            {
-                CJSON json;
-                m_Gateway = json.Deserialize<std::shared_ptr<SGateway>>(res->body);
-            }
-            catch (const CJSONException &e)
-            {
-                llog << lerror << "Failed to parse JSON Enumtype: " << GetEnumName(e.GetErrType()) << " what(): " << e.what() << lendl;
-                return;
-            }
-
-            //Connects to discords websocket.
-            m_Socket.setUrl(m_Gateway->URL + "/?v=8&encoding=json");
-            m_Socket.setOnMessageCallback(std::bind(&CDiscordClient::OnWebsocketEvent, this, std::placeholders::_1));
-            m_Socket.start();
-
-            //Runs until the bot quits.
-            while (!m_Quit)
-                std::this_thread::sleep_for(std::chrono::milliseconds(200));
-        }
-        else
-            llog << lerror << "HTTP " << res->statusCode << " Error " << res->errorMsg << lendl;
-    }
-
-    void CDiscordClient::Quit()
-    {
-        auto IT = m_Guilds->begin();
-        while (IT != m_Guilds->end())
-        {
-            Leave(IT->second);
-            IT++;
-        }
-
-        m_Terminate = true;
-        if (m_Heartbeat.joinable())
-            m_Heartbeat.join();
-
-        m_Socket.stop();
-        
-        if (m_Controller)
-        {
-            m_Controller->OnDisconnect();
-            m_Controller->OnQuit();
-            m_Controller = nullptr;
-        }
-
-        m_Guilds->clear();
-        m_VoiceSockets->clear();
-        m_AudioSources->clear();
-        m_Users->clear();
-        m_MusicQueues->clear();
-        m_Quit = true;
-    }
-
-    void CDiscordClient::QuitAsync()
-    {
-        m_EVManger.PostMessage(QUIT, 0, 200);
     }
 
     void CDiscordClient::AddToQueue(Guild guild, SongInfo Info)
@@ -371,10 +299,104 @@ namespace DiscordBot
             IT->second->RemoveSong(Name);
     }
 
+    void CDiscordClient::OnSpeakFinish(const std::string &Guild)
+    {
+        if(m_Controller)
+        {
+            m_EVManger.PostMessage(QUEUE_NEXT_SONG, Guild);
+
+            auto IT = m_Guilds->find(Guild);
+            if(IT != m_Guilds->end())
+                m_Controller->OnEndSpeaking(IT->second);
+        }
+    }
+
+    void CDiscordClient::OnQueueWaitFinish(const std::string &Guild, AudioSource Source)
+    {
+        if(!Source)
+        {
+            m_EVManger.PostMessage(QUEUE_NEXT_SONG, Guild);
+            return;
+        }
+
+        VoiceSockets::iterator IT = m_VoiceSockets->find(Guild);
+        if(IT != m_VoiceSockets->end())
+            IT->second->StartSpeaking(Source);
+    }
+
+#pragma endregion WHERE_TO_MOVE
+
+
+    void CDiscordClient::Run()
+    {
+        //Requests the gateway endpoint for bots.
+        auto res = Get("/gateway/bot");
+        if (res->statusCode == 200)
+        {
+            try
+            {
+                CJSON json;
+                m_Gateway = json.Deserialize<std::shared_ptr<SGateway>>(res->body);
+            }
+            catch (const CJSONException &e)
+            {
+                llog << lerror << "Failed to parse JSON Enumtype: " << GetEnumName(e.GetErrType()) << " what(): " << e.what() << lendl;
+                return;
+            }
+
+            //Connects to discords websocket.
+            m_Socket.setUrl(m_Gateway->URL + "/?v=8&encoding=json");
+            m_Socket.setOnMessageCallback(std::bind(&CDiscordClient::OnWebsocketEvent, this, std::placeholders::_1));
+            m_Socket.start();
+
+            //Runs until the bot quits.
+            while (!m_Quit)
+                std::this_thread::sleep_for(std::chrono::milliseconds(200));
+        }
+        else
+            llog << lerror << "HTTP " << res->statusCode << " Error " << res->errorMsg << lendl;
+    }
+
+    void CDiscordClient::Quit()
+    {
+        auto IT = m_Guilds->begin();
+        while (IT != m_Guilds->end())
+        {
+            Leave(IT->second);
+            IT++;
+        }
+
+        m_Terminate = true;
+        if (m_Heartbeat.joinable())
+            m_Heartbeat.join();
+
+        m_Socket.stop();
+        
+        if (m_Controller)
+        {
+            m_Controller->OnDisconnect();
+            m_Controller->OnQuit();
+            m_Controller = nullptr;
+        }
+
+        m_Guilds->clear();
+        m_VoiceSockets->clear();
+        m_AudioSources->clear();
+        m_Users->clear();
+        m_MusicQueues->clear();
+        m_Quit = true;
+    }
+
+    void CDiscordClient::QuitAsync()
+    {
+        m_EVManger.PostMessage(QUIT, 0, 200);
+    }
+
     void CDiscordClient::OnMessageReceive(MessageBase Msg)
     {
         switch (Msg->Event)
         {
+            // TODO: ??? WHERE_TO_MOVE
             case QUEUE_NEXT_SONG:
             {
                 auto Data = std::static_pointer_cast<TMessage<std::string>>(Msg);
@@ -416,6 +438,7 @@ namespace DiscordBot
         }
     }
 
+    // TODO: Split up in smaller methods.
     void CDiscordClient::OnWebsocketEvent(const ix::WebSocketMessagePtr &msg)
     {
         switch (msg->type)
@@ -521,25 +544,12 @@ namespace DiscordBot
                                 //Get all members.
                                 Array = json.GetValue<std::vector<std::string>>("members");
                                 for (auto &&e : Array)
-                                {
-                                    CJSON Member;
-                                    Member.ParseObject(e);
-
-                                    GuildMember Tmp = CreateMember(Member, guild);
-
-                                    // if (Tmp->UserRef)
-                                    //     guild->Members[Tmp->UserRef->ID] = Tmp;
-                                }
+                                    GuildMember Tmp = CObjectFactory::Deserialize<CGuildMember>(this, e);
 
                                 //Get all voice states.
                                 Array = json.GetValue<std::vector<std::string>>("voice_states");
                                 for (auto &&e : Array)
-                                {
-                                    CJSON State;
-                                    State.ParseObject(e);
-
-                                    CreateVoiceState(State, guild);
-                                }
+                                    CObjectFactory::Deserialize<CVoiceState>(this, e);
 
                                 //Gets the owner object.
                                 std::string OwnerID = json.GetValue<std::string>("owner_id");
@@ -627,22 +637,19 @@ namespace DiscordBot
 
                             case Adler32("GUILD_MEMBER_ADD"):
                             {
-                                CJSON Member;
-                                Member.ParseObject(Pay.D);
+                                GuildMember Tmp = CObjectFactory::Deserialize<CGuildMember>(this, Pay.D);
 
-                                std::string GuildID = Member.GetValue<std::string>("guild_id");
-
-                                auto IT = m_Guilds->find(GuildID);
-                                if(IT != m_Guilds->end())
+                                if(m_Controller && Tmp)
                                 {
-                                    Guild guild = IT->second;//m_Guilds[GuildID];
-                                    GuildMember Tmp = CreateMember(Member, guild);
-
-                                    if(m_Controller)
+                                    auto IT = m_Guilds->find(Tmp->GuildID);
+                                    if(IT != m_Guilds->end())
+                                    {
+                                        Guild guild = IT->second;
                                         m_Controller->OnMemberAdd(guild, Tmp);
+                                    }
+                                    else
+                                        llog << ldebug << "Invalid Guild ( " << Tmp->GuildID << " ) " << lendl;
                                 }
-                                else
-                                    llog << ldebug << "Invalid Guild ( " << GuildID << " ) " << lendl;
                             }break;
 
                             case Adler32("GUILD_MEMBER_UPDATE"):
@@ -723,20 +730,12 @@ namespace DiscordBot
                                 User user = GetUserOrAdd(json.GetValue<std::string>("user"));
 
                                 if(!json.GetValue<std::string>("game").empty())
-                                {
-                                    CJSON JGame;
-                                    JGame.ParseObject(json.GetValue<std::string>("game"));
-                                    user->Game = CreateActivity(JGame);
-                                }
+                                    user->Game = CObjectFactory::Deserialize<CActivity>(this, json.GetValue<std::string>("game"));
 
                                 user->State = StrToOnlineState(json.GetValue<std::string>("status"));
                                 std::vector<std::string> Acts = json.GetValue<std::vector<std::string>>("activities");
                                 for (auto &&e : Acts)
-                                {
-                                    CJSON JAct;
-                                    JAct.ParseObject(e);
-                                    user->Activities->push_back(CreateActivity(JAct));
-                                }
+                                    user->Activities->push_back(CObjectFactory::Deserialize<CActivity>(this, e));
 
                                 CJSON JClientState;
                                 JClientState.ParseObject(json.GetValue<std::string>("client_status")); 
@@ -774,7 +773,7 @@ namespace DiscordBot
                                 if(M->second->State)
                                     c = M->second->State->ChannelRef;   //Saves the old channel.
 
-                                VoiceState Tmp = CreateVoiceState(json, nullptr);
+                                VoiceState Tmp = CObjectFactory::Deserialize<CVoiceState>(this, Pay.D);
 
                                 if (m_Controller && Tmp->GuildRef)
                                 {
@@ -1030,18 +1029,6 @@ namespace DiscordBot
         SendOP(OPCodes::RESUME, json.Serialize(resume));
     }
 
-    void CDiscordClient::OnSpeakFinish(const std::string &Guild)
-    {
-        if(m_Controller)
-        {
-            m_EVManger.PostMessage(QUEUE_NEXT_SONG, Guild);
-
-            auto IT = m_Guilds->find(Guild);
-            if(IT != m_Guilds->end())
-                m_Controller->OnEndSpeaking(IT->second);
-        }
-    }
-
     bool CDiscordClient::CheckPermissions(Guild guild, Permission Needed, std::vector<PermissionOverwrites> Overwrites)
     {
         GuildMember Member = GetMember(guild, m_BotUser->ID.load());
@@ -1128,19 +1115,6 @@ namespace DiscordBot
         }
         else
             return m_HTTPClient.request(std::string(BASE_URL) + URL, "DELETE", "", args);
-    }
-
-    void CDiscordClient::OnQueueWaitFinish(const std::string &Guild, AudioSource Source)
-    {
-        if(!Source)
-        {
-            m_EVManger.PostMessage(QUEUE_NEXT_SONG, Guild);
-            return;
-        }
-
-        VoiceSockets::iterator IT = m_VoiceSockets->find(Guild);
-        if(IT != m_VoiceSockets->end())
-            IT->second->StartSpeaking(Source);
     }
 
     std::string CDiscordClient::OnlineStateToStr(OnlineState state)
@@ -1231,10 +1205,7 @@ namespace DiscordBot
             {
                 try
                 {    
-                    CJSON JOwner;
-                    JOwner.ParseObject(res->body);
-
-                    Ret = CreateMember(JOwner, guild);
+                    Ret = CObjectFactory::Deserialize<CGuildMember>(this, res->body);
                 }
                 catch (const CJSONException &e)
                 {
@@ -1245,151 +1216,5 @@ namespace DiscordBot
         }
 
         return Ret;
-    }
-
-    GuildMember CDiscordClient::CreateMember(CJSON &json, Guild guild)
-    {
-        GuildMember Ret = GuildMember(new CGuildMember(this));
-        std::string UserInfo = json.GetValue<std::string>("user");
-        User member;
-
-        //Gets the user which is associated with the member.
-        if (!UserInfo.empty())
-            member = GetUserOrAdd(UserInfo);
-
-        Ret->GuildID = guild->ID;
-        Ret->UserRef = member;
-        Ret->Nick = json.GetValue<std::string>("nick");
-        Ret->JoinedAt = json.GetValue<std::string>("joined_at");
-        Ret->PremiumSince = json.GetValue<std::string>("premium_since");
-        Ret->Deaf = json.GetValue<bool>("deaf");
-        Ret->Mute = json.GetValue<bool>("mute");
-
-        //Adds the roles
-        auto Array = json.GetValue<std::vector<std::string>>("roles");
-        for (auto &&e : Array)
-        {
-            auto RIT = guild->Roles->find(e);
-            if(RIT != guild->Roles->end())
-                Ret->Roles->push_back(RIT->second);
-        }
-
-        if (Ret->UserRef)
-            guild->Members->insert({Ret->UserRef->ID, Ret});
-
-        return Ret;
-    }
-
-    VoiceState CDiscordClient::CreateVoiceState(CJSON &json, Guild guild)
-    {
-        VoiceState Ret = VoiceState(new CVoiceState());
-
-        if (!guild)
-        {
-            Guilds::iterator IT = m_Guilds->find(json.GetValue<std::string>("guild_id"));
-            if (IT != m_Guilds->end())
-                Ret->GuildRef = IT->second;
-        }
-        else
-            Ret->GuildRef = guild;
-
-        auto IT = m_Users->find(json.GetValue<std::string>("user_id"));
-        if (IT != m_Users->end())
-            Ret->UserRef = IT->second;
-
-        if (Ret->GuildRef)
-        {
-            auto CIT = Ret->GuildRef->Channels->find(json.GetValue<std::string>("channel_id"));
-            if (CIT != Ret->GuildRef->Channels->end())
-                Ret->ChannelRef = CIT->second;
-
-            GuildMember Member;
-
-            //Adds this voice state to the guild member.
-            auto MIT = Ret->GuildRef->Members->find(json.GetValue<std::string>("user_id"));
-            if (MIT != Ret->GuildRef->Members->end())
-                Member = MIT->second;
-            else
-            {
-                //Creates a new member.
-                try
-                {
-                    CJSON JMember;
-                    JMember.ParseObject(json.GetValue<std::string>("member"));
-
-                    Member = CreateMember(JMember, Ret->GuildRef);
-                }
-                catch (const CJSONException &e)
-                {
-                    llog << lerror << "Failed to parse JSON for VoiceState member Enumtype: " << GetEnumName(e.GetErrType()) << " what(): " << e.what() << lendl;
-                    return Ret;
-                }
-            }
-
-            //Removes the voice state if the user isn't in a voice channel.
-            if (!Ret->ChannelRef && Member)
-            {
-                Member->State = nullptr;
-                return Ret;
-            }
-            else if(Member)
-                Member->State = Ret;
-        }
-
-        Ret->SessionID = json.GetValue<std::string>("session_id");
-        Ret->Deaf = json.GetValue<bool>("deaf");
-        Ret->Mute = json.GetValue<bool>("mute");
-        Ret->SelfDeaf = json.GetValue<bool>("self_deaf");
-        Ret->SelfMute = json.GetValue<bool>("self_mute");
-        Ret->SelfStream = json.GetValue<bool>("self_stream");
-        Ret->Supress = json.GetValue<bool>("suppress");
-
-        return Ret;
-    }
-
-    Activity CDiscordClient::CreateActivity(CJSON &json)
-    {
-        Activity ret = Activity(new CActivity());
-
-        ret->Name = json.GetValue<std::string>("name");
-        ret->Type = (ActivityType)json.GetValue<int>("type");
-        ret->URL = json.GetValue<std::string>("url");
-        ret->CreatedAt = json.GetValue<int>("created_at");
-
-        CJSON Timestamps;
-        Timestamps.ParseObject(json.GetValue<std::string>("timestamps"));
-        ret->StartTime = Timestamps.GetValue<int>("start");
-        ret->EndTime = Timestamps.GetValue<int>("end");
-
-        ret->AppID = json.GetValue<std::string>("application_id");
-        ret->Details = json.GetValue<std::string>("details");
-
-        ret->State = json.GetValue<std::string>("state");
-
-        if(!json.GetValue<std::string>("party").empty())
-        {
-            CJSON JParty;
-            JParty.ParseObject(json.GetValue<std::string>("party"));
-
-            ret->PartyObject = Party(new CParty());
-            ret->PartyObject->ID = JParty.GetValue<std::string>("id");
-            ret->PartyObject->Size = JParty.GetValue<std::vector<int>>("size");
-        }
-
-        if(!json.GetValue<std::string>("secrets").empty())
-        {
-            CJSON JSecret;
-            JSecret.ParseObject(json.GetValue<std::string>("secrets"));
-
-            ret->Secret = Secrets(new CSecrets());
-            ret->Secret->Join = JSecret.GetValue<std::string>("join");
-            ret->Secret->Spectate = JSecret.GetValue<std::string>("spectate");
-            ret->Secret->Match = JSecret.GetValue<std::string>("match");
-        }
-
-        ret->Instance = json.GetValue<bool>("instance");
-        ret->Flags = (ActivityFlags)json.GetValue<int>("flags");
-
-        return ret;
     }
 } // namespace DiscordBot

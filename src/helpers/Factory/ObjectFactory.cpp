@@ -22,13 +22,16 @@
  * SOFTWARE.
  */
 
-#include "../../controller/DiscordClient.hpp"
-#include "MessageFactory.hpp"
 #include "ObjectFactory.hpp"
+#include "../../controller/DiscordClient.hpp"
+#include "ActivityFactory.hpp"
 #include "ChannelFactory.hpp"
-#include "UserFactory.hpp"
-#include "RoleFactory.hpp"
 #include "EmbedFactory.hpp"
+#include "GuildMemberFactory.hpp"
+#include "MessageFactory.hpp"
+#include "RoleFactory.hpp"
+#include "UserFactory.hpp"
+#include "VoiceStateFactory.hpp"
 #include <tuple>
 
 namespace DiscordBot
@@ -39,5 +42,8 @@ namespace DiscordBot
         {typeid(CUser), CObjectFactory::CreateFactory<CUserFactory>()},
         {typeid(CRole), CObjectFactory::CreateFactory<CRoleFactory>()},
         {typeid(CEmbed), CObjectFactory::CreateFactory<CEmbedFactory>()},
+        {typeid(CActivity), CObjectFactory::CreateFactory<CActivityFactory>()},
+        {typeid(CVoiceState), CObjectFactory::CreateFactory<CVoiceStateFactory>()},
+        {typeid(CGuildMember), CObjectFactory::CreateFactory<CGuildMemberFactory>()},
     };
 } // namespace DiscordBot

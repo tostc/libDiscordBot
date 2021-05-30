@@ -1,7 +1,7 @@
 /*
  * MIT License
  *
- * Copyright (c) 2020 Christian Tost
+ * Copyright (c) 2021 Christian Tost
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -22,12 +22,9 @@
  * SOFTWARE.
  */
 
-#ifndef ONLINESTATE_HPP
-#define ONLINESTATE_HPP
+#ifndef DISCORDBOT_HPP
+#define DISCORDBOT_HPP
 
-namespace DiscordBot
-{
 
-} // namespace DiscordBot
 
-#endif //ONLINESTATE_HPP
+#endif //DISCORDBOT_HPP

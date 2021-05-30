@@ -236,26 +236,6 @@ namespace DiscordBot
             void Leave(Guild guild) override;
 
             /**
-             * @brief Sends a message to a given channel.
-             * 
-             * @param channel: Text channel which will receive the message.
-             * @param Text: Text to send;
-             * @param TTS: True to enable tts.
-             */
-            [[deprecated("Will be remove in the next release. Please use CChannel::SendMessage instead!")]]
-            void SendMessage(Channel channel, const std::string Text, Embed embed = nullptr, bool TTS = false) override;
-
-            /**
-             * @brief Sends a message to a given user.
-             * 
-             * @param user: Userwhich will receive the message.
-             * @param Text: Text to send;
-             * @param TTS: True to enable tts.
-             */
-            [[deprecated("Will be remove in the next release. Please use CUser::CreateDM instead!")]]
-            void SendMessage(User user, const std::string Text, Embed embed = nullptr, bool TTS = false) override;
-
-            /**
              * @return Returns the audio source for the given guild. Null if there is no audio source available.
              */
             AudioSource GetAudioSource(Guild guild) override;
@@ -370,16 +350,25 @@ namespace DiscordBot
             ix::HttpResponsePtr Delete(const std::string &URL, const std::string &Body = "");
 
             GuildMember GetMember(Guild guild, const std::string &UserID);
+            User GetUser(const std::string &ID)
+            {
+                auto IT = m_Users->find(ID);
+                if(IT != m_Users->end())
+                    return IT->second;
+
+                return nullptr;
+            }
+
             User GetUserOrAdd(const std::string &js)
             {
                 CJSON json;
                 json.ParseObject(js);
 
-                auto IT = m_Users->find(json.GetValue<std::string>("id"));
-                if(IT != m_Users->end())
-                    return IT->second;
+                auto Ret = GetUser(json.GetValue<std::string>("id"));
+                if(Ret)
+                    return Ret;
 
-                auto Ret = CObjectFactory::Deserialize<CUser>(this, js);
+                Ret = CObjectFactory::Deserialize<CUser>(this, js);
                 m_Users->insert({Ret->ID.load(), Ret});
 
                 return Ret;
@@ -495,10 +484,6 @@ namespace DiscordBot
 
             std::string OnlineStateToStr(OnlineState state);
             OnlineState StrToOnlineState(const std::string &state);
-
-            GuildMember CreateMember(CJSON &json, Guild guild);
-            VoiceState CreateVoiceState(CJSON &json, Guild guild);
-            Activity CreateActivity(CJSON &json);
     };
 } // namespace DiscordBot
 

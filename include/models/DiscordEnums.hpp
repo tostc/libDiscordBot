@@ -247,6 +247,11 @@ namespace DiscordBot
     {
         return static_cast<ActivityFlags>(static_cast<unsigned>(lhs) |static_cast<unsigned>(rhs));
     }
+
+    inline Intent operator| (Intent lhs, Intent rhs)  
+    {
+        return static_cast<Intent>(static_cast<unsigned>(lhs) |static_cast<unsigned>(rhs));
+    }  
 } // namespace DiscordBot
 
 #endif //DISCORDENUMS_HPP

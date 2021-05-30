@@ -28,7 +28,6 @@
 #include <memory>
 #include <string>
 #include <vector>
-#include <models/OnlineState.hpp>
 #include <models/Activity.hpp>
 #include <atomic>
 #include <models/atomic.hpp>
