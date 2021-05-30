@@ -39,29 +39,6 @@ namespace DiscordBot
         public:
             CGuildAdmin(CDiscordClient *client, Guild guild) : m_Client(client), m_Guild(guild) {}
 
-            [[deprecated("Will be remove in the next release. Please use CGuildMember::Modify instead!")]]
-            void ModifyMember(const CModifyMember &mod) override;
-
-            [[deprecated("Will be remove in the next release. Please use CGuild::Ban instead!")]]
-            void BanMember(User member, const std::string &Reason = "", int DeleteMsgDays = -1) override;
-            
-            [[deprecated("Will be remove in the next release. Please use CGuild::Unban instead!")]]
-            void UnbanMember(User user) override;
-
-            [[deprecated("Will be remove in the next release. Please use CGuild::GetGuildBans instead!")]]
-            std::vector<std::pair<std::string, User>> GetGuildBans() override;
-
-            [[deprecated("Will be remove in the next release. Please use CGuild::Kick instead!")]]
-            void KickMember(User member) override;
-
-            [[deprecated("Will be remove in the next release. Please use CGuild::CreateChannel instead!")]]
-            void CreateChannel(const CModifyChannel &channel) override;
-
-            [[deprecated("Will be remove in the next release. Please use CChannel::Modify instead!")]]
-            void ModifyChannel(const CModifyChannel &channel) override;
-            
-            [[deprecated("Will be remove in the next release. Please use CChannel::Delete instead!")]]
-            void DeleteChannel(Channel channel, const std::string &reason) override;
             void AddChannelAction(Channel channel, Action action) override;
             void RemoveChannelAction(Channel channel, ActionType types) override;
 

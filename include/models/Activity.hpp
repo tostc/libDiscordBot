@@ -29,32 +29,10 @@
 #include <string>
 #include <atomic>
 #include <models/atomic.hpp>
+#include <models/DiscordEnums.hpp>
 
 namespace DiscordBot
 {
-    enum class ActivityType
-    {
-        GAME,
-        STREAMING,
-        LISTENING,
-        CUSTOM
-    };
-
-    enum class ActivityFlags
-    {
-        INSTANCE = 1 << 0,
-        JOIN = 1 << 1,
-        SPECTATE = 1 << 2,
-        JOIN_REQUEST = 1 << 3,
-        SYNC = 1 << 4,
-        PLAY = 1 << 5
-    };
-
-    inline ActivityFlags operator |(ActivityFlags lhs, ActivityFlags rhs)  
-    {
-        return static_cast<ActivityFlags>(static_cast<unsigned>(lhs) |static_cast<unsigned>(rhs));
-    }
-
     class CParty
     {
         public:

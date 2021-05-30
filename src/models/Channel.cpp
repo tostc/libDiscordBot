@@ -28,6 +28,7 @@
 
 #include <models/PermissionException.hpp>
 #include <models/DiscordException.hpp>
+#include <models/ChannelProperties.hpp>
 #include <models/Channel.hpp>
 #include <models/Message.hpp>
 #include <IDiscordClient.hpp>
@@ -76,7 +77,7 @@ namespace DiscordBot
         return CObjectFactory::Deserialize<CMessage>(dynamic_cast<CDiscordClient*>(m_Client), res->body);
     }
 
-    void CChannel::Modify(const CModifyChannel &Modifications)
+    void CChannel::Modify(const CChannelProperties &Modifications)
     {
         ManageChannelsCheck();
         CJSON js;

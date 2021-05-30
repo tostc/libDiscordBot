@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.3.0)
-project(discordbot VERSION 2.2.4 LANGUAGES CXX)
+project(discordbot VERSION 3.0.0 LANGUAGES CXX)
 
 #----------------------------Setup any needed variable and include any needed module.----------------------------#
 

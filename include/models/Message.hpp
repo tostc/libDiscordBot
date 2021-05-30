@@ -29,21 +29,11 @@
 #include <models/Channel.hpp>
 #include <models/Guild.hpp>
 #include <string>
+#include <models/DiscordEnums.hpp>
 
 namespace DiscordBot
 {
     class IDiscordClient;
-
-    enum class MentionTypes
-    {
-        USER,
-        NICKNAME,
-        CHANNEL,
-        ROLE,
-        EMOJI,
-        CUSTOM_EMOJI,
-        CUSTOM_ANIM_EMOJI
-    };
 
     struct SMention
     {

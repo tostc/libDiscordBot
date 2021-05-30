@@ -1,7 +1,7 @@
 /*
  * MIT License
  *
- * Copyright (c) 2020 Christian Tost
+ * Copyright (c) 2021 Christian Tost
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -22,12 +22,30 @@
  * SOFTWARE.
  */
 
-#ifndef ONLINESTATE_HPP
-#define ONLINESTATE_HPP
+#ifndef PERMISSIONOVERWRITES_HPP
+#define PERMISSIONOVERWRITES_HPP
+
+#include <memory>
+#include <models/atomic.hpp>
+#include <models/DiscordEnums.hpp>
+#include <string>
 
 namespace DiscordBot
 {
+    class CPermissionOverwrites
+    {
+        public:
+            CPermissionOverwrites() {}
 
+            atomic<std::string> ID;     //!< User or role id
+            atomic<std::string> Type;   //!< role or user
+            Permission Allow;
+            Permission Deny;
+
+            ~CPermissionOverwrites() {}
+    };
+
+    using PermissionOverwrites = std::shared_ptr<CPermissionOverwrites>;
 } // namespace DiscordBot
 
-#endif //ONLINESTATE_HPP
+#endif //PERMISSIONOVERWRITES_HPP

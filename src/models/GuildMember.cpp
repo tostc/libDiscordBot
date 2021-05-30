@@ -25,22 +25,21 @@
 #ifndef GUILDMEMBER_CPP
 #define GUILDMEMBER_CPP
 
+#include "../controller/DiscordClient.hpp"
+#include <models/DiscordException.hpp>
 #include <models/GuildMember.hpp>
 #include <models/PermissionException.hpp>
-#include <models/DiscordException.hpp>
 #include <tinyformat.h>
-#include "../controller/DiscordClient.hpp"
 
 namespace DiscordBot
 {
-    void CGuildMember::Modify(const CModifyMember &Modifications)
+    void CGuildMember::Modify(const CGuildMemberProperties &Modifications)
     {
         static const std::map<size_t, std::pair<Permission, std::string>> MOD_PERMS = {
             {Adler32("nick"), {Permission::MANAGE_NICKNAMES, "MANAGE_NICKNAMES"}},
             {Adler32("roles"), {Permission::MANAGE_ROLES, "MANAGE_ROLES"}},
             {Adler32("deaf"), {Permission::DEAFEN_MEMBERS, "DEAFEN_MEMBERS"}},
-            {Adler32("mute"), {Permission::MUTE_MEMBERS, "MUTE_MEMBERS"}},
-            {Adler32("channel_id"), {Permission::MOVE_MEMBERS, "MOVE_MEMBERS"}}
+            {Adler32("mute"), {Permission::MUTE_MEMBERS, "MUTE_MEMBERS"}}
         };
 
         CDiscordClient *Client = dynamic_cast<CDiscordClient*>(m_Client);
@@ -102,8 +101,27 @@ namespace DiscordBot
         }
         
         //Modification is already done.
-        if(values.size() == 1 && values.find("nick") != values.end() && Modifications.GetUserRef()->ID == Bot->UserRef->ID)
+        if(values.size() == 1 && values.find("nick") != values.end() && UserRef->ID == Bot->UserRef->ID)
             return;
+
+        auto res = Client->Patch(tfm::format("/guilds/%s/members/%s", GuildID, UserRef->ID), js.Serialize());
+        if(res->statusCode != 204)
+            throw CDiscordClientException("Error during member modification. Error: " + res->body + " HTTP Code: " + std::to_string(res->statusCode));
+    }
+
+    void CGuildMember::Move(Channel channel)
+    {
+        if(channel->Type != ChannelTypes::GUILD_VOICE)
+            throw CDiscordClientException("Given channel is not a voice channel!");
+
+        CDiscordClient *Client = dynamic_cast<CDiscordClient*>(m_Client);
+        Guild guild = Client->GetGuild(GuildID.load());
+
+        if(!Client->CheckPermissions(guild, Permission::MOVE_MEMBERS))
+            throw CPermissionException("Missing permission: 'MOVE_MEMBERS'");
+
+        CJSON js;
+        js.AddPair("channel_id", channel->ID.load());
 
         auto res = Client->Patch(tfm::format("/guilds/%s/members/%s", GuildID, UserRef->ID), js.Serialize());
         if(res->statusCode != 204)

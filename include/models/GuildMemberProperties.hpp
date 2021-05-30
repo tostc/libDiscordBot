@@ -22,36 +22,19 @@
  * SOFTWARE.
  */
 
-#ifndef MODIFYMEMBER_HPP
-#define MODIFYMEMBER_HPP
+#ifndef GUILDMEMBERPROPERTIES_HPP
+#define GUILDMEMBERPROPERTIES_HPP
 
-#include <models/User.hpp>
+#include <map>
 #include <models/Role.hpp>
-#include <models/Channel.hpp>
+#include <vector>
 
 namespace DiscordBot
 {
-    class CModifyMember
+    class CGuildMemberProperties
     {
         public:
-            CModifyMember() : m_HasRoles(false) {}
-            CModifyMember(User userRef) : CModifyMember() 
-            {
-                m_UserRef = userRef;
-            }
-
-            inline User GetUserRef() const
-            {
-                return m_UserRef;
-            }
-            
-            /**
-             * @brief Sets the user to modify.
-             */
-            inline void SetUserRef(User UserRef)
-            {
-                m_UserRef = UserRef;
-            }
+            CGuildMemberProperties() : m_HasRoles(false) {}
             
             /**
              * @brief Sets the new nickname of a user.
@@ -99,18 +82,6 @@ namespace DiscordBot
                 m_Values["mute"] = Mute ? "true" : "false";
             }
             
-            /**
-             * @brief Moves a member to a channel.
-             * 
-             * @note If c is null the user will be kicked from the voice channel.
-             * 
-             * @attention The bot needs following permission `MOVE_MEMBERS`
-             */
-            inline void SetChannel(Channel c)
-            {
-                m_Values["channel_id"] = c ? c->ID.load() : "null";
-            }
-
             inline std::map<std::string, std::string> GetValues() const
             {
                 return m_Values;
@@ -121,9 +92,8 @@ namespace DiscordBot
                 return m_HasRoles;
             }
 
-            ~CModifyMember() {}
+            ~CGuildMemberProperties() {}
         private:
-            User m_UserRef;
             std::map<std::string, std::string> m_Values;
 
             std::vector<Role> m_Roles;
@@ -132,5 +102,4 @@ namespace DiscordBot
     };
 } // namespace DiscordBot
 
-
-#endif //MODIFYMEMBER_HPP
+#endif //GUILDMEMBERPROPERTIES_HPP

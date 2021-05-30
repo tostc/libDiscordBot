@@ -26,46 +26,24 @@
 #define CHANNEL_HPP
 
 #include <memory>
-#include <vector>
-#include <models/User.hpp>
-#include <models/File.hpp>
-#include <string>
-#include <models/Role.hpp>
-#include <models/atomic.hpp>
+#include <models/DiscordEnums.hpp>
 #include <models/Embed.hpp>
+#include <models/File.hpp>
+#include <models/PermissionOverwrites.hpp>
+#include <models/Role.hpp>
+#include <models/User.hpp>
+#include <models/atomic.hpp>
+#include <string>
+#include <vector>
 
 namespace DiscordBot
 {  
     class IDiscordClient;
     class CMessage;
 
+    class CChannelProperties;
+
     using Message = std::shared_ptr<CMessage>;
-
-    enum class ChannelTypes
-    {
-        GUILD_TEXT,
-        DM,
-        GUILD_VOICE,
-        GROUP_DM,
-        GUILD_CATEGORY,
-        GUILD_NEWS,
-        GUILD_STORE
-    };
-
-    class CPermissionOverwrites
-    {
-        public:
-            CPermissionOverwrites() {}
-
-            atomic<std::string> ID;     //!< User or role id
-            atomic<std::string> Type;   //!< role or user
-            Permission Allow;
-            Permission Deny;
-
-            ~CPermissionOverwrites() {}
-    };
-
-    using PermissionOverwrites = std::shared_ptr<CPermissionOverwrites>;
 
     class CChannel
     {
@@ -130,7 +108,7 @@ namespace DiscordBot
              * @throw CPermissionException On missing permissions.
              * @throw CDiscordClientException On error.
              */
-            void Modify(const CModifyChannel &Modifications);
+            void Modify(const CChannelProperties &Modifications);
 
             /**
              * @brief Deletes this channel. This can't be undone.

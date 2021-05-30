@@ -25,14 +25,15 @@
 #ifndef GUILDMEMBER_HPP
 #define GUILDMEMBER_HPP
 
+#include <atomic>
+#include <models/Channel.hpp>
+#include <models/GuildMemberProperties.hpp>
+#include <models/Role.hpp>
 #include <models/User.hpp>
 #include <models/VoiceState.hpp>
-#include <vector>
-#include <string>
-#include <models/Role.hpp>
-#include <atomic>
 #include <models/atomic.hpp>
-#include <models/ModifyMember.hpp>
+#include <string>
+#include <vector>
 
 namespace DiscordBot
 {
@@ -59,12 +60,24 @@ namespace DiscordBot
              * 
              * @param Modifications: Modification object.
              * 
-             * @note The bot needs some permissions which you can find inside the ::CModifyMember class.
+             * @note The bot needs some permissions which you can find inside the ::CGuildMemberProperties class.
              * 
              * @throw CPermissionException On missing permissions.
              * @throw CDiscordClientException On error.
              */
-            void Modify(const CModifyMember &Modifications);
+            void Modify(const CGuildMemberProperties &Modifications);
+
+            /**
+             * @brief Moves the member to a voice channel.
+             * 
+             * @param channel: The channel where the user is moved to.
+             * 
+             * @note The bot needs following permission `MOVE_MEMBERS` 
+             * 
+             * @throw CPermissionException On missing permissions.
+             * @throw CDiscordClientException On error.
+             */
+            void Move(Channel channel);
 
             ~CGuildMember() {}
         private:

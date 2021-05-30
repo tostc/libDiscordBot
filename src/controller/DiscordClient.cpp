@@ -495,7 +495,7 @@ namespace DiscordBot
                             {
                                 json.ParseObject(Pay.D);
 
-                                Guild guild = Guild(new CGuild());
+                                Guild guild = Guild(new CGuild(this));
                                 guild->ID = json.GetValue<std::string>("id");
                                 guild->Name = json.GetValue<std::string>("name");
                                 guild->Icon = json.GetValue<std::string>("icon");
@@ -1249,7 +1249,7 @@ namespace DiscordBot
 
     GuildMember CDiscordClient::CreateMember(CJSON &json, Guild guild)
     {
-        GuildMember Ret = GuildMember(new CGuildMember());
+        GuildMember Ret = GuildMember(new CGuildMember(this));
         std::string UserInfo = json.GetValue<std::string>("user");
         User member;
 

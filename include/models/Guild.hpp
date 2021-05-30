@@ -33,7 +33,7 @@
 #include <models/GuildMember.hpp>
 #include <models/Role.hpp>
 #include <models/atomic.hpp>
-#include <models/ModifyChannel.hpp>
+#include <models/ChannelProperties.hpp>
 
 namespace DiscordBot
 {
@@ -66,7 +66,7 @@ namespace DiscordBot
              * @throw CPermissionException On missing permissions.
              * @throw CDiscordClientException On error.
              */
-            Channel CreateChannel(const CModifyChannel &ChannelInfo);
+            Channel CreateChannel(const CChannelProperties &ChannelInfo);
 
             /**
              * @brief Bans a member from the guild.

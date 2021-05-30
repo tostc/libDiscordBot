@@ -10,17 +10,48 @@ Need help? Feel free to join our Discord Server.
 [![Discord Server](https://discordapp.com/api/guilds/711169228320931840/embed.png?style=banner2)](https://discord.gg/C79vGZb)
 
 If you like this library please give me a ![star](star.png)
-
 ## Feeling adventurous?
   You can clone the development branch if you want the latest and probably buggy stuff. This is not recommended for productivity programs.
 
 ## Features
+- Channels
+  | Feature   | Implemented    |
+  |--------------- | --------------- |
+  | Create   | <input type="checkbox" disabled checked />  |
+  | Edit     | <input type="checkbox" disabled checked />  |
+  | Delete   | <input type="checkbox" disabled checked />  |
+  | Create Invites | <input type="checkbox" disabled />  |
+  
+- Guild
+  | Feature   | Implemented    |
+  |--------------- | --------------- |
+  | Create   | <input type="checkbox" disabled />  |
+  | Edit     | <input type="checkbox" disabled />  |
+  | Delete   | <input type="checkbox" disabled />  |
+  | Get ban list   | <input type="checkbox" disabled checked />  |
+  | Audit log  | <input type="checkbox" disabled />  |
+  
+- Guild members
+  | Feature   | Implemented    |
+  |--------------- | --------------- |
+  | Edit     | <input type="checkbox" disabled checked />  |
+  | Kick   | <input type="checkbox" disabled checked />  |
+  | Ban   | <input type="checkbox" disabled checked />  |
+  | Unban   | <input type="checkbox" disabled checked />  |
+  | Move   | <input type="checkbox" disabled checked />  |
+
+- Message
+  | Feature   | Implemented    |
+  |--------------- | --------------- |
+  | Create   | <input type="checkbox" disabled checked />  |
+  | Edit     | <input type="checkbox" disabled checked />  |
+  | Delete   | <input type="checkbox" disabled checked />  |
+
 - Built In help command
 - Built In rights management system for commands.
 - Audio streaming
 - Playlist API
 - Easy to use API
-- Member and Guild management
 
 ### Prerequisites
 First you need following software and libraries.
@@ -76,12 +107,6 @@ cmake ../ -DCMAKE_TOOLCHAIN_FILE=../crosscompile/TOOLCHAINFILE.cmake
 ### First bot
 
 Please visit the [wiki page](https://github.com/tostc/libDiscordBot/wiki/Your-first-bot).
-
-## Checklist
-- [ ] Administration
-- [x] Rights management(with Roles)
-- [ ] Wrap all Discord objects
-- [ ] Wrap all Discord events
 
 ## Applications which uses libDiscordBot
 

@@ -30,7 +30,7 @@
 
 namespace DiscordBot
 {
-    Channel CGuild::CreateChannel(const CModifyChannel &ChannelInfo)
+    Channel CGuild::CreateChannel(const CChannelProperties &ChannelInfo)
     {
         Guild guild = dynamic_cast<CDiscordClient*>(m_Client)->GetGuild(ID);
         if(!dynamic_cast<CDiscordClient*>(m_Client)->CheckPermissions(guild, Permission::MANAGE_CHANNELS))

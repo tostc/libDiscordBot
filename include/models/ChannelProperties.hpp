@@ -22,32 +22,23 @@
  * SOFTWARE.
  */
 
-#ifndef MODIFYCHANNEL_HPP
-#define MODIFYCHANNEL_HPP
+#ifndef CHANNELPROPERTIES_HPP
+#define CHANNELPROPERTIES_HPP
 
 #include <map>
+#include <memory>
 #include <models/Channel.hpp>
+#include <models/DiscordEnums.hpp>
+#include <models/PermissionOverwrites.hpp>
+#include <string>
+#include <vector>
 
 namespace DiscordBot
 {
-    class CModifyChannel
+    class CChannelProperties
     {
         public:
-            CModifyChannel() : m_OverwritesSet(false) {}
-            CModifyChannel(Channel ChannelRef) : CModifyChannel()
-            {
-                m_ChannelRef = ChannelRef;
-            }
-
-            inline void SetChannelRef(Channel ChannelRef)
-            {
-                m_ChannelRef = ChannelRef;
-            }
-
-            inline Channel GetChannelRef() const
-            {
-                return m_ChannelRef;
-            }
+            CChannelProperties() : m_OverwritesSet(false) {}
 
             inline void SetName(std::string Name)
             {
@@ -115,9 +106,8 @@ namespace DiscordBot
                 return m_Values;
             }
 
-            ~CModifyChannel() {}
+            ~CChannelProperties() {}
         private:
-            Channel m_ChannelRef;
             std::map<std::string, std::string> m_Values;
             std::vector<PermissionOverwrites> m_Overwrites;
             bool m_OverwritesSet;
@@ -125,4 +115,4 @@ namespace DiscordBot
 } // namespace DiscordBot
 
 
-#endif //MODIFYCHANNEL_HPP
+#endif //CHANNELPROPERTIES_HPP
