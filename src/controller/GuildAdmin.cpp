@@ -24,8 +24,8 @@
 
 #include "GuildAdmin.hpp"
 #include "DiscordClient.hpp"
-#include <models/DiscordException.hpp>
-#include <models/PermissionException.hpp>
+#include <models/exceptions/DiscordException.hpp>
+#include <models/exceptions/PermissionException.hpp>
 #include <vector>
 #include "../helpers/Helper.hpp"
 

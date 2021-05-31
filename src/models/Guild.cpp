@@ -23,8 +23,8 @@
  */
 
 #include <models/Guild.hpp>
-#include <models/PermissionException.hpp>
-#include <models/DiscordException.hpp>
+#include <models/exceptions/PermissionException.hpp>
+#include <models/exceptions/DiscordException.hpp>
 #include <tinyformat.h>
 #include "../controller/DiscordClient.hpp"
 

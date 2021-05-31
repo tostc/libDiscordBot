@@ -22,11 +22,12 @@
  * SOFTWARE.
  */
 
-#ifndef CHANNEL_HPP
-#define CHANNEL_HPP
+#ifndef ICHANNEL_HPP
+#define ICHANNEL_HPP
 
 #include <memory>
 #include <models/DiscordEnums.hpp>
+#include <models/DiscordObject.hpp>
 #include <models/Embed.hpp>
 #include <models/File.hpp>
 #include <models/PermissionOverwrites.hpp>
@@ -45,60 +46,27 @@ namespace DiscordBot
 
     using Message = std::shared_ptr<CMessage>;
 
-    class CChannel
+    class IChannel : public CDiscordObject
     {
         public:
-            CChannel(IDiscordClient *client) : Position(0), NSFW(false), Bitrate(0), UserLimit(0), RateLimit(0), m_Client(client) {}
+            IChannel(IDiscordClient *client) : CDiscordObject(client), Position(0), Bitrate(0), UserLimit(0) {}
 
-            atomic<std::string> ID;
             ChannelTypes Type;
-            atomic<std::string> GuildID;
             std::atomic<int> Position;
             atomic<std::vector<PermissionOverwrites>> Overwrites;
             atomic<std::string> Name;
-            atomic<std::string> Topic;
-            std::atomic<bool> NSFW;
-            atomic<std::string> LastMessageID;
+            atomic<std::string> Icon;
+            atomic<std::string> ParentID;
+
+            ///Voice
             std::atomic<int> Bitrate;
             std::atomic<int> UserLimit;
-            std::atomic<int> RateLimit;
+
+
+            //DM
             atomic<std::vector<User>> Recipients;
-            atomic<std::string> Icon;
             atomic<std::string> OwnerID;
             atomic<std::string> AppID;
-            atomic<std::string> ParentID;
-            atomic<std::string> LastPinTimestamp;
-
-            /**
-             * @brief Sends a message with attachment to a given channel.
-             * 
-             * @param File: File to attach.
-             * @param Text: Text to send;
-             * @param TTS: True to enable tts.
-             * 
-             * @note Needs the 'SEND_MESSAGE' permission to send messages. For TTS you need also 'SEND_TTS_MESSAGES'
-             * 
-             * @throw CPermissionException On missing permissions.
-             * @throw CDiscordClientException If the current channel is not a text channel.
-             * 
-             * @return Returns a message object.
-             */
-            Message SendMessage(CFile &File, const std::string &Text, Embed embed = nullptr, bool TTS = false);
-
-            /**
-             * @brief Sends a message to a given channel.
-             * 
-             * @param Text: Text to send;
-             * @param TTS: True to enable tts.
-             * 
-             * @note Needs the 'SEND_MESSAGE' permission to send messages. For TTS you need also 'SEND_TTS_MESSAGES'
-             * 
-             * @throw CPermissionException On missing permissions.
-             * @throw CDiscordClientException If the current channel is not a text channel.
-             * 
-             * @return Returns a message object.
-             */
-            Message SendMessage(const std::string &Text, Embed embed = nullptr, bool TTS = false);
 
             /**
              * @brief Modifies this channel.
@@ -122,22 +90,15 @@ namespace DiscordBot
              */
             void Delete(const std::string &Reason);
 
-            ~CChannel() {}
+            virtual ~IChannel() = default;
         private:
-            /**
-             * @brief Checks if the current channel is a text channel. Also checks if the bot has permissions to send messages.
-             */
-            void BasicSendMessageCheck(bool NeedTTS);
-
             /**
              * @brief Checks if the bot can manage channels.
              */
             void ManageChannelsCheck();
-
-            IDiscordClient *m_Client;
     };
 
-    using Channel = std::shared_ptr<CChannel>;
+    using Channel = std::shared_ptr<IChannel>;
 }
 
-#endif //CHANNEL_HPP
+#endif //ICHANNEL_HPP

@@ -25,7 +25,7 @@
 #ifndef ACTION_HPP
 #define ACTION_HPP
 
-#include <models/Channel.hpp>
+#include <models/channels/IChannel.hpp>
 
 namespace DiscordBot
 {

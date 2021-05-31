@@ -26,9 +26,9 @@
 #define GUILDMEMBER_CPP
 
 #include "../controller/DiscordClient.hpp"
-#include <models/DiscordException.hpp>
+#include <models/exceptions/DiscordException.hpp>
 #include <models/GuildMember.hpp>
-#include <models/PermissionException.hpp>
+#include <models/exceptions/PermissionException.hpp>
 #include <tinyformat.h>
 
 namespace DiscordBot

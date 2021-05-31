@@ -27,7 +27,7 @@
 
 #include <map>
 #include <memory>
-#include <models/Channel.hpp>
+#include <models/channels/IChannel.hpp>
 #include <models/DiscordEnums.hpp>
 #include <models/PermissionOverwrites.hpp>
 #include <string>

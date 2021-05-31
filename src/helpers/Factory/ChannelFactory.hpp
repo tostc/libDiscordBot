@@ -27,23 +27,64 @@
 
 #include "../../controller/DiscordClient.hpp"
 #include "ISerializeFactory.hpp"
-#include <models/Channel.hpp>
+#include <models/channels/IChannel.hpp>
+#include <models/channels/TextChannel.hpp>
 
 namespace DiscordBot
 {
-    class CChannelFactory : public TSerializeFactory<CChannel>
+    class CChannelFactory : public TSerializeFactory<IChannel>
     {
         public:
             CChannelFactory(CDiscordClient *client) : TSerializeFactory(client) {}
 
             Channel Deserialize(CJSON &json) override
             {
-                Channel Ret = Channel(new CChannel(m_Client));
+                ChannelTypes Type = (ChannelTypes)json.GetValue<int>("type");
+                Channel Ret;
 
-                Ret->ID = json.GetValue<std::string>("id");
-                Ret->Type = (ChannelTypes)json.GetValue<int>("type");
-                Ret->GuildID = json.GetValue<std::string>("guild_id");
-                Ret->Position = json.GetValue<int>("position");
+                switch (Type)
+                {
+                    case ChannelTypes::GUILD_TEXT:
+                    {
+                        Ret = ParseTextChannel(json);
+                    }
+                    break;
+                
+                    default:
+                    {
+                        // All unkown channels are simply IChannels.
+                        Ret = Channel(new IChannel(m_Client));
+                        ParseChannel(Ret, json);
+                    } break;
+                }
+
+                return Ret;
+            }
+
+            ~CChannelFactory() {}
+
+        private:
+            Channel ParseTextChannel(CJSON &json)
+            {
+                TextChannel Ret = TextChannel(new CTextChannel(m_Client));
+
+                ParseChannel(Ret, json);
+
+                Ret->Topic = json.GetValue<std::string>("topic");
+                Ret->NSFW = json.GetValue<bool>("nsfw");
+                Ret->LastMessageID = json.GetValue<std::string>("last_message_id");
+                Ret->RateLimit = json.GetValue<int>("rate_limit_per_user");
+                Ret->LastPinTimestamp = json.GetValue<std::string>("last_pin_timestamp");
+
+                return Ret;
+            }
+
+            void ParseChannel(Channel c, CJSON &json)
+            {
+                c->ID = json.GetValue<std::string>("id");
+                c->Type = (ChannelTypes)json.GetValue<int>("type");
+                c->GuildID = json.GetValue<std::string>("guild_id");
+                c->Position = json.GetValue<int>("position");
 
                 std::vector<std::string> Array = json.GetValue<std::vector<std::string>>("permission_overwrites");
                 for (auto &&e : Array)
@@ -57,34 +98,25 @@ namespace DiscordBot
                     ov->Allow = (Permission)jov.GetValue<int>("allow");
                     ov->Deny = (Permission)jov.GetValue<int>("deny");
 
-                    Ret->Overwrites->push_back(ov);
+                    c->Overwrites->push_back(ov);
                 }
 
-                Ret->Name = json.GetValue<std::string>("name");
-                Ret->Topic = json.GetValue<std::string>("topic");
-                Ret->NSFW = json.GetValue<bool>("nsfw");
-                Ret->LastMessageID = json.GetValue<std::string>("last_message_id");
-                Ret->Bitrate = json.GetValue<int>("bitrate");
-                Ret->UserLimit = json.GetValue<int>("user_limit");
-                Ret->RateLimit = json.GetValue<int>("rate_limit_per_user");
+                c->Name = json.GetValue<std::string>("name");
+                c->Bitrate = json.GetValue<int>("bitrate");
+                c->UserLimit = json.GetValue<int>("user_limit");
 
                 Array = json.GetValue<std::vector<std::string>>("recipients");
                 for (auto &&e : Array)
                 {
                     User user = m_Client->GetUserOrAdd(e);
-                    Ret->Recipients->push_back(user);
+                    c->Recipients->push_back(user);
                 }
 
-                Ret->Icon = json.GetValue<std::string>("icon");
-                Ret->OwnerID = json.GetValue<std::string>("owner_id");
-                Ret->AppID = json.GetValue<std::string>("application_id");
-                Ret->ParentID = json.GetValue<std::string>("parent_id");
-                Ret->LastPinTimestamp = json.GetValue<std::string>("last_pin_timestamp");
-
-                return Ret;
+                c->Icon = json.GetValue<std::string>("icon");
+                c->OwnerID = json.GetValue<std::string>("owner_id");
+                c->AppID = json.GetValue<std::string>("application_id");
+                c->ParentID = json.GetValue<std::string>("parent_id");
             }
-
-            ~CChannelFactory() {}
     };
 } // namespace DiscordBot
 

@@ -26,7 +26,7 @@
 #define VOICESTATE_HPP
 
 #include <memory>
-#include <models/Channel.hpp>
+#include <models/channels/IChannel.hpp>
 #include <models/User.hpp>
 #include <string>
 #include <atomic>

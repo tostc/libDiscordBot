@@ -25,7 +25,7 @@
 #include <Log.hpp>
 #include <JSON.hpp>
 #include <models/User.hpp>
-#include <models/Channel.hpp>
+#include <models/channels/IChannel.hpp>
 #include "../controller/DiscordClient.hpp"
 #include "../helpers/Factory/ObjectFactory.hpp"
 
@@ -41,7 +41,7 @@ namespace DiscordBot
             llog << lerror << "Failed to send message HTTP: " << res->statusCode << " MSG: " << res->errorMsg << lendl;
         else
         {
-            return CObjectFactory::Deserialize<CChannel>(m_Client, res->body);
+            return CObjectFactory::Deserialize<IChannel>(m_Client, res->body);
         }
 
         return nullptr;

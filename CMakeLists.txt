@@ -173,7 +173,8 @@ set(SRCS
     "${PROJECT_SOURCE_DIR}/src/commands/RightsCommand.cpp"
     "${PROJECT_SOURCE_DIR}/src/commands/HelpCommand.cpp"
     "${PROJECT_SOURCE_DIR}/src/commands/PrefixCommand.cpp"
-    "${PROJECT_SOURCE_DIR}/src/models/Channel.cpp"
+    "${PROJECT_SOURCE_DIR}/src/models/channels/IChannel.cpp"
+    "${PROJECT_SOURCE_DIR}/src/models/channels/TextChannel.cpp"
     "${PROJECT_SOURCE_DIR}/src/models/Message.cpp"
     "${PROJECT_SOURCE_DIR}/src/models/User.cpp"
     "${PROJECT_SOURCE_DIR}/src/helpers/Factory/ObjectFactory.cpp")

@@ -54,7 +54,7 @@ namespace DiscordBot
                 //Creates a dummy object for DMs.
                 if (!Ret->ChannelRef)
                 {
-                    Ret->ChannelRef = Channel(new CChannel(m_Client));
+                    Ret->ChannelRef = Channel(new IChannel(m_Client));
                     Ret->ChannelRef->ID = json.GetValue<std::string>("channel_id");
                     Ret->ChannelRef->Type = ChannelTypes::DM;
                 }

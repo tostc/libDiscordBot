@@ -22,28 +22,40 @@
  * SOFTWARE.
  */
 
-#include "ObjectFactory.hpp"
-#include "../../controller/DiscordClient.hpp"
-#include "ActivityFactory.hpp"
-#include "ChannelFactory.hpp"
-#include "EmbedFactory.hpp"
-#include "GuildMemberFactory.hpp"
-#include "MessageFactory.hpp"
-#include "RoleFactory.hpp"
-#include "UserFactory.hpp"
-#include "VoiceStateFactory.hpp"
-#include <tuple>
+#ifndef DISCORDOBJECT_HPP
+#define DISCORDOBJECT_HPP
+
+#include <models/DiscordEnums.hpp>
+#include <models/Snowflake.hpp>
+#include <models/PermissionOverwrites.hpp>
+#include <vector>
 
 namespace DiscordBot
 {
-    std::map<std::type_index, CObjectFactory::Factory> CObjectFactory::m_Factories = {
-        {typeid(CMessage), CObjectFactory::CreateFactory<CMessageFactory>()},
-        {typeid(IChannel), CObjectFactory::CreateFactory<CChannelFactory>()},
-        {typeid(CUser), CObjectFactory::CreateFactory<CUserFactory>()},
-        {typeid(CRole), CObjectFactory::CreateFactory<CRoleFactory>()},
-        {typeid(CEmbed), CObjectFactory::CreateFactory<CEmbedFactory>()},
-        {typeid(CActivity), CObjectFactory::CreateFactory<CActivityFactory>()},
-        {typeid(CVoiceState), CObjectFactory::CreateFactory<CVoiceStateFactory>()},
-        {typeid(CGuildMember), CObjectFactory::CreateFactory<CGuildMemberFactory>()},
+    class IDiscordClient;
+
+    class CDiscordObject
+    {
+        public:
+            CDiscordObject(IDiscordClient *Client) : m_Client(Client) {}
+
+            CSnowflake ID;
+            CSnowflake GuildID;
+
+            ~CDiscordObject() = default;
+        protected:
+            // INTERNAL APIS DO NOT USE!!!
+
+            /**
+             * @brief Checks for permissions.
+             * 
+             * @throw CPermissionException On missing permissions.
+             */
+            void CheckPermissions(Permission p, std::vector<PermissionOverwrites> Overwrites = std::vector<PermissionOverwrites>());
+            std::string PermissionToString(Permission val);
+
+            IDiscordClient *m_Client;
     };
 } // namespace DiscordBot
+
+#endif //DISCORDOBJECT_HPP

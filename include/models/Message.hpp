@@ -26,7 +26,7 @@
 #define MESSAGE_HPP
 
 #include <models/GuildMember.hpp>
-#include <models/Channel.hpp>
+#include <models/channels/IChannel.hpp>
 #include <models/Guild.hpp>
 #include <string>
 #include <models/DiscordEnums.hpp>

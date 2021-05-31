@@ -26,7 +26,7 @@
 #define GUILDMEMBER_HPP
 
 #include <atomic>
-#include <models/Channel.hpp>
+#include <models/channels/IChannel.hpp>
 #include <models/GuildMemberProperties.hpp>
 #include <models/Role.hpp>
 #include <models/User.hpp>

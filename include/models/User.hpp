@@ -35,8 +35,8 @@
 
 namespace DiscordBot
 {
-    class CChannel;
-    using Channel = std::shared_ptr<CChannel>;
+    class IChannel;
+    using Channel = std::shared_ptr<IChannel>;
 
     class CDiscordClient;
     class CUser

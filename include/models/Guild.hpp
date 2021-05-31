@@ -29,7 +29,7 @@
 #include <map>
 #include <string>
 #include <models/User.hpp>
-#include <models/Channel.hpp>
+#include <models/channels/IChannel.hpp>
 #include <models/GuildMember.hpp>
 #include <models/Role.hpp>
 #include <models/atomic.hpp>

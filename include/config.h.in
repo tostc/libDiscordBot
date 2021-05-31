@@ -32,6 +32,23 @@
 #define VERSION_PATCH @PROJECT_VERSION_PATCH@
 #define VERSION_SUFFIX "@VERSION_SUFFIX@"
 
+#if _WIN32 || _WIN64
+    #if _WIN64
+        #define BOT64
+    #else
+        #define BOT32
+    #endif
+#endif
+
+#if __GNUC__
+    #if __x86_64__ || __ppc64__
+        #define BOT64
+    #else
+        #define BOT32
+    #endif
+#endif
+
+
 #if defined (_WIN32)
     #if defined(DLL_BUILD)
         #define DISCORDBOT_EXPORT __declspec(dllexport)

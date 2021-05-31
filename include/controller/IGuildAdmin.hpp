@@ -27,7 +27,7 @@
 
 #include <memory>
 #include <models/User.hpp>
-#include <models/Channel.hpp>
+#include <models/channels/IChannel.hpp>
 #include <models/Guild.hpp>
 #include <models/GuildMember.hpp>
 #include <models/GuildMemberProperties.hpp>

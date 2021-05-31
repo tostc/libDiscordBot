@@ -25,7 +25,7 @@
 #include "DiscordClient.hpp"
 #include <iostream>
 #include <sodium.h>
-#include <models/DiscordException.hpp>
+#include <models/exceptions/DiscordException.hpp>
 #include <models/Role.hpp>
 #include "../helpers/Helper.hpp"
 #include "../helpers/MultipartFormData.hpp"
@@ -146,10 +146,10 @@ namespace DiscordBot
     // TODO: Move to CChannel
     void CDiscordClient::Join(Channel channel)
     {
-        if (!channel || channel->GuildID->empty() || channel->ID->empty())
-            return;
+        // if (!channel || channel->GuildID->empty() || channel->ID->empty())
+        //     return;
 
-        ChangeVoiceState(channel->GuildID, channel->ID);
+        // ChangeVoiceState(channel->GuildID, channel->ID);
     }
 
     // TODO: Move to CChannel
@@ -214,8 +214,8 @@ namespace DiscordBot
 
     bool CDiscordClient::StartSpeaking(Channel channel)
     {
-        if (!channel || channel->GuildID->empty())
-            return false;
+        // if (!channel || channel->GuildID->empty())
+        //     return false;
 
         AudioSource Source;
 
@@ -233,8 +233,8 @@ namespace DiscordBot
 
     bool CDiscordClient::StartSpeaking(Channel channel, AudioSource source)
     {
-        if (!channel || channel->GuildID->empty())
-            return false;
+        // if (!channel || channel->GuildID->empty())
+        //     return false;
 
         VoiceSockets::iterator IT = m_VoiceSockets->find(channel->GuildID);
         if (IT != m_VoiceSockets->end() && source)
@@ -281,8 +281,8 @@ namespace DiscordBot
 
     void CDiscordClient::RemoveSong(Channel channel, size_t Index)
     {
-        if (!channel || channel->GuildID->empty())
-            return;
+        // if (!channel || channel->GuildID->empty())
+        //     return;
 
         auto IT = m_MusicQueues->find(channel->GuildID);
         if(IT != m_MusicQueues->end())
@@ -291,8 +291,8 @@ namespace DiscordBot
 
     void CDiscordClient::RemoveSong(Channel channel, const std::string &Name)
     {
-        if (!channel || channel->GuildID->empty())
-            return;
+        // if (!channel || channel->GuildID->empty())
+        //     return;
 
         auto IT = m_MusicQueues->find(channel->GuildID);
         if(IT != m_MusicQueues->end())
@@ -535,9 +535,9 @@ namespace DiscordBot
                                 Array = json.GetValue<std::vector<std::string>>("channels");
                                 for (auto &&e : Array)
                                 {
-                                    Channel Tmp = CObjectFactory::Deserialize<CChannel>(this, e);
+                                    Channel Tmp = CObjectFactory::Deserialize<IChannel>(this, e);
                                     
-                                    Tmp->GuildID = guild->ID;
+                                    Tmp->GuildID = CSnowflake(guild->ID);
                                     guild->Channels->insert({Tmp->ID, Tmp});
                                 }
 
@@ -602,7 +602,7 @@ namespace DiscordBot
 
                             case Adler32("CHANNEL_CREATE"):
                             {
-                                Channel Tmp = CObjectFactory::Deserialize<CChannel>(this, Pay.D);
+                                Channel Tmp = CObjectFactory::Deserialize<IChannel>(this, Pay.D);
                                 
                                 auto IT = m_Guilds->find(Tmp->GuildID);
                                 if(IT != m_Guilds->end())
@@ -611,7 +611,7 @@ namespace DiscordBot
 
                             case Adler32("CHANNEL_UPDATE"):
                             {
-                                Channel Tmp = CObjectFactory::Deserialize<CChannel>(this, Pay.D);
+                                Channel Tmp = CObjectFactory::Deserialize<IChannel>(this, Pay.D);
 
                                 auto IT = m_Guilds->find(Tmp->GuildID);
                                 if(IT != m_Guilds->end())
@@ -623,7 +623,7 @@ namespace DiscordBot
 
                             case Adler32("CHANNEL_DELETE"):
                             {
-                                Channel Tmp = CObjectFactory::Deserialize<CChannel>(this, Pay.D);
+                                Channel Tmp = CObjectFactory::Deserialize<IChannel>(this, Pay.D);
 
                                 auto IT = m_Guilds->find(Tmp->GuildID);
                                 if(IT != m_Guilds->end())
