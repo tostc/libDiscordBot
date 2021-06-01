@@ -77,47 +77,47 @@ namespace DiscordBot
 
     void CGuildAdmin::OnUserVoiceStateChanged(Channel c, GuildMember m)
     {
-        std::lock_guard<std::mutex> lock(m_Lock);
-        std::vector<std::string> IDs = {
-            "",
-            c->ID
-        };
+        // std::lock_guard<std::mutex> lock(m_Lock);
+        // std::vector<std::string> IDs = {
+        //     "",
+        //     c->ID
+        // };
 
-        for (auto ID : IDs)
-        {
-            auto IT = m_Actions.find(ID);
-            if(IT != m_Actions.end())
-            {
-                ActionType Type = ActionType::NONE;
-                if(m->State)
-                    Type = ActionType::USER_JOIN;
-                else
-                    Type = ActionType::USER_LEAVE;
+        // for (auto ID : IDs)
+        // {
+        //     auto IT = m_Actions.find(ID);
+        //     if(IT != m_Actions.end())
+        //     {
+        //         ActionType Type = ActionType::NONE;
+        //         if(m->State)
+        //             Type = ActionType::USER_JOIN;
+        //         else
+        //             Type = ActionType::USER_LEAVE;
 
-                auto InnerIT = IT->second.find(Type);
-                if(InnerIT != IT->second.end())
-                    FireAction(Type, InnerIT->second, c, m);
-            }
-        }
+        //         auto InnerIT = IT->second.find(Type);
+        //         if(InnerIT != IT->second.end())
+        //             FireAction(Type, InnerIT->second, c, m);
+        //     }
+        // }
     }
 
     void CGuildAdmin::OnMessageEvent(ActionType Type, Channel c, Message m)
     {
-        std::lock_guard<std::mutex> lock(m_Lock);
-        std::vector<std::string> IDs = {
-            "",
-            c->ID
-        };
+        // std::lock_guard<std::mutex> lock(m_Lock);
+        // std::vector<std::string> IDs = {
+        //     "",
+        //     c->ID
+        // };
 
-        for (auto ID : IDs)
-        {
-            auto IT = m_Actions.find(ID);
-            if(IT != m_Actions.end())
-            {
-                auto InnerIT = IT->second.find(Type);
-                if(InnerIT != IT->second.end())
-                    FireAction(Type, InnerIT->second, c, m);
-            }
-        }
+        // for (auto ID : IDs)
+        // {
+        //     auto IT = m_Actions.find(ID);
+        //     if(IT != m_Actions.end())
+        //     {
+        //         auto InnerIT = IT->second.find(Type);
+        //         if(InnerIT != IT->second.end())
+        //             FireAction(Type, InnerIT->second, c, m);
+        //     }
+        // }
     }
 } // namespace DiscordBot

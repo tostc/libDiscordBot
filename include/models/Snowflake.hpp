@@ -49,6 +49,11 @@ namespace DiscordBot
 
             CSnowflake(uint64_t ID) : m_ID(ID) {}
 
+            inline bool IsValidID()
+            {
+                return m_ID != 0;
+            }
+
             inline bool operator=(const CSnowflake &rhs)
             {
                 return m_ID = rhs.m_ID;
@@ -89,7 +94,7 @@ namespace DiscordBot
                 return m_ID;
             }
 
-            inline operator std::string() const
+            explicit inline operator std::string() const
             {
                 return std::to_string(m_ID);
             }
@@ -103,11 +108,6 @@ namespace DiscordBot
     {
         of << (uint64_t)rhs;
         return of;
-    }
-
-    inline std::string &operator=(const CSnowflake &rhs)
-    {
-        return rhs;
     }
 } // namespace DiscordBot
 

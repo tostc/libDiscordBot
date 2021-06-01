@@ -32,6 +32,7 @@
 #include <atomic>
 #include <models/atomic.hpp>
 #include <models/DiscordEnums.hpp>
+#include <models/DiscordObject.hpp>
 
 namespace DiscordBot
 {
@@ -39,12 +40,11 @@ namespace DiscordBot
     using Channel = std::shared_ptr<IChannel>;
 
     class CDiscordClient;
-    class CUser
+    class CUser : public CDiscordObject
     {
         public:
-            CUser(CDiscordClient *client) : Bot(false), System(false), MFAEnabled(false), Verified(false), m_Client(client) {}
+            CUser(IDiscordClient *client) : CDiscordObject(client), Bot(false), System(false), MFAEnabled(false), Verified(false) {}
 
-            atomic<std::string> ID;
             atomic<std::string> Username;
             atomic<std::string> Discriminator;
             atomic<std::string> Avatar;
@@ -70,7 +70,6 @@ namespace DiscordBot
             ~CUser() {}
 
         private:
-            CDiscordClient *m_Client;
     };
 
     using User = std::shared_ptr<CUser>;

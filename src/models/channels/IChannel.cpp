@@ -23,8 +23,8 @@
  */
 
 #include <JSON.hpp>
-#include "../helpers/Factory/ObjectFactory.hpp"
-#include "../helpers/MultipartFormData.hpp"
+#include "../../helpers/Factory/ObjectFactory.hpp"
+#include "../../helpers/MultipartFormData.hpp"
 
 #include <models/exceptions/PermissionException.hpp>
 #include <models/exceptions/DiscordException.hpp>
@@ -35,7 +35,7 @@
 #include <Log.hpp>
 #include <tinyformat.h>
 
-#include "../controller/DiscordClient.hpp"
+#include "../../controller/DiscordClient.hpp"
 
 namespace DiscordBot
 {

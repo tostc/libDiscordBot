@@ -34,27 +34,27 @@
 #include <models/Role.hpp>
 #include <models/atomic.hpp>
 #include <models/ChannelProperties.hpp>
+#include <models/DiscordObject.hpp>
 
 namespace DiscordBot
 {
     class IDiscordClient;
 
-    class CGuild
+    class CGuild : public CDiscordObject
     {
         public:
             using BanList = std::vector<std::pair<std::string, User>>;
 
-            CGuild(IDiscordClient *Client) : m_Client(Client) {}
+            CGuild(IDiscordClient *Client) : CDiscordObject(Client) {}
 
-            atomic<std::string> ID;
             atomic<std::string> Name;
             atomic<std::string> Icon;
 
             GuildMember Owner;
 
-            atomic<std::map<std::string, GuildMember>> Members;
-            atomic<std::map<std::string, Channel>> Channels; 
-            atomic<std::map<std::string, Role>> Roles;
+            atomic<std::map<CSnowflake, GuildMember>> Members;
+            atomic<std::map<CSnowflake, Channel>> Channels; 
+            atomic<std::map<CSnowflake, Role>> Roles;
 
             /**
              * @brief Creates a new channel on the server.
@@ -122,8 +122,6 @@ namespace DiscordBot
              * @brief Checks if the bot can ban users.
              */
             void BanMembersCheck();
-
-            IDiscordClient *m_Client;
     };
 
     using Guild = std::shared_ptr<CGuild>;

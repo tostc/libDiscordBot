@@ -17,35 +17,35 @@ If you like this library please give me a ![star](star.png)
 - Channels
   | Feature   | Implemented    |
   |--------------- | --------------- |
-  | Create   | <input type="checkbox" disabled checked />  |
-  | Edit     | <input type="checkbox" disabled checked />  |
-  | Delete   | <input type="checkbox" disabled checked />  |
-  | Create Invites | <input type="checkbox" disabled />  |
+  | Create   | Yes  |
+  | Edit     | Yes  |
+  | Delete   | Yes  |
+  | Create Invites | No  |
   
 - Guild
   | Feature   | Implemented    |
   |--------------- | --------------- |
-  | Create   | <input type="checkbox" disabled />  |
-  | Edit     | <input type="checkbox" disabled />  |
-  | Delete   | <input type="checkbox" disabled />  |
-  | Get ban list   | <input type="checkbox" disabled checked />  |
-  | Audit log  | <input type="checkbox" disabled />  |
+  | Create   | No  |
+  | Edit     | No  |
+  | Delete   | No  |
+  | Get ban list   | Yes  |
+  | Audit log  | No  |
   
 - Guild members
   | Feature   | Implemented    |
   |--------------- | --------------- |
-  | Edit     | <input type="checkbox" disabled checked />  |
-  | Kick   | <input type="checkbox" disabled checked />  |
-  | Ban   | <input type="checkbox" disabled checked />  |
-  | Unban   | <input type="checkbox" disabled checked />  |
-  | Move   | <input type="checkbox" disabled checked />  |
+  | Edit     | Yes  |
+  | Kick   | Yes  |
+  | Ban   | Yes  |
+  | Unban   | Yes  |
+  | Move   | Yes  |
 
 - Message
   | Feature   | Implemented    |
   |--------------- | --------------- |
-  | Create   | <input type="checkbox" disabled checked />  |
-  | Edit     | <input type="checkbox" disabled checked />  |
-  | Delete   | <input type="checkbox" disabled checked />  |
+  | Create   | Yes  |
+  | Edit     | Yes  |
+  | Delete   | Yes  |
 
 - Built In help command
 - Built In rights management system for commands.

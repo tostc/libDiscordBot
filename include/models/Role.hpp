@@ -31,15 +31,15 @@
 #include <atomic>
 #include <models/atomic.hpp>
 #include <models/DiscordEnums.hpp>
+#include <models/DiscordObject.hpp>
 
 namespace DiscordBot
 {  
-    class CRole
+    class CRole : public CDiscordObject
     {
         public:
-            CRole(/* args */) {}
+            CRole(IDiscordClient *Client) : CDiscordObject(Client) {}
 
-            atomic<std::string> ID;
             atomic<std::string> Name;
             std::atomic<uint32_t> Color;     //Color of the role.
             std::atomic<bool> Hoist;

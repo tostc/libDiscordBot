@@ -43,6 +43,7 @@
 #include "../models/Payload.hpp"
 #include "VoiceSocket.hpp"
 #include <models/atomic.hpp>
+#include <models/channels/VoiceChannel.hpp>
 #include "GuildAdmin.hpp"
 #include "../helpers/Factory/ObjectFactory.hpp"
 
@@ -164,93 +165,6 @@ namespace DiscordBot
             void SetActivity(const std::string &Text, const std::string &URL = "") override;
 
             /**
-             * @brief Adds a song to the music queue.
-             * 
-             * @param guild: The guild which is associated with the queue.
-             * @param Info: Song informations.
-             */
-            void AddToQueue(Guild guild, SongInfo Info) override;
-
-            /**
-             * @brief Connects to the given channel and uses the queue to speak.
-             * 
-             * @param channel: The voice channel to connect to.
-             * 
-             * @return Returns true if the connection succeeded.
-             */
-            bool StartSpeaking(Channel channel) override;
-
-            /**
-             * @brief Connects to the given channel and uses the source to speak.
-             * 
-             * @param channel: The voice channel to connect to.
-             * @param source: The audio source for speaking.
-             * 
-             * @return Returns true if the connection succeeded.
-             */
-            bool StartSpeaking(Channel channel, AudioSource source) override;
-
-            /**
-             * @brief Pauses the audio source. @see ResumeSpeaking to continue streaming.
-             * 
-             * @param guild: The guild to pause.
-             */
-            void PauseSpeaking(Guild guild) override;
-
-            /**
-             * @brief Resumes the audio source.
-             * 
-             * @param guild: The guild to resume.
-             */
-            void ResumeSpeaking(Guild guild) override;
-
-            /**
-             * @brief Stops the audio source.
-             * 
-             * @param guild: The guild to stop.
-             */
-            void StopSpeaking(Guild guild) override;
-
-            /**
-             * @brief Removes a song from the queue by its index.
-             */
-            void RemoveSong(Channel channel, size_t Index) override;
-
-            /**
-             * @brief Removes a song from the queue by its title or part of the title.
-             */
-            void RemoveSong(Channel channel, const std::string &Name) override;
-
-            /**
-             * @brief Joins a audio channel.
-             * 
-             * @param channel: The voice channel to join.
-             */
-            void Join(Channel channel) override;
-
-            /**
-             * @brief Leaves the audio channel.
-             * 
-             * @param guild: The guild to leave the voice channel.
-             */
-            void Leave(Guild guild) override;
-
-            /**
-             * @return Returns the audio source for the given guild. Null if there is no audio source available.
-             */
-            AudioSource GetAudioSource(Guild guild) override;
-
-            /**
-             * @return Returns the music queue for the given guild. Null if there is no music queue available.
-             */
-            MusicQueue GetMusicQueue(Guild guild) override;
-
-            /**
-             * @return Returns true if a audio source is playing in the given guild.
-             */
-            bool IsPlaying(Guild guild) override;
-
-            /**
              * @brief Runs the bot. The call returns if you calls Quit(). @see Quit()
              */
             void Run() override;
@@ -300,30 +214,13 @@ namespace DiscordBot
             /**
              * @return Gets a guild object by its id or null.
              */
-            Guild GetGuild(const std::string &GID) override
+            Guild GetGuild(const CSnowflake &GID) override
             {
                 auto IT = m_Guilds->find(GID);
                 if(IT != m_Guilds->end())
                     return IT->second;
 
                 return nullptr;
-            }
-
-            GuildAdmin GetAdminInterface(Guild g) override
-            {
-                if(!g || g->ID == "")
-                    return nullptr;
-
-                auto IT = m_Admins->find(g->ID);
-                if(IT == m_Admins->end())
-                {
-                    auto ret = GuildAdmin(new CGuildAdmin(this, g));
-                    m_Admins->insert({g->ID, ret});
-
-                    return ret;
-                }
-
-                return IT->second;
             }
 
             /**
@@ -339,6 +236,11 @@ namespace DiscordBot
             // Internal APIs
 
             /**
+             * @brief Joins or leaves a voice channel.
+             */
+            void ChangeVoiceState(VoiceChannel Channel);
+
+            /**
              * @brief Checks the bots permissions.
              */
             bool CheckPermissions(Guild guild, Permission Needed, std::vector<PermissionOverwrites> Overwrites = std::vector<PermissionOverwrites>());
@@ -349,7 +251,7 @@ namespace DiscordBot
             ix::HttpResponsePtr Patch(const std::string &URL, const std::string &Body, const std::string &ContentType = "application/json");
             ix::HttpResponsePtr Delete(const std::string &URL, const std::string &Body = "");
 
-            GuildMember GetMember(Guild guild, const std::string &UserID);
+            GuildMember GetMember(Guild guild, const CSnowflake &UserID);
             User GetUser(const std::string &ID)
             {
                 auto IT = m_Users->find(ID);
@@ -369,7 +271,7 @@ namespace DiscordBot
                     return Ret;
 
                 Ret = CObjectFactory::Deserialize<CUser>(this, js);
-                m_Users->insert({Ret->ID.load(), Ret});
+                m_Users->insert({Ret->ID, Ret});
 
                 return Ret;
             }
@@ -385,10 +287,12 @@ namespace DiscordBot
             const char *BASE_URL = "https://discord.com/api";
             std::string USER_AGENT;
 
-            using VoiceSockets = std::map<std::string, VoiceSocket>;
-            using AudioSources = std::map<std::string, AudioSource>;
-            using MusicQueues = std::map<std::string, MusicQueue>;
-            using AdminInterfaces = std::map<std::string, GuildAdmin>;
+            using VoiceSockets = std::map<CSnowflake, VoiceSocket>;
+            using AudioSources = std::map<CSnowflake, AudioSource>;
+            using MusicQueues = std::map<CSnowflake, MusicQueue>;
+
+            
+            using AdminInterfaces = std::map<CSnowflake, GuildAdmin>;
 
             CMessageManager m_EVManger;
             Intent m_Intents;
@@ -408,15 +312,13 @@ namespace DiscordBot
             User m_BotUser;
 
             // Unavailable guild IDs.
-            std::vector<std::string> m_Unavailables;
+            std::vector<CSnowflake> m_Unavailables;
 
             //Map of all users in different servers.
             atomic<Users> m_Users;
 
             //All Guilds where the bot is in.
             atomic<Guilds> m_Guilds;
-
-            atomic<AdminInterfaces> m_Admins;
 
             //All open voice connections.
             atomic<VoiceSockets> m_VoiceSockets;
@@ -439,11 +341,6 @@ namespace DiscordBot
              * @brief Updates the userinfo things like online state, afk, now playing etc.
              */
             void UpdateUserInfo();
-
-            /**
-             * @brief Joins or leaves a voice channel.
-             */
-            void ChangeVoiceState(const std::string &Guild, const std::string &Channel = "");
 
             /**
              * @brief Handles async. Messages.

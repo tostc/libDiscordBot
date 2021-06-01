@@ -49,7 +49,7 @@ namespace DiscordBot
     class IChannel : public CDiscordObject
     {
         public:
-            IChannel(IDiscordClient *client) : CDiscordObject(client), Position(0), Bitrate(0), UserLimit(0) {}
+            IChannel(IDiscordClient *client) : CDiscordObject(client), Position(0) {}
 
             ChannelTypes Type;
             std::atomic<int> Position;
@@ -57,11 +57,6 @@ namespace DiscordBot
             atomic<std::string> Name;
             atomic<std::string> Icon;
             atomic<std::string> ParentID;
-
-            ///Voice
-            std::atomic<int> Bitrate;
-            std::atomic<int> UserLimit;
-
 
             //DM
             atomic<std::vector<User>> Recipients;

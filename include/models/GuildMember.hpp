@@ -30,8 +30,9 @@
 #include <models/GuildMemberProperties.hpp>
 #include <models/Role.hpp>
 #include <models/User.hpp>
-#include <models/VoiceState.hpp>
+#include <models/voice/VoiceState.hpp>
 #include <models/atomic.hpp>
+#include <models/DiscordObject.hpp>
 #include <string>
 #include <vector>
 
@@ -39,12 +40,11 @@ namespace DiscordBot
 {
     class IDiscordClient;
 
-    class CGuildMember
+    class CGuildMember : public CDiscordObject
     {
         public:
-            CGuildMember(IDiscordClient *Client) : m_Client(Client), Deaf(false), Mute(false) {}
+            CGuildMember(IDiscordClient *Client) : CDiscordObject(Client), Deaf(false), Mute(false) {}
 
-            atomic<std::string> GuildID;
             User UserRef;
             atomic<std::string> Nick;
             atomic<std::vector<Role>> Roles;
@@ -81,7 +81,6 @@ namespace DiscordBot
 
             ~CGuildMember() {}
         private:
-            IDiscordClient *m_Client;
     };
 
     using GuildMember = std::shared_ptr<CGuildMember>;

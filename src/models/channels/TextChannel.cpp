@@ -23,12 +23,12 @@
  */
 
 #include <models/channels/TextChannel.hpp>
-#include <CJSON/JSON.hpp>
+#include <JSON.hpp>
 #include <Log.hpp>
 #include <models/exceptions/DiscordException.hpp>
-#include "../helpers/Factory/ObjectFactory.hpp"
-#include "../helpers/MultipartFormData.hpp"
-#include "../controller/DiscordClient.hpp"
+#include "../../helpers/Factory/ObjectFactory.hpp"
+#include "../../helpers/MultipartFormData.hpp"
+#include "../../controller/DiscordClient.hpp"
 #include <tinyformat.h>
 
 namespace DiscordBot

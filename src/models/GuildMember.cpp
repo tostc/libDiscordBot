@@ -43,7 +43,7 @@ namespace DiscordBot
         };
 
         CDiscordClient *Client = dynamic_cast<CDiscordClient*>(m_Client);
-        Guild guild = Client->GetGuild(GuildID.load());
+        Guild guild = Client->GetGuild(GuildID);
 
         auto values = Modifications.GetValues();
         bool HasRoles = Modifications.HasRoles();
@@ -95,7 +95,7 @@ namespace DiscordBot
             auto Roles = Modifications.GetRoles();
             
             for (auto &&e : Roles)
-                IDs.push_back(e->ID);
+                IDs.push_back((std::string)e->ID);
 
             js.AddPair("roles", IDs);         
         }
@@ -115,13 +115,13 @@ namespace DiscordBot
             throw CDiscordClientException("Given channel is not a voice channel!");
 
         CDiscordClient *Client = dynamic_cast<CDiscordClient*>(m_Client);
-        Guild guild = Client->GetGuild(GuildID.load());
+        Guild guild = Client->GetGuild(GuildID);
 
         if(!Client->CheckPermissions(guild, Permission::MOVE_MEMBERS))
             throw CPermissionException("Missing permission: 'MOVE_MEMBERS'");
 
         CJSON js;
-        js.AddPair("channel_id", channel->ID.load());
+        js.AddPair("channel_id", (std::string)channel->ID);
 
         auto res = Client->Patch(tfm::format("/guilds/%s/members/%s", GuildID, UserRef->ID), js.Serialize());
         if(res->statusCode != 204)

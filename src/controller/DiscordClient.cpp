@@ -97,7 +97,21 @@ namespace DiscordBot
         SendOP(OPCodes::PRESENCE_UPDATE, CreateUserInfoJSON());
     }
 
-#pragma region TO_CHANNEL
+    void CDiscordClient::ChangeVoiceState(VoiceChannel Channel)
+    {
+        CJSON json;
+        json.AddPair("guild_id", (std::string)Channel->GuildID);
+
+        if(Channel->ID.IsValidID())
+            json.AddPair("channel_id", (std::string)Channel->ID);
+        else
+            json.AddPair("channel_id", nullptr);
+
+        json.AddPair("self_mute", false);
+        json.AddPair("self_deaf", false);
+
+        SendOP(OPCodes::VOICE_STATE_UPDATE, json.Serialize());
+    }
 
     // TODO: Create Factory
     std::string CDiscordClient::CreateUserInfoJSON()
@@ -125,42 +139,6 @@ namespace DiscordBot
 
         return json.Serialize();
     }
-
-    // TODO: Move to CChannel
-    void CDiscordClient::ChangeVoiceState(const std::string &Guild, const std::string &Channel)
-    {
-        CJSON json;
-        json.AddPair("guild_id", Guild);
-
-        if(!Channel.empty())
-            json.AddPair("channel_id", Channel);
-        else
-            json.AddPair("channel_id", nullptr);
-
-        json.AddPair("self_mute", false);
-        json.AddPair("self_deaf", false);
-
-        SendOP(OPCodes::VOICE_STATE_UPDATE, json.Serialize());
-    }
-
-    // TODO: Move to CChannel
-    void CDiscordClient::Join(Channel channel)
-    {
-        // if (!channel || channel->GuildID->empty() || channel->ID->empty())
-        //     return;
-
-        // ChangeVoiceState(channel->GuildID, channel->ID);
-    }
-
-    // TODO: Move to CChannel
-    void CDiscordClient::Leave(Guild guild)
-    {
-        if (!guild)
-            return;
-
-        ChangeVoiceState(guild->ID);
-    }
-#pragma endregion
 
 #pragma region WHERE_TO_MOVE
 
@@ -205,7 +183,7 @@ namespace DiscordBot
         else if(m_QueueFactory)
         {
             auto Tmp = m_QueueFactory->Create();
-            Tmp->SetGuildID(guild->ID);
+            // Tmp->SetGuildID(guild->ID);
             Tmp->SetOnWaitFinishCallback(std::bind(&CDiscordClient::OnQueueWaitFinish, this, std::placeholders::_1, std::placeholders::_2));
             Tmp->AddSong(Info);
             m_MusicQueues->insert({guild->ID, Tmp});
@@ -241,7 +219,7 @@ namespace DiscordBot
             IT->second->StartSpeaking(source);
         else if(source)
         {
-            Join(channel);
+            // Join(channel);
 
             m_AudioSources->insert({channel->GuildID, source});
         }
@@ -362,7 +340,7 @@ namespace DiscordBot
         auto IT = m_Guilds->begin();
         while (IT != m_Guilds->end())
         {
-            Leave(IT->second);
+            // Leave(IT->second);
             IT++;
         }
 
@@ -492,7 +470,7 @@ namespace DiscordBot
                                 m_SessionID = json.GetValue<std::string>("session_id");
 
                                 m_BotUser = CObjectFactory::Deserialize<CUser>(this, json.GetValue<std::string>("user"));
-                                m_Users->insert({m_BotUser->ID.load(), m_BotUser});
+                                m_Users->insert({m_BotUser->ID, m_BotUser});
 
                                 auto Unavailables = json.GetValue<std::vector<std::string>>("guilds");
                                 for (auto &&e : Unavailables)
@@ -789,18 +767,6 @@ namespace DiscordBot
                                         if(IT != Tmp->GuildRef->Members->end())
                                         {
                                             m_Controller->OnVoiceStateUpdate(Tmp->GuildRef, IT->second);
-
-                                            auto AIT = m_Admins->find(Tmp->GuildRef->ID);
-                                            if(AIT != m_Admins->end())
-                                            {
-                                                auto Admin = std::dynamic_pointer_cast<CGuildAdmin>(AIT->second);
-
-                                                if(!c)
-                                                    c = Tmp->ChannelRef;
-                                                    
-                                                if(c)
-                                                    Admin->OnUserVoiceStateChanged(c, IT->second);
-                                            }
                                         }
                                     }
                                 }   
@@ -818,7 +784,8 @@ namespace DiscordBot
                                     auto UIT = GIT->second->Members->find(m_BotUser->ID);
                                     if (UIT != GIT->second->Members->end())
                                     {
-                                        VoiceSocket Socket = VoiceSocket(new CVoiceSocket(json, UIT->second->State->SessionID, m_BotUser->ID));
+                                        //TODO:
+                                        VoiceSocket Socket = nullptr;//VoiceSocket(new CVoiceSocket(json, UIT->second->State->SessionID, m_BotUser->ID));
                                         Socket->SetOnSpeakFinish(std::bind(&CDiscordClient::OnSpeakFinish, this, std::placeholders::_1));
                                         m_VoiceSockets->insert({GIT->second->ID, Socket});
 
@@ -828,7 +795,8 @@ namespace DiscordBot
                                             if(m_MusicQueues->find(GIT->second->ID) == m_MusicQueues->end())
                                             {
                                                 MusicQueue MQ = m_QueueFactory->Create();
-                                                MQ->SetGuildID(GIT->second->ID);
+                                                //TODO:
+                                                // MQ->SetGuildID(GIT->second->ID);
                                                 MQ->SetOnWaitFinishCallback(std::bind(&CDiscordClient::OnQueueWaitFinish, this, std::placeholders::_1, std::placeholders::_2));
                                                 m_MusicQueues->insert({GIT->second->ID, MQ});
                                             }
@@ -853,38 +821,24 @@ namespace DiscordBot
                             {
                                 Message msg = CObjectFactory::Deserialize<CMessage>(this, Pay.D);
                                 
-                                std::shared_ptr<CGuildAdmin> Admin;
-                                auto AIT = m_Admins->find(msg->GuildRef->ID);
-                                if(AIT != m_Admins->end())
-                                    Admin = std::dynamic_pointer_cast<CGuildAdmin>(AIT->second);
-
                                 switch (Adler32(Pay.T.c_str()))
                                 {
                                     case Adler32("MESSAGE_CREATE"):
                                     {
                                         if (m_Controller)
                                             m_Controller->OnMessage(msg);
-
-                                        if(Admin)
-                                            Admin->OnMessageEvent(ActionType::MESSAGE_CREATED, msg->ChannelRef, msg);
                                     }break;
 
                                     case Adler32("MESSAGE_UPDATE"):
                                     {
                                         if (m_Controller)
                                             m_Controller->OnMessageEdited(msg);
-
-                                        if(Admin)
-                                            Admin->OnMessageEvent(ActionType::MESSAGE_EDITED, msg->ChannelRef, msg);
                                     }break;
 
                                     case Adler32("MESSAGE_DELETE"):
                                     {
                                         if (m_Controller)
                                             m_Controller->OnMessageDeleted(msg);
-
-                                        if(Admin)
-                                            Admin->OnMessageEvent(ActionType::MESSAGE_DELETED, msg->ChannelRef, msg);
                                     }break;
                                 }
 
@@ -1031,7 +985,7 @@ namespace DiscordBot
 
     bool CDiscordClient::CheckPermissions(Guild guild, Permission Needed, std::vector<PermissionOverwrites> Overwrites)
     {
-        GuildMember Member = GetMember(guild, m_BotUser->ID.load());
+        GuildMember Member = GetMember(guild, m_BotUser->ID);
 
         bool HasPermission = false;
         for (auto it = Member->Roles->begin(); it < Member->Roles->end(); it++)
@@ -1189,7 +1143,7 @@ namespace DiscordBot
         }
     }
 
-    GuildMember CDiscordClient::GetMember(Guild guild, const std::string &UserID)
+    GuildMember CDiscordClient::GetMember(Guild guild, const CSnowflake &UserID)
     {
         auto UserIT = guild->Members->find(UserID);
         GuildMember Ret;
@@ -1198,7 +1152,7 @@ namespace DiscordBot
             Ret = UserIT->second;
         else
         {
-            auto res = Get("/guilds/" + guild->ID + "/members/" + UserID);
+            auto res = Get("/guilds/" + (std::string)guild->ID + "/members/" + (std::string)UserID);
             if (res->statusCode != 200)
                 llog << lerror << "Failed to receive owner info HTTP: " << res->statusCode << " MSG: " << res->errorMsg << lendl;
             else

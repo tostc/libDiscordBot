@@ -28,7 +28,7 @@
 #include "../../controller/DiscordClient.hpp"
 #include "ISerializeFactory.hpp"
 #include <Log.hpp>
-#include <models/VoiceState.hpp>
+#include <models/voice/VoiceState.hpp>
 
 namespace DiscordBot
 {

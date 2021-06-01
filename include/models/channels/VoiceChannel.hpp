@@ -22,39 +22,38 @@
  * SOFTWARE.
  */
 
-#ifndef ROLEFACTORY_HPP
-#define ROLEFACTORY_HPP
+#ifndef VOICECHANNEL_HPP
+#define VOICECHANNEL_HPP
 
-#include "ISerializeFactory.hpp"
-#include <models/Role.hpp>
-#include "../../controller/DiscordClient.hpp"
+#include <models/channels/IChannel.hpp>
+#include <memory>
 
 namespace DiscordBot
 {
-    class CRoleFactory : public TSerializeFactory<CRole>
+    class CVoiceChannel : public IChannel
     {
         public:
-            CRoleFactory(CDiscordClient *client) : TSerializeFactory(client) {}
+            CVoiceChannel(IDiscordClient *Client) : IChannel(Client), Bitrate(0), UserLimit(0) {}
 
-            Role Deserialize(CJSON &json) override
-            {
-                Role ret = Role(new CRole(m_Client));
+            std::atomic<int> Bitrate;
+            std::atomic<int> UserLimit;
 
-                ret->ID = json.GetValue<std::string>("id");
-                ret->Name = json.GetValue<std::string>("name");
-                ret->Color = json.GetValue<uint32_t>("color");
-                ret->Hoist = json.GetValue<bool>("hoist");
-                ret->Position = json.GetValue<int>("position");
-                ret->Permissions = (Permission)json.GetValue<uint32_t>("permissions");
-                ret->Managed = json.GetValue<bool>("managed");
-                ret->Mentionable = json.GetValue<bool>("mentionable");
+            /**
+             * @brief Joins a audio channel.
+             */
+            void Join();
 
-                return ret;
-            }
+            /**
+             * @brief Leaves the audio channel.
+             */
+            // void Leave();
 
-            ~CRoleFactory() {}
+            ~CVoiceChannel() = default;
+        private:
+        /* data */
     };
+
+    using VoiceChannel = std::shared_ptr<CVoiceChannel>;
 } // namespace DiscordBot
 
-
-#endif //CROLEFACTORY_HPP
+#endif //VOICECHANNEL_HPP

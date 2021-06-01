@@ -26,7 +26,7 @@
 #define MESSAGE_HPP
 
 #include <models/GuildMember.hpp>
-#include <models/channels/IChannel.hpp>
+#include <models/channels/TextChannel.hpp>
 #include <models/Guild.hpp>
 #include <string>
 #include <models/DiscordEnums.hpp>
@@ -47,7 +47,7 @@ namespace DiscordBot
             CMessage(IDiscordClient *client) : m_Client(client) {}
 
             std::string ID;
-            Channel ChannelRef;     //!< Could contain a dummy channel if this is a dm. Only the id field is filled.
+            TextChannel ChannelRef;     //!< Could contain a dummy channel if this is a dm. Only the id field is filled.
             Guild GuildRef;
             User Author;
             GuildMember Member;
@@ -57,7 +57,7 @@ namespace DiscordBot
             bool Mention;
             std::vector<GuildMember> Mentions;  //!< Could contains  dummy Guild Members if this is a dm. Only the UserRef field is filled.
             std::vector<Role> RoleMentions;
-            std::vector<Channel> ChannelMentions;   //!< Only textual channels that are visible to everyone.
+            std::vector<TextChannel> ChannelMentions;   //!< Only textual channels that are visible to everyone.
 
             /**
              * @brief Parses a parameter for the Discords messaging format. https://discord.com/developers/docs/reference#message-formatting

@@ -39,8 +39,8 @@ namespace DiscordBot
 {
     class IDiscordClient;
     using DiscordClient = std::shared_ptr<IDiscordClient>;
-    using Users = std::map<std::string, User>;
-    using Guilds = std::map<std::string, Guild>;
+    using Users = std::map<CSnowflake, User>;
+    using Guilds = std::map<CSnowflake, Guild>;
 
     class DISCORDBOT_EXPORT IDiscordClient
     {
@@ -103,93 +103,6 @@ namespace DiscordBot
             virtual void SetActivity(const std::string &Text, const std::string &URL = "") = 0;
 
             /**
-             * @brief Adds a song to the music queue.
-             * 
-             * @param guild: The guild which is associated with the queue.
-             * @param Info: Song informations.
-             */
-            virtual void AddToQueue(Guild guild, SongInfo Info) = 0;
-
-            /**
-             * @brief Connects to the given channel and uses the queue to speak.
-             * 
-             * @param channel: The voice channel to connect to.
-             * 
-             * @return Returns true if the connection succeeded.
-             */
-            virtual bool StartSpeaking(Channel channel) = 0;
-
-            /**
-             * @brief Connects to the given channel and uses the source to speak.
-             * 
-             * @param channel: The voice channel to connect to.
-             * @param source: The audio source for speaking.
-             * 
-             * @return Returns true if the connection succeeded.
-             */
-            virtual bool StartSpeaking(Channel channel, AudioSource source) = 0;
-
-            /**
-             * @brief Pauses the audio source. @see ResumeSpeaking to continue streaming.
-             * 
-             * @param guild: The guild to pause.
-             */
-            virtual void PauseSpeaking(Guild guild) = 0;
-
-            /**
-             * @brief Resumes the audio source.
-             * 
-             * @param guild: The guild to resume.
-             */
-            virtual void ResumeSpeaking(Guild guild) = 0;
-
-            /**
-             * @brief Stops the audio source.
-             * 
-             * @param guild: The guild to stop.
-             */
-            virtual void StopSpeaking(Guild guild) = 0;
-
-            /**
-             * @brief Removes a song from the queue by its index.
-             */
-            virtual void RemoveSong(Channel channel, size_t Index) = 0;
-
-            /**
-             * @brief Removes a song from the queue by its title or part of the title.
-             */
-            virtual void RemoveSong(Channel channel, const std::string &Name) = 0;
-
-            /**
-             * @brief Joins a audio channel.
-             * 
-             * @param channel: The voice channel to join.
-             */
-            virtual void Join(Channel channel) = 0;
-
-            /**
-             * @brief Leaves the audio channel.
-             * 
-             * @param guild: The guild to leave the voice channel.
-             */
-            virtual void Leave(Guild guild) = 0;
-
-            /**
-             * @return Returns the audio source for the given guild. Null if there is no audio source available.
-             */
-            virtual AudioSource GetAudioSource(Guild guild) = 0;
-
-            /**
-             * @return Returns the music queue for the given guild. Null if there is no music queue available.
-             */
-            virtual MusicQueue GetMusicQueue(Guild guild) = 0;
-
-            /**
-             * @return Returns true if a audio source is playing in the given guild.
-             */
-            virtual bool IsPlaying(Guild guild) = 0;
-
-            /**
              * @brief Runs the bot. The call returns if you calls Quit(). @see Quit()
              */
             virtual void Run() = 0;
@@ -222,12 +135,7 @@ namespace DiscordBot
             /**
              * @return Gets a guild object by its id or null.
              */
-            virtual Guild GetGuild(const std::string &GID) = 0;
-
-            /**
-             * @return Gets the administrator interface for a given guild. Or null if g is null.
-             */
-            virtual GuildAdmin GetAdminInterface(Guild g) = 0;
+            virtual Guild GetGuild(const CSnowflake &GID) = 0;
 
             /**
              * @return Gets a list of all users.

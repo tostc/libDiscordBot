@@ -47,16 +47,17 @@ namespace DiscordBot
                 if(Ret->GuildRef)
                 {
                     auto CIT = Ret->GuildRef->Channels->find(json.GetValue<std::string>("channel_id"));
-                    if (CIT != Ret->GuildRef->Channels->end())
-                        Ret->ChannelRef = CIT->second;
+                    if (CIT != Ret->GuildRef->Channels->end() && CIT->second->Type == ChannelTypes::GUILD_TEXT)
+                        Ret->ChannelRef = std::dynamic_pointer_cast<CTextChannel>(CIT->second);
                 }
 
                 //Creates a dummy object for DMs.
                 if (!Ret->ChannelRef)
                 {
-                    Ret->ChannelRef = Channel(new IChannel(m_Client));
+                    // TODO: BROKEN
+                    /*Ret->ChannelRef = Channel(new IChannel(m_Client));
                     Ret->ChannelRef->ID = json.GetValue<std::string>("channel_id");
-                    Ret->ChannelRef->Type = ChannelTypes::DM;
+                    Ret->ChannelRef->Type = ChannelTypes::DM;*/
                 }
 
                 std::string UserJson = json.GetValue<std::string>("author");

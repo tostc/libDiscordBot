@@ -46,7 +46,7 @@ namespace DiscordBot
             std::string Prefix = ctx->Params.front();
             Prefix.erase(std::remove(Prefix.begin(), Prefix.end(), ' '), Prefix.end());
 
-            cfg->ChangePrefix(ctx->Msg->GuildRef->ID, Prefix);
+            cfg->ChangePrefix((std::string)ctx->Msg->GuildRef->ID, Prefix);
             ctx->Msg->ChannelRef->SendMessage("New prefix: " + Prefix);
         }
     }
@@ -59,7 +59,7 @@ namespace DiscordBot
         CommandsConfig cfg = m_Controller->GetCmdConfig();
         if(cfg)
         {
-            cfg->RemovePrefix(ctx->Msg->GuildRef->ID);
+            cfg->RemovePrefix((std::string)ctx->Msg->GuildRef->ID);
             ctx->Msg->ChannelRef->SendMessage("New prefix: " + m_Controller->GetPrefix());
         } 
     }

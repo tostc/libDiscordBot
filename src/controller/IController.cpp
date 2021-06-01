@@ -106,7 +106,7 @@ namespace DiscordBot
 
     std::string IController::GetPrefix(Guild g)
     {
-        return CmdsConfig->GetPrefix(g->ID, Prefix);
+        return CmdsConfig->GetPrefix((std::string)g->ID, Prefix);
     }
 
     /**
@@ -122,7 +122,7 @@ namespace DiscordBot
         if (guild->Owner->UserRef->ID == member->UserRef->ID)
             return true;        
 
-        std::vector<std::string> RoleIDs = CmdsConfig->GetRoles(guild->ID, Cmd);
+        std::vector<std::string> RoleIDs = CmdsConfig->GetRoles((std::string)guild->ID, Cmd);
         if(RoleIDs.empty())
             return m_CommandDescs[Cmd].Mode == AccessMode::EVERYBODY;
         else
@@ -131,7 +131,7 @@ namespace DiscordBot
             {
                 auto IT = std::find_if(member->Roles->begin(), member->Roles->end(), [Id](Role r)
                 {
-                    return Id == r->ID;
+                    return Id == (std::string)r->ID;
                 });
 
                 if(IT != member->Roles->end())

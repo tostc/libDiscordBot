@@ -49,7 +49,7 @@ namespace DiscordBot
 
         CommandsConfig cfg = m_Controller->GetCmdConfig();
         if(cfg)
-            cfg->AddRoles(ctx->Msg->GuildRef->ID, Cmd, RoleIDs);
+            cfg->AddRoles((std::string)ctx->Msg->GuildRef->ID, Cmd, RoleIDs);
     }
 
     void CRightsCommand::RemoveRoles(CommandContext ctx)
@@ -64,7 +64,7 @@ namespace DiscordBot
 
         CommandsConfig cfg = m_Controller->GetCmdConfig();
         if(cfg)
-            cfg->RemoveRoles(ctx->Msg->GuildRef->ID, Cmd, RoleIDs);
+            cfg->RemoveRoles((std::string)ctx->Msg->GuildRef->ID, Cmd, RoleIDs);
     }
 
     void CRightsCommand::RemoveAllRoles(CommandContext ctx)
@@ -81,7 +81,7 @@ namespace DiscordBot
 
         CommandsConfig cfg = m_Controller->GetCmdConfig();
         if(cfg)
-            cfg->DeleteCommand(ctx->Msg->GuildRef->ID, Cmd);
+            cfg->DeleteCommand((std::string)ctx->Msg->GuildRef->ID, Cmd);
     }
 
     void CRightsCommand::GetRoles(CommandContext ctx)
@@ -99,7 +99,7 @@ namespace DiscordBot
         CommandsConfig cfg = m_Controller->GetCmdConfig();
         if(cfg)
         {
-            std::vector<std::string> Roles = cfg->GetRoles(ctx->Msg->GuildRef->ID, Cmd);
+            std::vector<std::string> Roles = cfg->GetRoles((std::string)ctx->Msg->GuildRef->ID, Cmd);
             std::string Msg;
             for (auto &&e : Roles)
             {
@@ -127,7 +127,7 @@ namespace DiscordBot
         for (auto &&e : guild->Roles.load())
         {
             if(e.second->Name == RoleName)
-                return e.second->ID;
+                return (std::string)e.second->ID;
         }
 
         return "";

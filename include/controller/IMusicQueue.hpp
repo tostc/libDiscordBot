@@ -26,7 +26,7 @@
 #define IMUSICQUEUE_HPP
 
 #include <memory>
-#include <models/SongInfo.hpp>
+#include <models/voice/SongInfo.hpp>
 #include <controller/IAudioSource.hpp>
 #include <vector>
 #include <mutex>
