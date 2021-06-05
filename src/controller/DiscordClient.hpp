@@ -46,6 +46,7 @@
 #include <models/channels/VoiceChannel.hpp>
 #include "GuildAdmin.hpp"
 #include "../helpers/Factory/ObjectFactory.hpp"
+#include <controller/VoiceClient.hpp>
 
 #undef SendMessage
 
@@ -278,21 +279,16 @@ namespace DiscordBot
         private:
             enum
             {
-                QUEUE_NEXT_SONG,
+                // QUEUE_NEXT_SONG,
                 RESUME,
                 RECONNECT,
                 QUIT
             };
 
+            using VoiceClients = std::map<CSnowflake, VoiceClient>;
+
             const char *BASE_URL = "https://discord.com/api";
             std::string USER_AGENT;
-
-            using VoiceSockets = std::map<CSnowflake, VoiceSocket>;
-            using AudioSources = std::map<CSnowflake, AudioSource>;
-            using MusicQueues = std::map<CSnowflake, MusicQueue>;
-
-            
-            using AdminInterfaces = std::map<CSnowflake, GuildAdmin>;
 
             CMessageManager m_EVManger;
             Intent m_Intents;
@@ -311,6 +307,9 @@ namespace DiscordBot
             std::string m_SessionID;
             User m_BotUser;
 
+            // Active connections
+            atomic<VoiceClients> m_VoiceClients;
+
             // Unavailable guild IDs.
             std::vector<CSnowflake> m_Unavailables;
 
@@ -319,13 +318,6 @@ namespace DiscordBot
 
             //All Guilds where the bot is in.
             atomic<Guilds> m_Guilds;
-
-            //All open voice connections.
-            atomic<VoiceSockets> m_VoiceSockets;
-
-            atomic<AudioSources> m_AudioSources;
-
-            atomic<MusicQueues> m_MusicQueues;
 
             bool m_IsAFK;
             OnlineState m_State;
@@ -371,13 +363,6 @@ namespace DiscordBot
              * @brief Sends a resume request.
              */
             void SendResume();
-
-            /**
-             * @brief Called from voice socket if a audio source finished.
-             */
-            void OnSpeakFinish(const std::string &Guild);
-
-            void OnQueueWaitFinish(const std::string &Guild, AudioSource Source);
 
             std::string OnlineStateToStr(OnlineState state);
             OnlineState StrToOnlineState(const std::string &state);

@@ -59,7 +59,7 @@ namespace DiscordBot
 #endif
         USER_AGENT = std::string("libDiscordBot (https://github.com/tostc/libDiscordBot, ") + VERSION + ")";
 
-        m_EVManger.SubscribeMessage(QUEUE_NEXT_SONG, std::bind(&CDiscordClient::OnMessageReceive, this, std::placeholders::_1));  
+        // m_EVManger.SubscribeMessage(QUEUE_NEXT_SONG, std::bind(&CDiscordClient::OnMessageReceive, this, std::placeholders::_1));  
         m_EVManger.SubscribeMessage(RESUME, std::bind(&CDiscordClient::OnMessageReceive, this, std::placeholders::_1));  
         m_EVManger.SubscribeMessage(RECONNECT, std::bind(&CDiscordClient::OnMessageReceive, this, std::placeholders::_1));   
         m_EVManger.SubscribeMessage(QUIT, std::bind(&CDiscordClient::OnMessageReceive, this, std::placeholders::_1));   
@@ -140,171 +140,6 @@ namespace DiscordBot
         return json.Serialize();
     }
 
-#pragma region WHERE_TO_MOVE
-
-    // TODO: ???
-    AudioSource CDiscordClient::GetAudioSource(Guild guild)
-    {
-        if(!guild)
-            return AudioSource();
-
-        VoiceSockets::iterator IT = m_VoiceSockets->find(guild->ID);
-        if (IT != m_VoiceSockets->end())
-            return IT->second->GetAudioSource();
-
-        return AudioSource();
-    }   
-
-    MusicQueue CDiscordClient::GetMusicQueue(Guild guild)
-    {
-        if(!guild)
-            return MusicQueue();
-
-        auto IT = m_MusicQueues->find(guild->ID);
-        if (IT != m_MusicQueues->end())
-            return IT->second;
-
-        return MusicQueue();
-    }
-
-    bool CDiscordClient::IsPlaying(Guild guild)
-    {
-        return GetAudioSource(guild) != nullptr;
-    }
-
-    void CDiscordClient::AddToQueue(Guild guild, SongInfo Info)
-    {
-        if(!guild)
-            return;
-
-        auto IT = m_MusicQueues->find(guild->ID);
-        if(IT != m_MusicQueues->end())
-            IT->second->AddSong(Info);
-        else if(m_QueueFactory)
-        {
-            auto Tmp = m_QueueFactory->Create();
-            // Tmp->SetGuildID(guild->ID);
-            Tmp->SetOnWaitFinishCallback(std::bind(&CDiscordClient::OnQueueWaitFinish, this, std::placeholders::_1, std::placeholders::_2));
-            Tmp->AddSong(Info);
-            m_MusicQueues->insert({guild->ID, Tmp});
-        }
-    }
-
-    bool CDiscordClient::StartSpeaking(Channel channel)
-    {
-        // if (!channel || channel->GuildID->empty())
-        //     return false;
-
-        AudioSource Source;
-
-        auto IT = m_MusicQueues->find(channel->GuildID);
-        if(IT != m_MusicQueues->end())
-        {
-            if(IT->second->HasNext())
-                Source = IT->second->Next();
-            else
-                IT->second->ClearQueue();
-        }
-
-        return StartSpeaking(channel, Source);
-    }
-
-    bool CDiscordClient::StartSpeaking(Channel channel, AudioSource source)
-    {
-        // if (!channel || channel->GuildID->empty())
-        //     return false;
-
-        VoiceSockets::iterator IT = m_VoiceSockets->find(channel->GuildID);
-        if (IT != m_VoiceSockets->end() && source)
-            IT->second->StartSpeaking(source);
-        else if(source)
-        {
-            // Join(channel);
-
-            m_AudioSources->insert({channel->GuildID, source});
-        }
-
-        return true;
-    }
-
-    void CDiscordClient::PauseSpeaking(Guild guild)
-    {
-        if(!guild)
-            return;
-
-        VoiceSockets::iterator IT = m_VoiceSockets->find(guild->ID);
-        if (IT != m_VoiceSockets->end())
-            IT->second->PauseSpeaking();
-    }
-
-    void CDiscordClient::ResumeSpeaking(Guild guild) 
-    {
-        if(!guild)
-            return;
-
-        VoiceSockets::iterator IT = m_VoiceSockets->find(guild->ID);
-        if (IT != m_VoiceSockets->end())
-            IT->second->ResumeSpeaking();
-    }
-
-    void CDiscordClient::StopSpeaking(Guild guild)
-    {
-        if(!guild)
-            return;
-
-        VoiceSockets::iterator IT = m_VoiceSockets->find(guild->ID);
-        if (IT != m_VoiceSockets->end())
-            IT->second->StopSpeaking();
-    }
-
-    void CDiscordClient::RemoveSong(Channel channel, size_t Index)
-    {
-        // if (!channel || channel->GuildID->empty())
-        //     return;
-
-        auto IT = m_MusicQueues->find(channel->GuildID);
-        if(IT != m_MusicQueues->end())
-            IT->second->RemoveSong(Index);
-    }
-
-    void CDiscordClient::RemoveSong(Channel channel, const std::string &Name)
-    {
-        // if (!channel || channel->GuildID->empty())
-        //     return;
-
-        auto IT = m_MusicQueues->find(channel->GuildID);
-        if(IT != m_MusicQueues->end())
-            IT->second->RemoveSong(Name);
-    }
-
-    void CDiscordClient::OnSpeakFinish(const std::string &Guild)
-    {
-        if(m_Controller)
-        {
-            m_EVManger.PostMessage(QUEUE_NEXT_SONG, Guild);
-
-            auto IT = m_Guilds->find(Guild);
-            if(IT != m_Guilds->end())
-                m_Controller->OnEndSpeaking(IT->second);
-        }
-    }
-
-    void CDiscordClient::OnQueueWaitFinish(const std::string &Guild, AudioSource Source)
-    {
-        if(!Source)
-        {
-            m_EVManger.PostMessage(QUEUE_NEXT_SONG, Guild);
-            return;
-        }
-
-        VoiceSockets::iterator IT = m_VoiceSockets->find(Guild);
-        if(IT != m_VoiceSockets->end())
-            IT->second->StartSpeaking(Source);
-    }
-
-#pragma endregion WHERE_TO_MOVE
-
-
     void CDiscordClient::Run()
     {
         //Requests the gateway endpoint for bots.
@@ -358,10 +193,8 @@ namespace DiscordBot
         }
 
         m_Guilds->clear();
-        m_VoiceSockets->clear();
-        m_AudioSources->clear();
         m_Users->clear();
-        m_MusicQueues->clear();
+        m_VoiceClients->clear();
         m_Quit = true;
     }
 
@@ -375,7 +208,7 @@ namespace DiscordBot
         switch (Msg->Event)
         {
             // TODO: ??? WHERE_TO_MOVE
-            case QUEUE_NEXT_SONG:
+           /* case QUEUE_NEXT_SONG:
             {
                 auto Data = std::static_pointer_cast<TMessage<std::string>>(Msg);
 
@@ -396,7 +229,7 @@ namespace DiscordBot
                     if(IT != m_VoiceSockets->end())
                         IT->second->StartSpeaking(Source);
                 }
-            }break;
+            }break;*/
 
             case RESUME:
             {
@@ -566,8 +399,7 @@ namespace DiscordBot
                                     else
                                         m_Unavailables.push_back(IT->second->ID);
 
-                                    m_VoiceSockets->erase(IT->second->ID);
-                                    m_MusicQueues->erase(IT->second->ID);
+                                    m_VoiceClients->erase(IT->second->ID);
                                     m_Guilds->erase(IT);
                                 }
 
@@ -757,17 +589,13 @@ namespace DiscordBot
                                 {
                                     if(Tmp->UserRef)
                                     {
+                                        // If the bot leaves the voice channel.
                                         if(Tmp->UserRef->ID == m_BotUser->ID && !Tmp->ChannelRef)
-                                        {
-                                            m_VoiceSockets->erase(Tmp->GuildRef->ID);
-                                            m_MusicQueues->erase(Tmp->GuildRef->ID);
-                                        }
+                                            m_VoiceClients->erase(Tmp->GuildRef->ID);
 
                                         auto IT = Tmp->GuildRef->Members->find(Tmp->UserRef->ID);
                                         if(IT != Tmp->GuildRef->Members->end())
-                                        {
                                             m_Controller->OnVoiceStateUpdate(Tmp->GuildRef, IT->second);
-                                        }
                                     }
                                 }   
                             }break;
@@ -784,31 +612,11 @@ namespace DiscordBot
                                     auto UIT = GIT->second->Members->find(m_BotUser->ID);
                                     if (UIT != GIT->second->Members->end())
                                     {
-                                        //TODO:
-                                        VoiceSocket Socket = nullptr;//VoiceSocket(new CVoiceSocket(json, UIT->second->State->SessionID, m_BotUser->ID));
-                                        Socket->SetOnSpeakFinish(std::bind(&CDiscordClient::OnSpeakFinish, this, std::placeholders::_1));
-                                        m_VoiceSockets->insert({GIT->second->ID, Socket});
+                                        VoiceSocket Socket = VoiceSocket(new CVoiceSocket(json, UIT->second->State->SessionID, (std::string)m_BotUser->ID));
+                                        VoiceClient Client = VoiceClient(new CVoiceClient(Socket));
+                                        m_VoiceClients->insert({GIT->second->ID, Client});
 
-                                        //Creates a music queue for the server.
-                                        if(m_QueueFactory)
-                                        {
-                                            if(m_MusicQueues->find(GIT->second->ID) == m_MusicQueues->end())
-                                            {
-                                                MusicQueue MQ = m_QueueFactory->Create();
-                                                //TODO:
-                                                // MQ->SetGuildID(GIT->second->ID);
-                                                MQ->SetOnWaitFinishCallback(std::bind(&CDiscordClient::OnQueueWaitFinish, this, std::placeholders::_1, std::placeholders::_2));
-                                                m_MusicQueues->insert({GIT->second->ID, MQ});
-                                            }
-                                        }
-
-                                        //Plays the queued audiosource.
-                                        AudioSources::iterator IT = m_AudioSources->find(GIT->second->ID);
-                                        if (IT != m_AudioSources->end())
-                                        {
-                                            Socket->StartSpeaking(IT->second);
-                                            m_AudioSources->erase(IT);
-                                        }
+                                        // TODO: INFORM VoiceChannel::Connect;
                                     }
                                 }
                             }break;
@@ -919,7 +727,7 @@ namespace DiscordBot
             if (!m_HeartACKReceived)
             {
                 m_Socket.stop();
-                m_VoiceSockets->clear();
+                m_VoiceClients->clear();
 
                 if (m_Controller)
                     m_Controller->OnDisconnect();

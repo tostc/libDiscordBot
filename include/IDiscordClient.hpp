@@ -30,7 +30,6 @@
 #include <controller/IAudioSource.hpp>
 #include <models/Embed.hpp>
 #include <controller/IMusicQueue.hpp>
-#include <controller/Factory.hpp>
 #include <config.h>
 #include <models/DiscordEnums.hpp>
 #include <controller/IGuildAdmin.hpp>
@@ -57,19 +56,6 @@ namespace DiscordBot
             inline void RegisterController(Args&& ...args)
             {
                 m_Controller = Controller(new T(this, std::forward<Args...>(args)...));
-            }
-
-            /**
-             * @brief Registers a music queue template for this client. This queue type will created for each connected voice server and handles the audio.
-             * 
-             * @tparam T: Derived class of IMusicQueue
-             * @tparam ...Args: Arguments which are passed to the constructer of the music queue. 
-             */
-            template<class T, class ...Args, typename std::enable_if<std::is_base_of<IMusicQueue, T>::value>::type* = nullptr>
-            inline void RegisterMusicQueue(Args&& ...args)
-            {
-                auto Tuple = std::make_tuple(args...);
-                m_QueueFactory = Factory(new CFactory<IMusicQueue, T, decltype(Tuple)>(Tuple));
             }
 
             /**
@@ -161,9 +147,6 @@ namespace DiscordBot
 
         protected:
             Controller m_Controller;
-
-            using Factory = std::shared_ptr<IFactory<IMusicQueue>>;
-            Factory m_QueueFactory;
     };
 } // namespace DiscordBot
 

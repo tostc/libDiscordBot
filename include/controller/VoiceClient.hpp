@@ -25,17 +25,34 @@
 #ifndef VOICECLIENT_HPP
 #define VOICECLIENT_HPP
 
+#include <controller/Factory.hpp>
 #include <controller/IAudioSource.hpp>
 #include <controller/IMusicQueue.hpp>
-#include <models/voice/SongInfo.hpp>
+#include <controller/IVoiceSocket.hpp>
 #include <memory>
+#include <models/channels/VoiceChannel.hpp>
+#include <models/voice/SongInfo.hpp>
+#include <tuple>
 
 namespace DiscordBot
 {
     class CVoiceClient
     {
         public:
-            CVoiceClient(/* args */) {}
+            CVoiceClient(VoiceSocket socket);
+
+            /**
+             * @brief Registers a music queue template for this client. This queue type will created for each connected voice server and handles the audio.
+             * 
+             * @tparam T: Derived class of IMusicQueue
+             * @tparam ...Args: Arguments which are passed to the constructer of the music queue. 
+             */
+            template<class T, class ...Args, typename std::enable_if<std::is_base_of<IMusicQueue, T>::value>::type* = nullptr>
+            inline static void RegisterMusicQueue(Args&& ...args)
+            {
+                auto Tuple = std::make_tuple(args...);
+                m_QueueFactory = Factory(new CFactory<IMusicQueue, T, decltype(Tuple)>(Tuple));
+            }
 
             /**
              * @brief Adds a song to the music queue.
@@ -46,19 +63,15 @@ namespace DiscordBot
 
             /**
              * @brief Connects to the given channel and uses the queue to speak.
-             * 
-             * @return Returns true if the connection succeeded.
              */
-            bool StartSpeaking();
+            void StartSpeaking();
 
             /**
              * @brief Connects to the given channel and uses the source to speak.
              * 
              * @param source: The audio source for speaking.
-             * 
-             * @return Returns true if the connection succeeded.
              */
-            bool StartSpeaking(AudioSource source);
+            void StartSpeaking(AudioSource source);
 
             /**
              * @brief Pauses the audio source. @see ResumeSpeaking to continue streaming.
@@ -103,7 +116,11 @@ namespace DiscordBot
             ~CVoiceClient() = default;
 
         private:
-        /* data */
+            VoiceSocket m_Socket;
+            MusicQueue m_Queue;
+
+            using Factory = std::shared_ptr<IFactory<IMusicQueue>>;
+            static Factory m_QueueFactory;
     };
 
     using VoiceClient = std::shared_ptr<CVoiceClient>;

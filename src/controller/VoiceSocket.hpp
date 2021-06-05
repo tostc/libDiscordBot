@@ -27,6 +27,7 @@
 
 #include <JSON.hpp>
 #include <controller/IAudioSource.hpp>
+#include <controller/IVoiceSocket.hpp>
 #include <ixwebsocket/IXWebSocket.h>
 #include <ixwebsocket/IXNetSystem.h>
 #include <ixwebsocket/IXUdpSocket.h>
@@ -35,12 +36,10 @@
 
 namespace DiscordBot
 {    
-    using OnStopSpeaking = std::function<void(const std::string&)>;
-
     /**
      * @brief Manages all voice events. Also encode and encrypts audio. 
      */
-    class CVoiceSocket
+    class CVoiceSocket : public IVoiceSocket
     {
         public:
             //All informations from https://discordapp.com/developers/docs/topics/opcodes-and-status-codes#voice
@@ -70,7 +69,7 @@ namespace DiscordBot
             /**
              * @brief Sets the callback which is called if the audio source finished.
              */
-            void SetOnSpeakFinish(OnStopSpeaking call)
+            void SetOnSpeakFinish(OnStopSpeaking call) override
             {
                 m_Callback = call;
             }
@@ -80,27 +79,27 @@ namespace DiscordBot
              * 
              * @param Source: Audiosource which is send to discord.
              */
-            void StartSpeaking(AudioSource Source);
+            void StartSpeaking(AudioSource Source) override;
 
             /**
              * @brief Pause the sending of audio.
              */
-            void PauseSpeaking();
+            void PauseSpeaking() override;
 
             /**
              * @brief Resumes the sending of audio.
              */
-            void ResumeSpeaking();
+            void ResumeSpeaking() override;
 
             /**
              * @brief Stops the sending of audio. Raise a OnSpeakFinish event.
              */
-            void StopSpeaking();
+            void StopSpeaking() override;
 
             /**
              * @return Gets the current playing audio source or null.
              */
-            AudioSource GetAudioSource()
+            AudioSource GetAudioSource() override
             {
                 return m_Source;
             }
@@ -175,7 +174,7 @@ namespace DiscordBot
             void SetSpeaking(bool Speak);
     };
 
-    using VoiceSocket = std::shared_ptr<CVoiceSocket>;
+    // using VoiceSocket = std::shared_ptr<CVoiceSocket>;
 } // namespace DiscordBot
 
 
