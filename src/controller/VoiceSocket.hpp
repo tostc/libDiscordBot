@@ -32,10 +32,12 @@
 #include <ixwebsocket/IXNetSystem.h>
 #include <ixwebsocket/IXUdpSocket.h>
 #include <atomic>
-#include "MessageManager.hpp"
+#include <controller/Messages/MessageManager.hpp>
 
 namespace DiscordBot
 {    
+    using namespace Internal;
+
     /**
      * @brief Manages all voice events. Also encode and encrypts audio. 
      */

@@ -39,7 +39,7 @@
 #include <models/Role.hpp>
 #include <models/Activity.hpp>
 #include <atomic>
-#include "MessageManager.hpp"
+#include <controller/Messages/MessageManager.hpp>
 #include "../models/Payload.hpp"
 #include "VoiceSocket.hpp"
 #include <models/atomic.hpp>
@@ -52,6 +52,8 @@
 
 namespace DiscordBot
 {
+    using namespace Internal;
+
     class CDiscordClient : public IDiscordClient
     {
         public:
@@ -276,16 +278,14 @@ namespace DiscordBot
 
                 return Ret;
             }
-        private:
-            enum
-            {
-                // QUEUE_NEXT_SONG,
-                RESUME,
-                RECONNECT,
-                QUIT
-            };
 
+            CMessageManager *GetMessageManager()
+            {
+                return &m_EVManger;
+            }
+        private:
             using VoiceClients = std::map<CSnowflake, VoiceClient>;
+            using MessageResults = std::map<CSnowflake, MessageResult>;
 
             const char *BASE_URL = "https://discord.com/api";
             std::string USER_AGENT;

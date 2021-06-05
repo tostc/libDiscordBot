@@ -170,6 +170,7 @@ set(SRCS
     "${PROJECT_SOURCE_DIR}/src/controller/IMusicQueue.cpp"
     "${PROJECT_SOURCE_DIR}/src/controller/JSONCmdsConfig.cpp"
     "${PROJECT_SOURCE_DIR}/src/controller/GuildAdmin.cpp"
+    "${PROJECT_SOURCE_DIR}/src/controller/VoiceClient.cpp"
     "${PROJECT_SOURCE_DIR}/src/commands/RightsCommand.cpp"
     "${PROJECT_SOURCE_DIR}/src/commands/HelpCommand.cpp"
     "${PROJECT_SOURCE_DIR}/src/commands/PrefixCommand.cpp"
@@ -177,6 +178,10 @@ set(SRCS
     "${PROJECT_SOURCE_DIR}/src/models/channels/TextChannel.cpp"
     "${PROJECT_SOURCE_DIR}/src/models/Message.cpp"
     "${PROJECT_SOURCE_DIR}/src/models/User.cpp"
+    "${PROJECT_SOURCE_DIR}/src/models/Guild.cpp"
+    "${PROJECT_SOURCE_DIR}/src/models/DiscordObject.cpp"
+    "${PROJECT_SOURCE_DIR}/src/models/GuildMember.cpp"
+    "${PROJECT_SOURCE_DIR}/src/models/channels/VoiceChannel.cpp"
     "${PROJECT_SOURCE_DIR}/src/helpers/Factory/ObjectFactory.cpp")
 
 add_library(${PROJECT_NAME} SHARED ${SRCS})

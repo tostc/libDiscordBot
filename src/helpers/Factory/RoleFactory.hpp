@@ -38,7 +38,7 @@ namespace DiscordBot
 
             Role Deserialize(CJSON &json) override
             {
-                Role ret = Role(new CRole(m_Client));
+                Role ret = Role(new CRole(m_Client, m_Client->GetMessageManager()));
 
                 ret->ID = json.GetValue<std::string>("id");
                 ret->Name = json.GetValue<std::string>("name");

@@ -38,7 +38,7 @@ namespace DiscordBot
 
             User Deserialize(CJSON &json) override
             {
-                User Ret = User(new CUser(m_Client));
+                User Ret = User(new CUser(m_Client, m_Client->GetMessageManager()));
 
                 Ret->ID = json.GetValue<std::string>("id");
                 Ret->Username = json.GetValue<std::string>("username");

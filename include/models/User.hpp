@@ -43,7 +43,7 @@ namespace DiscordBot
     class CUser : public CDiscordObject
     {
         public:
-            CUser(IDiscordClient *client) : CDiscordObject(client), Bot(false), System(false), MFAEnabled(false), Verified(false) {}
+            CUser(IDiscordClient *client, Internal::CMessageManager *MsgMgr) : CDiscordObject(client, MsgMgr), Bot(false), System(false), MFAEnabled(false), Verified(false) {}
 
             atomic<std::string> Username;
             atomic<std::string> Discriminator;

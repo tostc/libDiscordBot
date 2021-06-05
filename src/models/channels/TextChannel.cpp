@@ -44,7 +44,8 @@ namespace DiscordBot
         if(embed)
             json.AddJSON("embed", CObjectFactory::Serialize(dynamic_cast<CDiscordClient*>(m_Client), embed));
 
-        auto res = dynamic_cast<CDiscordClient*>(m_Client)->Post(tfm::format("/channels/%s/messages", ID), CMultipartFormData::CreateFormData(File, json.Serialize()), "multipart/form-data; boundary=libDiscordBot");
+        auto req = m_MsgMgr->RequestMessage(Internal::Requests::POST, CreateHttpMessage(tfm::format("/channels/%s/messages", ID), CMultipartFormData::CreateFormData(File, json.Serialize()), "multipart/form-data; boundary=libDiscordBot"));
+        auto res = req->Value<ix::HttpResponsePtr>();
         llog << linfo << res->headers["X-RateLimit-Remaining"] << lendl;
         
         if (res->statusCode != 200)
@@ -64,7 +65,8 @@ namespace DiscordBot
         if(embed)
             json.AddJSON("embed", CObjectFactory::Serialize(dynamic_cast<CDiscordClient*>(m_Client), embed));
 
-        auto res = dynamic_cast<CDiscordClient*>(m_Client)->Post(tfm::format("/channels/%s/messages", ID), json.Serialize());
+        auto req = m_MsgMgr->RequestMessage(Internal::Requests::POST, CreateHttpMessage(tfm::format("/channels/%s/messages", ID), json.Serialize()));
+        auto res = req->Value<ix::HttpResponsePtr>();
         if (res->statusCode != 200)
             throw CDiscordClientException("Failed to send message. Error: " + res->body + " HTTP Code: " + std::to_string(res->statusCode));
 

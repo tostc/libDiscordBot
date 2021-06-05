@@ -45,7 +45,7 @@ namespace DiscordBot
         public:
             using BanList = std::vector<std::pair<std::string, User>>;
 
-            CGuild(IDiscordClient *Client) : CDiscordObject(Client) {}
+            CGuild(IDiscordClient *Client, Internal::CMessageManager *MsgMgr) : CDiscordObject(Client, MsgMgr) {}
 
             atomic<std::string> Name;
             atomic<std::string> Icon;

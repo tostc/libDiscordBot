@@ -28,7 +28,7 @@
 #include <JSON.hpp>
 #include <string>
 #include <memory>
-
+#include <models/Guild.hpp>
 namespace DiscordBot
 {
     class CDiscordClient;
@@ -58,6 +58,11 @@ namespace DiscordBot
             }
 
             virtual std::shared_ptr<T> Deserialize(CJSON &JS)
+            {
+                return nullptr;
+            }
+
+            virtual std::shared_ptr<T> Deserialize(CJSON &JS, Guild g)
             {
                 return nullptr;
             }

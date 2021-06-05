@@ -58,6 +58,16 @@ namespace DiscordBot
                 return std::dynamic_pointer_cast<TSerializeFactory<T>>(IT->second(client))->Deserialize(json);
             }
 
+            template<class T>
+            static std::shared_ptr<T> Deserialize(CDiscordClient *client, const std::string &JS, Guild g)
+            {
+                CJSON json;
+                json.ParseObject(JS);
+
+                auto IT = m_Factories.find(typeid(T));
+                return std::dynamic_pointer_cast<TSerializeFactory<T>>(IT->second(client))->Deserialize(json, g);
+            }
+
         private:
             using Factory = std::function<std::shared_ptr<ISerializeFactory>(CDiscordClient *client)>; //std::shared_ptr<IFactory<ISerializeFactory>>;
             

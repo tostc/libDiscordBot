@@ -49,7 +49,7 @@ namespace DiscordBot
     class IChannel : public CDiscordObject
     {
         public:
-            IChannel(IDiscordClient *client) : CDiscordObject(client), Position(0) {}
+            IChannel(IDiscordClient *client, Internal::CMessageManager *MsgMgr) : CDiscordObject(client, MsgMgr), Position(0) {}
 
             ChannelTypes Type;
             std::atomic<int> Position;

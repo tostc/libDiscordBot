@@ -1,7 +1,7 @@
 /*
  * MIT License
  *
- * Copyright (c) 2020 Christian Tost
+ * Copyright (c) 2021 Christian Tost
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -21,38 +21,45 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
+#ifndef MESSAGEBASE_HPP
+#define MESSAGEBASE_HPP
 
-#ifndef ROLE_HPP
-#define ROLE_HPP
-
-#include <string>
+#include <stddef.h>
+#include <stdint.h>
 #include <memory>
-#include <stdlib.h>
-#include <atomic>
-#include <models/atomic.hpp>
-#include <models/DiscordEnums.hpp>
-#include <models/DiscordObject.hpp>
 
 namespace DiscordBot
-{  
-    class CRole : public CDiscordObject
+{
+    // Internal API don't use.
+    namespace Internal
     {
-        public:
-            CRole(IDiscordClient *Client, Internal::CMessageManager *MsgMgr) : CDiscordObject(Client, MsgMgr) {}
+        class IMessageBase
+        {
+            public:
+                IMessageBase() : Event(0), Handled(false) {}
 
-            atomic<std::string> Name;
-            std::atomic<uint32_t> Color;     //Color of the role.
-            std::atomic<bool> Hoist;
-            std::atomic<int> Position;
-            Permission Permissions;
-            std::atomic<bool> Managed;
-            std::atomic<bool> Mentionable;
+                size_t Event;           //!< User defined Messagetype.
+                bool Handled;           //!< True if the message doesn't need to propagate.
+                int Timeout;
+                int64_t CreateddMs;
 
-            ~CRole() {}
-    };
+                virtual ~IMessageBase() {}
+        };
 
-    using Role = std::shared_ptr<CRole>;
+        /**
+         * @brief Contains a value for the receiver.
+         */
+        template <class T>
+        class TMessage : public IMessageBase
+        {
+            public:
+                TMessage() : IMessageBase() {}
+
+                T Value;
+        };
+
+        using MessageBase = std::shared_ptr<IMessageBase>;
+    }
 } // namespace DiscordBot
 
-
-#endif //ROLE_HPP
+#endif //MESSAGEBASE_HPP

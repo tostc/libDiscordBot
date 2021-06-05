@@ -27,6 +27,7 @@
 #include <models/exceptions/DiscordException.hpp>
 #include <tinyformat.h>
 #include "../controller/DiscordClient.hpp"
+#include "../helpers/Helper.hpp"
 
 namespace DiscordBot
 {
@@ -84,7 +85,7 @@ namespace DiscordBot
         return IT->second;
     }
 
-    void CGuild::Ban(GuildMember Member, const std::string &Reason = "", int DeleteMsgDays = -1)
+    void CGuild::Ban(GuildMember Member, const std::string &Reason, int DeleteMsgDays)
     {
         BanMembersCheck();
 

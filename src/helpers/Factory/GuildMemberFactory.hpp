@@ -40,11 +40,16 @@ namespace DiscordBot
 
             GuildMember Deserialize(CJSON &JS) override
             {
-                GuildMember Ret = GuildMember(new CGuildMember(m_Client));
+                return Deserialize(JS, m_Client->GetGuild(JS.GetValue<std::string>("guild_id")));
+            }
+
+            GuildMember Deserialize(CJSON &JS, Guild g) override
+            {
+                GuildMember Ret = GuildMember(new CGuildMember(m_Client, m_Client->GetMessageManager()));
                 std::string UserInfo = JS.GetValue<std::string>("user");
 
                 User member;
-                Guild guild = m_Client->GetGuild(JS.GetValue<std::string>("guild_id"));
+                Guild guild = g;
 
                 //Gets the user which is associated with the member.
                 if (!UserInfo.empty())

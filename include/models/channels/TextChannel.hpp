@@ -32,7 +32,7 @@ namespace DiscordBot
     class CTextChannel : public IChannel
     {
         public:
-            CTextChannel(IDiscordClient *Client) : IChannel(Client), NSFW(false), RateLimit(0) {}
+            CTextChannel(IDiscordClient *Client, Internal::CMessageManager *MsgMgr) : IChannel(Client, MsgMgr), NSFW(false), RateLimit(0) {}
 
             atomic<std::string> Topic;
             std::atomic<bool> NSFW;

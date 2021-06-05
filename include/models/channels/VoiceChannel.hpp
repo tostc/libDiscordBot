@@ -25,6 +25,7 @@
 #ifndef VOICECHANNEL_HPP
 #define VOICECHANNEL_HPP
 
+#include <controller/VoiceClient.hpp>
 #include <models/channels/IChannel.hpp>
 #include <memory>
 
@@ -33,7 +34,7 @@ namespace DiscordBot
     class CVoiceChannel : public IChannel
     {
         public:
-            CVoiceChannel(IDiscordClient *Client) : IChannel(Client), Bitrate(0), UserLimit(0) {}
+            CVoiceChannel(IDiscordClient *Client, Internal::CMessageManager *MsgMgr) : IChannel(Client, MsgMgr), Bitrate(0), UserLimit(0) {}
 
             std::atomic<int> Bitrate;
             std::atomic<int> UserLimit;
@@ -41,7 +42,7 @@ namespace DiscordBot
             /**
              * @brief Joins a audio channel.
              */
-            void Join();
+            VoiceClient Join();
 
             /**
              * @brief Leaves the audio channel.
@@ -49,8 +50,6 @@ namespace DiscordBot
             // void Leave();
 
             ~CVoiceChannel() = default;
-        private:
-        /* data */
     };
 
     using VoiceChannel = std::shared_ptr<CVoiceChannel>;

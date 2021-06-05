@@ -22,44 +22,54 @@
  * SOFTWARE.
  */
 
-#ifndef DISCORDOBJECT_HPP
-#define DISCORDOBJECT_HPP
+#ifndef INTERNALMESSAGES_HPP
+#define INTERNALMESSAGES_HPP
 
-#include <models/DiscordEnums.hpp>
 #include <models/Snowflake.hpp>
-#include <models/PermissionOverwrites.hpp>
-#include <controller/Messages/MessageManager.hpp>
-#include <vector>
+#include <controller/Messages/MessageResult.hpp>
+#include <memory>
 
 namespace DiscordBot
 {
-    class IDiscordClient;
-
-    class CDiscordObject
+    // Internal API don't use.
+    namespace Internal
     {
-        public:
-            CDiscordObject(IDiscordClient *Client, Internal::CMessageManager *MsgMgr) : m_Client(Client), m_MsgMgr(MsgMgr) {}
+        enum Requests
+        {
+            JOIN,
 
-            CSnowflake ID;
-            CSnowflake GuildID;
 
-            ~CDiscordObject() = default;
-        protected:
-            // INTERNAL APIS DO NOT USE!!!
+            // HTTP operations
+            PUT,
+            POST,
+            PATCH,
+            GET,
+            DELETE,
 
-            /**
-             * @brief Checks for permissions.
-             * 
-             * @throw CPermissionException On missing permissions.
-             */
-            void CheckPermissions(Permission p, std::vector<PermissionOverwrites> Overwrites = std::vector<PermissionOverwrites>());
-            std::string PermissionToString(Permission val);
+            RESUME,
+            RECONNECT,
+            QUIT
+        };
 
-            Internal::HttpMessage CreateHttpMessage(const std::string &url, const std::string &body, const std::string &contentType = "application/json");
+        class IInternalMessage
+        {
+            public:
+                CSnowflake ID;
+                MessageResult Res;
+        };
 
-            IDiscordClient *m_Client;
-            Internal::CMessageManager *m_MsgMgr;
-    };
+        class CHttpMessage : public IInternalMessage
+        {
+            public:
+                std::string URL;
+                std::string Body;
+                std::string ContentType;
+        };
+
+        using InternalMessage = std::shared_ptr<IInternalMessage>;
+        using HttpMessage = std::shared_ptr<CHttpMessage>;
+    }
 } // namespace DiscordBot
 
-#endif //DISCORDOBJECT_HPP
+
+#endif //INTERNALMESSAGES_HPP

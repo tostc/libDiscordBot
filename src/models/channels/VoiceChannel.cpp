@@ -1,7 +1,7 @@
 /*
  * MIT License
  *
- * Copyright (c) 2020 Christian Tost
+ * Copyright (c) 2021 Christian Tost
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -22,37 +22,17 @@
  * SOFTWARE.
  */
 
-#ifndef ROLE_HPP
-#define ROLE_HPP
-
-#include <string>
-#include <memory>
-#include <stdlib.h>
-#include <atomic>
-#include <models/atomic.hpp>
-#include <models/DiscordEnums.hpp>
-#include <models/DiscordObject.hpp>
+#include <models/channels/VoiceChannel.hpp>
+#include <controller/Messages/InternalMessages.hpp>
 
 namespace DiscordBot
-{  
-    class CRole : public CDiscordObject
+{
+    VoiceClient CVoiceChannel::Join()
     {
-        public:
-            CRole(IDiscordClient *Client, Internal::CMessageManager *MsgMgr) : CDiscordObject(Client, MsgMgr) {}
+        Internal::InternalMessage msg = Internal::InternalMessage(new Internal::IInternalMessage());
+        msg->ID = ID;
 
-            atomic<std::string> Name;
-            std::atomic<uint32_t> Color;     //Color of the role.
-            std::atomic<bool> Hoist;
-            std::atomic<int> Position;
-            Permission Permissions;
-            std::atomic<bool> Managed;
-            std::atomic<bool> Mentionable;
-
-            ~CRole() {}
-    };
-
-    using Role = std::shared_ptr<CRole>;
+        auto req = m_MsgMgr->RequestMessage(Internal::Requests::JOIN, msg);
+        return req->Value<VoiceClient>();
+    }
 } // namespace DiscordBot
-
-
-#endif //ROLE_HPP

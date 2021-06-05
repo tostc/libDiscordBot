@@ -38,6 +38,17 @@ namespace DiscordBot
             throw CPermissionException(tfm::format("Missing permission: '%s'", PermissionToString(p)));
     }
 
+    Internal::HttpMessage CDiscordObject::CreateHttpMessage(const std::string &url, const std::string &body, const std::string &contentType)
+    {
+        HttpMessage ret = HttpMessage(new CHttpMessage());
+        ret->ID = ID;
+        ret->URL = url;
+        ret->Body = body;
+        ret->ContentType = contentType;
+
+        return ret;
+    }
+
     std::string CDiscordObject::PermissionToString(Permission val)
     {
         switch(val)

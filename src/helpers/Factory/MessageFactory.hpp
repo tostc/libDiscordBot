@@ -101,7 +101,7 @@ namespace DiscordBot
                     //Create a fake Guildmember for DMs.
                     if (!Found)
                     {
-                        Ret->Mentions.push_back(GuildMember(new CGuildMember(m_Client)));
+                        Ret->Mentions.push_back(GuildMember(new CGuildMember(m_Client, m_Client->GetMessageManager())));
                         Ret->Mentions.back()->UserRef = user;
                     }
                 }

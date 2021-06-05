@@ -29,6 +29,7 @@
 #include "ISerializeFactory.hpp"
 #include <models/channels/IChannel.hpp>
 #include <models/channels/TextChannel.hpp>
+#include <models/channels/VoiceChannel.hpp>
 
 namespace DiscordBot
 {
@@ -53,7 +54,7 @@ namespace DiscordBot
                     default:
                     {
                         // All unkown channels are simply IChannels.
-                        Ret = Channel(new IChannel(m_Client));
+                        Ret = Channel(new IChannel(m_Client, m_Client->GetMessageManager()));
                         ParseChannel(Ret, json);
                     } break;
                 }
@@ -66,7 +67,7 @@ namespace DiscordBot
         private:
             Channel ParseTextChannel(CJSON &json)
             {
-                TextChannel Ret = TextChannel(new CTextChannel(m_Client));
+                TextChannel Ret = TextChannel(new CTextChannel(m_Client, m_Client->GetMessageManager()));
 
                 ParseChannel(Ret, json);
 
@@ -75,6 +76,17 @@ namespace DiscordBot
                 Ret->LastMessageID = json.GetValue<std::string>("last_message_id");
                 Ret->RateLimit = json.GetValue<int>("rate_limit_per_user");
                 Ret->LastPinTimestamp = json.GetValue<std::string>("last_pin_timestamp");
+
+                return Ret;
+            }
+
+            Channel ParseVoiceChannel(CJSON &json)
+            {
+                VoiceChannel Ret = VoiceChannel(new CVoiceChannel(m_Client, m_Client->GetMessageManager()));
+
+                ParseChannel(Ret, json);
+                Ret->Bitrate = json.GetValue<int>("bitrate");
+                Ret->UserLimit = json.GetValue<int>("user_limit");
 
                 return Ret;
             }
@@ -102,8 +114,6 @@ namespace DiscordBot
                 }
 
                 c->Name = json.GetValue<std::string>("name");
-                c->Bitrate = json.GetValue<int>("bitrate");
-                c->UserLimit = json.GetValue<int>("user_limit");
 
                 Array = json.GetValue<std::vector<std::string>>("recipients");
                 for (auto &&e : Array)

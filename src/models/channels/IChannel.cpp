@@ -25,6 +25,7 @@
 #include <JSON.hpp>
 #include "../../helpers/Factory/ObjectFactory.hpp"
 #include "../../helpers/MultipartFormData.hpp"
+#include "../../helpers/Helper.hpp"
 
 #include <models/exceptions/PermissionException.hpp>
 #include <models/exceptions/DiscordException.hpp>
@@ -80,7 +81,8 @@ namespace DiscordBot
             js.AddJSON("permission_overwrites", tmp.Serialize(OWJS));
         }
 
-        auto res = dynamic_cast<CDiscordClient*>(m_Client)->Patch(tfm::format("/channels/%s", ID), js.Serialize());
+        auto req = m_MsgMgr->RequestMessage(Internal::Requests::PATCH, CreateHttpMessage(tfm::format("/channels/%s", ID), js.Serialize()));
+        auto res = req->Value<ix::HttpResponsePtr>();
         if(res->statusCode != 200)
             throw CDiscordClientException("Can't modify channel. Error: " + res->body + " HTTP Code: " + std::to_string(res->statusCode));
     }
@@ -92,7 +94,8 @@ namespace DiscordBot
         CJSON js;
         js.AddPair("reason", Reason);
 
-        auto res = dynamic_cast<CDiscordClient*>(m_Client)->Delete(tfm::format("/channels/%s", ID), js.Serialize());
+        auto req = m_MsgMgr->RequestMessage(Internal::Requests::PATCH, CreateHttpMessage(tfm::format("/channels/%s", ID), js.Serialize()));
+        auto res = req->Value<ix::HttpResponsePtr>();
         if (res->statusCode != 200)
             throw CDiscordClientException("Can't delete channel. Error: " + res->body + " HTTP Code: " + std::to_string(res->statusCode));
     }

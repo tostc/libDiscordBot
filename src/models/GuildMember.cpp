@@ -30,6 +30,7 @@
 #include <models/GuildMember.hpp>
 #include <models/exceptions/PermissionException.hpp>
 #include <tinyformat.h>
+#include "../helpers/Helper.hpp"
 
 namespace DiscordBot
 {

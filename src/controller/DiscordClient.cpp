@@ -59,10 +59,7 @@ namespace DiscordBot
 #endif
         USER_AGENT = std::string("libDiscordBot (https://github.com/tostc/libDiscordBot, ") + VERSION + ")";
 
-        // m_EVManger.SubscribeMessage(QUEUE_NEXT_SONG, std::bind(&CDiscordClient::OnMessageReceive, this, std::placeholders::_1));  
-        m_EVManger.SubscribeMessage(RESUME, std::bind(&CDiscordClient::OnMessageReceive, this, std::placeholders::_1));  
-        m_EVManger.SubscribeMessage(RECONNECT, std::bind(&CDiscordClient::OnMessageReceive, this, std::placeholders::_1));   
-        m_EVManger.SubscribeMessage(QUIT, std::bind(&CDiscordClient::OnMessageReceive, this, std::placeholders::_1));   
+        m_EVManger.SubscribeMessages(std::bind(&CDiscordClient::OnMessageReceive, this, std::placeholders::_1));  
 
         //Disable client side checking.
         ix::SocketTLSOptions DisabledTrust;
@@ -231,18 +228,40 @@ namespace DiscordBot
                 }
             }break;*/
 
-            case RESUME:
+            case Requests::POST:
+            case Requests::PUT:
+            case Requests::PATCH:
+            case Requests::DELETE:
+            case Requests::GET:
+            {
+                auto message = std::static_pointer_cast<TMessage<HttpMessage>>(Msg);
+                auto httpMsg = message->Value;
+                ix::HttpResponsePtr res;
+
+                switch (Msg->Event)
+                {
+                    case Requests::POST: res = Post(httpMsg->URL, httpMsg->Body, httpMsg->ContentType); break;
+                    case Requests::PUT: res = Put(httpMsg->URL, httpMsg->Body); break;
+                    case Requests::PATCH: res = Patch(httpMsg->URL, httpMsg->Body, httpMsg->ContentType); break;
+                    case Requests::DELETE: res = Delete(httpMsg->URL, httpMsg->Body); break;
+                    case Requests::GET: res = Get(httpMsg->URL); break;
+                };
+
+                httpMsg->Res->Value(res);
+            } break;
+
+            case Requests::RESUME:
             {
                 m_Socket.start();
             }break;
 
-            case RECONNECT:
+            case Requests::RECONNECT:
             {
                 m_SessionID.clear();
                 m_Socket.start();
             }break;
 
-            case QUIT:
+            case Requests::QUIT:
             {
                 Quit();
             }break;
@@ -329,7 +348,7 @@ namespace DiscordBot
                             {
                                 json.ParseObject(Pay.D);
 
-                                Guild guild = Guild(new CGuild(this));
+                                Guild guild = Guild(new CGuild(this, GetMessageManager()));
                                 guild->ID = json.GetValue<std::string>("id");
                                 guild->Name = json.GetValue<std::string>("name");
                                 guild->Icon = json.GetValue<std::string>("icon");
@@ -355,7 +374,7 @@ namespace DiscordBot
                                 //Get all members.
                                 Array = json.GetValue<std::vector<std::string>>("members");
                                 for (auto &&e : Array)
-                                    GuildMember Tmp = CObjectFactory::Deserialize<CGuildMember>(this, e);
+                                    GuildMember Tmp = CObjectFactory::Deserialize<CGuildMember>(this, e, guild);
 
                                 //Get all voice states.
                                 Array = json.GetValue<std::vector<std::string>>("voice_states");
@@ -967,7 +986,7 @@ namespace DiscordBot
             {
                 try
                 {    
-                    Ret = CObjectFactory::Deserialize<CGuildMember>(this, res->body);
+                    Ret = CObjectFactory::Deserialize<CGuildMember>(this, res->body, guild);
                 }
                 catch (const CJSONException &e)
                 {

@@ -38,8 +38,12 @@ namespace DiscordBot
         public:
             CSnowflake() : m_ID(0) {}
 
-            CSnowflake(const std::string &ID)
+            CSnowflake(const char *ID) : CSnowflake(std::string(ID)) {}
+
+            CSnowflake(const std::string &ID) : CSnowflake()
             {
+                if(ID.empty())
+                    return;
 #ifdef BOT64
                 m_ID = std::stoul(ID);
 #else

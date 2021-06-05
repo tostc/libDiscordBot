@@ -43,7 +43,7 @@ namespace DiscordBot
     class CGuildMember : public CDiscordObject
     {
         public:
-            CGuildMember(IDiscordClient *Client) : CDiscordObject(Client), Deaf(false), Mute(false) {}
+            CGuildMember(IDiscordClient *Client, Internal::CMessageManager *MsgMgr) : CDiscordObject(Client, MsgMgr), Deaf(false), Mute(false) {}
 
             User UserRef;
             atomic<std::string> Nick;
@@ -70,9 +70,9 @@ namespace DiscordBot
             /**
              * @brief Moves the member to a voice channel.
              * 
-             * @param channel: The channel where the user is moved to.
+             * @param channel: The channel where the user is moved to. A value of null means, kick the user from the voice channel.
              * 
-             * @note The bot needs following permission `MOVE_MEMBERS` 
+             * @note The bot needs following permission `MOVE_MEMBERS`
              * 
              * @throw CPermissionException On missing permissions.
              * @throw CDiscordClientException On error.
