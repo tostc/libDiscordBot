@@ -78,7 +78,9 @@ namespace DiscordBot
         if(!ChannelRef || ChannelRef->Type != ChannelTypes::GUILD_TEXT && ChannelRef->Type != ChannelTypes::DM)
             return;
 
-        auto res = dynamic_cast<CDiscordClient*>(m_Client)->Put(tfm::format("/channels/%s/messages/%s/reactions/%s/@me", ChannelRef->ID, ID, UriEscape(Emoji)), "");
+        auto req = m_MsgMgr->RequestMessage(Internal::Requests::PUT, CreateHttpMessage(tfm::format("/channels/%s/messages/%s/reactions/%s/@me", ChannelRef->ID, ID, UriEscape(Emoji)), ""));
+        auto res = req->Value<ix::HttpResponsePtr>();
+
         llog << linfo << res->headers["X-RateLimit-Remaining"] << lendl;
         if (res->statusCode != 204)
             llog << lerror << "Failed to send message HTTP: " << res->statusCode << " MSG: " << res->errorMsg << " Body: " << res->body << lendl;
@@ -89,7 +91,8 @@ namespace DiscordBot
         if(!ChannelRef || ChannelRef->Type != ChannelTypes::GUILD_TEXT && ChannelRef->Type != ChannelTypes::DM)
             return;
 
-        auto res = dynamic_cast<CDiscordClient*>(m_Client)->Delete(tfm::format("/channels/%s/messages/%s/reactions", ChannelRef->ID, ID));
+        auto req = m_MsgMgr->RequestMessage(Internal::Requests::DELETE, CreateHttpMessage(tfm::format("/channels/%s/messages/%s/reactions", ChannelRef->ID, ID), ""));
+        auto res = req->Value<ix::HttpResponsePtr>();
         if (res->statusCode != 200)
             llog << lerror << "Failed to send message HTTP: " << res->statusCode << " MSG: " << res->errorMsg << " Body: " << res->body << lendl;
     }
@@ -100,7 +103,8 @@ namespace DiscordBot
         if(!ChannelRef || ChannelRef->Type != ChannelTypes::GUILD_TEXT && ChannelRef->Type != ChannelTypes::DM)
             return Ret;
 
-        auto res = dynamic_cast<CDiscordClient*>(m_Client)->Get(tfm::format("/channels/%s/messages/%s/reactions/%s", ChannelRef->ID, ID, UriEscape(Emoji)));
+        auto req = m_MsgMgr->RequestMessage(Internal::Requests::GET, CreateHttpMessage(tfm::format("/channels/%s/messages/%s/reactions/%s", ChannelRef->ID, ID, UriEscape(Emoji)), ""));
+        auto res = req->Value<ix::HttpResponsePtr>();
         llog << linfo << res->headers["X-RateLimit-Remaining"] << lendl;
         if (res->statusCode != 200)
             llog << lerror << "Failed to send message HTTP: " << res->statusCode << " MSG: " << res->errorMsg << " Body: " << res->body << lendl;
@@ -131,7 +135,8 @@ namespace DiscordBot
         if(embed)
             json.AddJSON("embed", CObjectFactory::Serialize(dynamic_cast<CDiscordClient*>(m_Client), embed));
 
-        auto res = dynamic_cast<CDiscordClient*>(m_Client)->Patch(tfm::format("/channels/%s/messages/%s", ChannelRef->ID, ID), json.Serialize());
+        auto req = m_MsgMgr->RequestMessage(Internal::Requests::PATCH, CreateHttpMessage(tfm::format("/channels/%s/messages/%s", ChannelRef->ID, ID), json.Serialize()));
+        auto res = req->Value<ix::HttpResponsePtr>();
         llog << linfo << res->headers["X-RateLimit-Remaining"] << lendl;
 
         if (res->statusCode != 200)
@@ -143,7 +148,8 @@ namespace DiscordBot
         if(!ChannelRef || ChannelRef->Type != ChannelTypes::GUILD_TEXT && ChannelRef->Type != ChannelTypes::DM)
             return;
 
-        auto res = dynamic_cast<CDiscordClient*>(m_Client)->Delete(tfm::format("/channels/%s/messages/%s", ChannelRef->ID, ID));
+        auto req = m_MsgMgr->RequestMessage(Internal::Requests::DELETE, CreateHttpMessage(tfm::format("/channels/%s/messages/%s", ChannelRef->ID, ID), ""));
+        auto res = req->Value<ix::HttpResponsePtr>();
         if (res->statusCode != 204)
             llog << lerror << "Failed to send message HTTP: " << res->statusCode << " MSG: " << res->errorMsg << " Body: " << res->body << lendl;
     }

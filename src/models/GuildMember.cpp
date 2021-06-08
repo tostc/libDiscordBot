@@ -36,15 +36,14 @@ namespace DiscordBot
 {
     void CGuildMember::Modify(const CGuildMemberProperties &Modifications)
     {
-        static const std::map<size_t, std::pair<Permission, std::string>> MOD_PERMS = {
-            {Adler32("nick"), {Permission::MANAGE_NICKNAMES, "MANAGE_NICKNAMES"}},
-            {Adler32("roles"), {Permission::MANAGE_ROLES, "MANAGE_ROLES"}},
-            {Adler32("deaf"), {Permission::DEAFEN_MEMBERS, "DEAFEN_MEMBERS"}},
-            {Adler32("mute"), {Permission::MUTE_MEMBERS, "MUTE_MEMBERS"}}
+        static const std::map<size_t, Permission> MOD_PERMS = {
+            {Adler32("nick"), Permission::MANAGE_NICKNAMES},
+            {Adler32("roles"), Permission::MANAGE_ROLES},
+            {Adler32("deaf"), Permission::DEAFEN_MEMBERS},
+            {Adler32("mute"), Permission::MUTE_MEMBERS}
         };
 
-        CDiscordClient *Client = dynamic_cast<CDiscordClient*>(m_Client);
-        Guild guild = Client->GetGuild(GuildID);
+        Guild guild = m_Client->GetGuild(GuildID);
 
         auto values = Modifications.GetValues();
         bool HasRoles = Modifications.HasRoles();
@@ -52,7 +51,7 @@ namespace DiscordBot
         if(values.empty() && !HasRoles)    //Nothing to do here.
             return;
 
-        GuildMember Bot = Client->GetBotMember(guild);
+        GuildMember Bot = m_Client->GetBotMember(guild);
 
         CJSON js;
 
@@ -61,18 +60,17 @@ namespace DiscordBot
             size_t Adler = Adler32(e.first.c_str());
 
             auto Perm = MOD_PERMS.at(Adler);
-            if(!Client->CheckPermissions(guild, Perm.first))
-                throw CPermissionException(tfm::format("Missing permission: '%s'", Perm.second));
+            CheckPermissions(Perm);
 
             if(Adler == Adler32("nick") && UserRef->ID == Bot->UserRef->ID)
             {
                 CJSON tmp;
                 tmp.AddPair(e.first, e.second);
 
-                if(!Client->CheckPermissions(guild, Permission::CHANGE_NICKNAME))
-                    throw CPermissionException("Missing permission: 'CHANGE_NICKNAME'");
+                CheckPermissions(Permission::CHANGE_NICKNAME);
 
-                auto res = Client->Patch(tfm::format("/guilds/%s/members/@me/nick", GuildID), tmp.Serialize());
+                auto req = m_MsgMgr->RequestMessage(Internal::Requests::PATCH, CreateHttpMessage(tfm::format("/guilds/%s/members/@me/nick", GuildID), tmp.Serialize()));
+                auto res = req->Value<ix::HttpResponsePtr>();
                 if(res->statusCode != 200)
                     throw CDiscordClientException("Error during member modification. Error: " + res->body + " HTTP Code: " + std::to_string(res->statusCode));
 
@@ -88,9 +86,7 @@ namespace DiscordBot
         if(HasRoles)
         {
             auto Perm = MOD_PERMS.at(Adler32("roles"));
-            if(!Client->CheckPermissions(guild, Perm.first))
-                throw CPermissionException(tfm::format("Missing permission: '%s'", Perm.second));
-
+            CheckPermissions(Perm);
 
             std::vector<std::string> IDs;
             auto Roles = Modifications.GetRoles();
@@ -105,26 +101,29 @@ namespace DiscordBot
         if(values.size() == 1 && values.find("nick") != values.end() && UserRef->ID == Bot->UserRef->ID)
             return;
 
-        auto res = Client->Patch(tfm::format("/guilds/%s/members/%s", GuildID, UserRef->ID), js.Serialize());
+        auto req = m_MsgMgr->RequestMessage(Internal::Requests::PATCH, CreateHttpMessage(tfm::format("/guilds/%s/members/%s", GuildID, UserRef->ID), js.Serialize()));
+        auto res = req->Value<ix::HttpResponsePtr>();
         if(res->statusCode != 204)
             throw CDiscordClientException("Error during member modification. Error: " + res->body + " HTTP Code: " + std::to_string(res->statusCode));
     }
 
     void CGuildMember::Move(Channel channel)
     {
-        if(channel->Type != ChannelTypes::GUILD_VOICE)
-            throw CDiscordClientException("Given channel is not a voice channel!");
-
-        CDiscordClient *Client = dynamic_cast<CDiscordClient*>(m_Client);
-        Guild guild = Client->GetGuild(GuildID);
-
-        if(!Client->CheckPermissions(guild, Permission::MOVE_MEMBERS))
-            throw CPermissionException("Missing permission: 'MOVE_MEMBERS'");
-
         CJSON js;
-        js.AddPair("channel_id", (std::string)channel->ID);
+        CheckPermissions(Permission::MOVE_MEMBERS);
 
-        auto res = Client->Patch(tfm::format("/guilds/%s/members/%s", GuildID, UserRef->ID), js.Serialize());
+        if(channel)
+        {
+            if(channel->Type != ChannelTypes::GUILD_VOICE)
+                throw CDiscordClientException("Given channel is not a voice channel!");
+
+            js.AddPair("channel_id", (std::string)channel->ID);
+        }
+        else
+            js.AddPair("channel_id", nullptr); // Kicks the user.
+
+        auto req = m_MsgMgr->RequestMessage(Internal::Requests::PATCH, CreateHttpMessage(tfm::format("/guilds/%s/members/%s", GuildID, UserRef->ID), js.Serialize()));
+        auto res = req->Value<ix::HttpResponsePtr>();
         if(res->statusCode != 204)
             throw CDiscordClientException("Error during member modification. Error: " + res->body + " HTTP Code: " + std::to_string(res->statusCode));
     }

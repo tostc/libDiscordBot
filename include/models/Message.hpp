@@ -30,6 +30,7 @@
 #include <models/Guild.hpp>
 #include <string>
 #include <models/DiscordEnums.hpp>
+#include <models/DiscordObject.hpp>
 
 namespace DiscordBot
 {
@@ -41,12 +42,11 @@ namespace DiscordBot
         std::string ID;
     };
 
-    class CMessage
+    class CMessage : public CDiscordObject
     {
         public:
-            CMessage(IDiscordClient *client) : m_Client(client) {}
+            CMessage(IDiscordClient *client, Internal::CMessageManager *MsgMgr) : CDiscordObject(client, MsgMgr) {}
 
-            std::string ID;
             TextChannel ChannelRef;     //!< Could contain a dummy channel if this is a dm. Only the id field is filled.
             Guild GuildRef;
             User Author;
@@ -105,8 +105,6 @@ namespace DiscordBot
             ~CMessage() = default;
         private:
             std::string UriEscape(const std::string &Uri);
-
-            IDiscordClient *m_Client;
     };
 
     using Message = std::shared_ptr<CMessage>;

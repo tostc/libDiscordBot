@@ -33,9 +33,7 @@ namespace DiscordBot
 {
     Channel CGuild::CreateChannel(const CChannelProperties &ChannelInfo)
     {
-        Guild guild = dynamic_cast<CDiscordClient*>(m_Client)->GetGuild(ID);
-        if(!dynamic_cast<CDiscordClient*>(m_Client)->CheckPermissions(guild, Permission::MANAGE_CHANNELS))
-            throw CPermissionException("Missing permission: 'MANAGE_CHANNELS'");
+        CheckPermissions(Permission::MANAGE_CHANNELS);
 
         CJSON js;
 
@@ -75,7 +73,8 @@ namespace DiscordBot
             js.AddJSON("permission_overwrites", tmp.Serialize(OWJS));
         }
 
-        auto res = dynamic_cast<CDiscordClient*>(m_Client)->Post(tfm::format("/guilds/%s/channels", ID), js.Serialize());
+        auto req = m_MsgMgr->RequestMessage(Internal::Requests::POST, CreateHttpMessage(tfm::format("/guilds/%s/channels", ID), js.Serialize()));
+        auto res = req->Value<ix::HttpResponsePtr>();
         if(res->statusCode != 201)
             throw CDiscordClientException("Can't create channel. Error: " + res->body + " HTTP Code: " + std::to_string(res->statusCode));
     
@@ -87,7 +86,7 @@ namespace DiscordBot
 
     void CGuild::Ban(GuildMember Member, const std::string &Reason, int DeleteMsgDays)
     {
-        BanMembersCheck();
+        CheckPermissions(Permission::BAN_MEMBERS);
 
         CJSON js;
         if(!Reason.empty())
@@ -96,37 +95,39 @@ namespace DiscordBot
         if(DeleteMsgDays != -1)
             js.AddPair("delete_message_days", DeleteMsgDays);
 
-        auto res = dynamic_cast<CDiscordClient*>(m_Client)->Put(tfm::format("/guilds/%s/bans/%s", ID, Member->UserRef->ID), js.Serialize());
+        auto req = m_MsgMgr->RequestMessage(Internal::Requests::PUT, CreateHttpMessage(tfm::format("/guilds/%s/bans/%s", ID, Member->UserRef->ID), js.Serialize()));
+        auto res = req->Value<ix::HttpResponsePtr>();
         if(res->statusCode != 204)
             throw CDiscordClientException("Can't ban user. Error: " + res->body + " HTTP Code: " + std::to_string(res->statusCode));
     }
 
     void CGuild::Unban(User user)
     {
-        BanMembersCheck();
-        auto res = dynamic_cast<CDiscordClient*>(m_Client)->Delete(tfm::format("/guilds/%s/bans/%s", ID, user->ID));
+        CheckPermissions(Permission::BAN_MEMBERS);
+
+        auto req = m_MsgMgr->RequestMessage(Internal::Requests::DELETE, CreateHttpMessage(tfm::format("/guilds/%s/bans/%s", ID, user->ID), ""));
+        auto res = req->Value<ix::HttpResponsePtr>();
         if(res->statusCode != 204)
             throw CDiscordClientException("Can't unban user. Error: " + res->body + " HTTP Code: " + std::to_string(res->statusCode));
     }
 
     void CGuild::Kick(GuildMember Member)
-    {
-        Guild guild = dynamic_cast<CDiscordClient*>(m_Client)->GetGuild(ID);
-        if(!dynamic_cast<CDiscordClient*>(m_Client)->CheckPermissions(guild, Permission::KICK_MEMBERS))
-            throw CPermissionException("Missing permission: 'KICK_MEMBERS'");
+    {   
+        CheckPermissions(Permission::KICK_MEMBERS);
 
-        auto res = dynamic_cast<CDiscordClient*>(m_Client)->Delete(tfm::format("/guilds/%s/members/%s", ID, Member->UserRef->ID));
+        auto req = m_MsgMgr->RequestMessage(Internal::Requests::DELETE, CreateHttpMessage(tfm::format("/guilds/%s/members/%s", ID, Member->UserRef->ID), ""));
+        auto res = req->Value<ix::HttpResponsePtr>();
         if(res->statusCode != 204)
             throw CDiscordClientException("Can't kick user. Error: " + res->body + " HTTP Code: " + std::to_string(res->statusCode));
     }
 
     CGuild::BanList CGuild::GetBanList()
     {
-        BanMembersCheck();
+        CheckPermissions(Permission::BAN_MEMBERS);
         BanList Ret;
 
-        auto res = dynamic_cast<CDiscordClient*>(m_Client)->Get(tfm::format("/guilds/%s/bans", ID));
-
+        auto req = m_MsgMgr->RequestMessage(Internal::Requests::GET, CreateHttpMessage(tfm::format("/guilds/%s/bans", ID), ""));
+        auto res = req->Value<ix::HttpResponsePtr>();
         if(res->statusCode != 200)
             throw CDiscordClientException("Unable to get ban list. Error: " + res->body + " HTTP Code: " + std::to_string(res->statusCode));
 
@@ -142,12 +143,5 @@ namespace DiscordBot
         }
 
         return Ret;
-    }
-
-    void CGuild::BanMembersCheck()
-    {
-        Guild guild = dynamic_cast<CDiscordClient*>(m_Client)->GetGuild(ID);
-        if(!dynamic_cast<CDiscordClient*>(m_Client)->CheckPermissions(guild, Permission::BAN_MEMBERS))
-            throw CPermissionException("Missing permission: 'BAN_MEMBERS'");
     }
 } // namespace DiscordBot

@@ -117,11 +117,6 @@ namespace DiscordBot
             BanList GetBanList(); 
 
             ~CGuild() {}
-        private:
-            /**
-             * @brief Checks if the bot can ban users.
-             */
-            void BanMembersCheck();
     };
 
     using Guild = std::shared_ptr<CGuild>;

@@ -29,8 +29,9 @@ namespace DiscordBot
 {
     VoiceClient CVoiceChannel::Join()
     {
-        Internal::InternalMessage msg = Internal::InternalMessage(new Internal::IInternalMessage());
+        Internal::ChangeVoiceStateMessage msg = Internal::ChangeVoiceStateMessage(new Internal::CChangeVoiceStateMessage());
         msg->ID = ID;
+        msg->GuildID = GuildID;
 
         auto req = m_MsgMgr->RequestMessage(Internal::Requests::JOIN, msg);
         return req->Value<VoiceClient>();

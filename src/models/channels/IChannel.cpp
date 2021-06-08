@@ -94,7 +94,7 @@ namespace DiscordBot
         CJSON js;
         js.AddPair("reason", Reason);
 
-        auto req = m_MsgMgr->RequestMessage(Internal::Requests::PATCH, CreateHttpMessage(tfm::format("/channels/%s", ID), js.Serialize()));
+        auto req = m_MsgMgr->RequestMessage(Internal::Requests::DELETE, CreateHttpMessage(tfm::format("/channels/%s", ID), js.Serialize()));
         auto res = req->Value<ix::HttpResponsePtr>();
         if (res->statusCode != 200)
             throw CDiscordClientException("Can't delete channel. Error: " + res->body + " HTTP Code: " + std::to_string(res->statusCode));

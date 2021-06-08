@@ -47,6 +47,7 @@
 #include "GuildAdmin.hpp"
 #include "../helpers/Factory/ObjectFactory.hpp"
 #include <controller/VoiceClient.hpp>
+#include <models/Snowflake.hpp>
 
 #undef SendMessage
 
@@ -241,7 +242,7 @@ namespace DiscordBot
             /**
              * @brief Joins or leaves a voice channel.
              */
-            void ChangeVoiceState(VoiceChannel Channel);
+            void ChangeVoiceState(CSnowflake GuildID, CSnowflake ChannelID);
 
             /**
              * @brief Checks the bots permissions.
@@ -285,7 +286,7 @@ namespace DiscordBot
             }
         private:
             using VoiceClients = std::map<CSnowflake, VoiceClient>;
-            using MessageResults = std::map<CSnowflake, MessageResult>;
+            using VoiceConnectionResults = std::map<CSnowflake, MessageResult>;
 
             const char *BASE_URL = "https://discord.com/api";
             std::string USER_AGENT;
@@ -306,6 +307,8 @@ namespace DiscordBot
             std::atomic<uint32_t> m_LastSeqNum;
             std::string m_SessionID;
             User m_BotUser;
+
+            atomic<VoiceConnectionResults> m_VoiceConnectionResults;
 
             // Active connections
             atomic<VoiceClients> m_VoiceClients;

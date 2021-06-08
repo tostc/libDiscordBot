@@ -63,8 +63,6 @@ namespace DiscordBot
                 void Value(T val)
                 {
                     std::unique_lock<std::mutex> lk(m_Lock);
-                    lk.lock();
-
                     m_Result = std::shared_ptr<IResult>(new SResult<T>(val));
 
                     lk.unlock();

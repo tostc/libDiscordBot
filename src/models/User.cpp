@@ -36,7 +36,8 @@ namespace DiscordBot
         CJSON json;
         json.AddPair("recipient_id", (std::string)ID);
 
-        auto res = dynamic_cast<CDiscordClient*>(m_Client)->Post("/users/@me/channels", json.Serialize());
+        auto req = m_MsgMgr->RequestMessage(Internal::Requests::POST, CreateHttpMessage("/users/@me/channels", json.Serialize()));
+        auto res = req->Value<ix::HttpResponsePtr>();
         if (res->statusCode != 200)
             llog << lerror << "Failed to send message HTTP: " << res->statusCode << " MSG: " << res->errorMsg << lendl;
         else

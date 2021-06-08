@@ -94,13 +94,13 @@ namespace DiscordBot
         SendOP(OPCodes::PRESENCE_UPDATE, CreateUserInfoJSON());
     }
 
-    void CDiscordClient::ChangeVoiceState(VoiceChannel Channel)
+    void CDiscordClient::ChangeVoiceState(CSnowflake GuildID, CSnowflake ChannelID)
     {
         CJSON json;
-        json.AddPair("guild_id", (std::string)Channel->GuildID);
+        json.AddPair("guild_id", (std::string)GuildID);
 
-        if(Channel->ID.IsValidID())
-            json.AddPair("channel_id", (std::string)Channel->ID);
+        if(ChannelID.IsValidID())
+            json.AddPair("channel_id", (std::string)ChannelID);
         else
             json.AddPair("channel_id", nullptr);
 
@@ -227,6 +227,23 @@ namespace DiscordBot
                         IT->second->StartSpeaking(Source);
                 }
             }break;*/
+
+            case Requests::JOIN:
+            {
+                auto message = std::static_pointer_cast<TMessage<ChangeVoiceStateMessage>>(Msg);
+                auto voiceMsg = message->Value;
+
+                m_VoiceConnectionResults->insert({voiceMsg->GuildID, voiceMsg->Res});
+                ChangeVoiceState(voiceMsg->GuildID, voiceMsg->ID);
+            } break;
+
+            case Requests::PERMISSIONS:
+            {
+                auto message = std::static_pointer_cast<TMessage<PermissionMessage>>(Msg);
+                auto permMsg = message->Value;
+
+                permMsg->Res->Value(CheckPermissions(GetGuild(permMsg->GuildID), permMsg->Perm, permMsg->Overwrites));
+            } break;
 
             case Requests::POST:
             case Requests::PUT:
@@ -634,6 +651,13 @@ namespace DiscordBot
                                         VoiceSocket Socket = VoiceSocket(new CVoiceSocket(json, UIT->second->State->SessionID, (std::string)m_BotUser->ID));
                                         VoiceClient Client = VoiceClient(new CVoiceClient(Socket));
                                         m_VoiceClients->insert({GIT->second->ID, Client});
+
+                                        auto VoiceChannel = m_VoiceConnectionResults->find(GIT->second->ID);
+                                        if(VoiceChannel != m_VoiceConnectionResults->end())
+                                        {
+                                            VoiceChannel->second->Value(Client);
+                                            m_VoiceConnectionResults->erase(VoiceChannel);
+                                        }
 
                                         // TODO: INFORM VoiceChannel::Connect;
                                     }

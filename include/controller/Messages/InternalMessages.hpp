@@ -28,6 +28,9 @@
 #include <models/Snowflake.hpp>
 #include <controller/Messages/MessageResult.hpp>
 #include <memory>
+#include <models/PermissionOverwrites.hpp>
+#include <models/DiscordEnums.hpp>
+#include <vector>
 
 namespace DiscordBot
 {
@@ -38,6 +41,7 @@ namespace DiscordBot
         {
             JOIN,
 
+            PERMISSIONS,
 
             // HTTP operations
             PUT,
@@ -66,8 +70,24 @@ namespace DiscordBot
                 std::string ContentType;
         };
 
+        class CPermissionMessage : public IInternalMessage
+        {
+            public:
+                Permission Perm;
+                std::vector<PermissionOverwrites> Overwrites;
+                CSnowflake GuildID;
+        };
+
+        class CChangeVoiceStateMessage : public IInternalMessage
+        {
+            public:
+                CSnowflake GuildID;
+        };
+
         using InternalMessage = std::shared_ptr<IInternalMessage>;
         using HttpMessage = std::shared_ptr<CHttpMessage>;
+        using PermissionMessage = std::shared_ptr<CPermissionMessage>;
+        using ChangeVoiceStateMessage = std::shared_ptr<CChangeVoiceStateMessage>;
     }
 } // namespace DiscordBot
 

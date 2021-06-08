@@ -32,9 +32,14 @@ namespace DiscordBot
 {
     void CDiscordObject::CheckPermissions(Permission p, std::vector<PermissionOverwrites> Overwrites)
     {
-        CDiscordClient *Client = dynamic_cast<CDiscordClient*>(m_Client);
-        Guild guild = Client->GetGuild(GuildID);
-        if(!Client->CheckPermissions(guild, p, Overwrites))
+        PermissionMessage msg = PermissionMessage(new CPermissionMessage());
+        msg->ID = ID;
+        msg->Perm = p;
+        msg->Overwrites = Overwrites;
+        msg->GuildID = GuildID;
+
+        auto req = m_MsgMgr->RequestMessage(Internal::Requests::PERMISSIONS, msg);
+        if(!req->Value<bool>())
             throw CPermissionException(tfm::format("Missing permission: '%s'", PermissionToString(p)));
     }
 

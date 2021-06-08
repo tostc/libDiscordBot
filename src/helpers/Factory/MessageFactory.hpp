@@ -40,7 +40,7 @@ namespace DiscordBot
 
             std::shared_ptr<CMessage> Deserialize(CJSON &json) override
             {
-                Message Ret = Message(new CMessage(m_Client));
+                Message Ret = Message(new CMessage(m_Client, m_Client->GetMessageManager()));
 
                 Ret->ID = json.GetValue<std::string>("id");
                 Ret->GuildRef = m_Client->GetGuild(json.GetValue<std::string>("guild_id"));
