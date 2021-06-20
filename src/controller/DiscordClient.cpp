@@ -25,8 +25,8 @@
 #include "DiscordClient.hpp"
 #include <iostream>
 #include <sodium.h>
-#include <models/exceptions/DiscordException.hpp>
-#include <models/Role.hpp>
+#include <DiscordBot/Exceptions/DiscordException.hpp>
+#include <DiscordBot/Models/Role.hpp>
 #include "../helpers/Helper.hpp"
 #include "../helpers/MultipartFormData.hpp"
 

@@ -1,7 +1,7 @@
 #ifndef BOTCONTROLLER_HPP
 #define BOTCONTROLLER_HPP
 
-#include <controller/IController.hpp>
+#include <DiscordBot/Commands/IController.hpp>
 
 using namespace DiscordBot;
 

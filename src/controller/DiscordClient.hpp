@@ -28,26 +28,26 @@
 #include <string>
 #include <JSON.hpp>
 #include <stdint.h>
-#include <IDiscordClient.hpp>
+#include <DiscordBot/IDiscordClient.hpp>
 #include <ixwebsocket/IXWebSocket.h>
 #include <ixwebsocket/IXNetSystem.h>
 #include <ixwebsocket/IXHttpClient.h>
 #include <thread>
 #include <map>
-#include <models/User.hpp>
-#include <models/Guild.hpp>
-#include <models/Role.hpp>
-#include <models/Activity.hpp>
+#include <DiscordBot/Models/User.hpp>
+#include <DiscordBot/Models/Guild.hpp>
+#include <DiscordBot/Models/Role.hpp>
+#include <DiscordBot/Models/Activity.hpp>
 #include <atomic>
-#include <controller/Messages/MessageManager.hpp>
-#include "../models/Payload.hpp"
+#include <DiscordBot/Messages/MessageManager.hpp>
+#include "../Models/Payload.hpp"
 #include "VoiceSocket.hpp"
-#include <models/atomic.hpp>
-#include <models/channels/VoiceChannel.hpp>
+#include <DiscordBot/Utils/Atomic.hpp>
+#include <DiscordBot/Channels/VoiceChannel.hpp>
 #include "GuildAdmin.hpp"
 #include "../helpers/Factory/ObjectFactory.hpp"
-#include <controller/VoiceClient.hpp>
-#include <models/Snowflake.hpp>
+#include <DiscordBot/Voice/VoiceClient.hpp>
+#include <DiscordBot/Utils/Snowflake.hpp>
 
 #undef SendMessage
 

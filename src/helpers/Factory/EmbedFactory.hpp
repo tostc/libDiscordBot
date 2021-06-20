@@ -26,7 +26,7 @@
 #define EMBEDFACTORY_HPP
 
 #include "ISerializeFactory.hpp"
-#include <models/Embed.hpp>
+#include <DiscordBot/Models/Embed.hpp>
 
 #include "../../controller/DiscordClient.hpp"
 

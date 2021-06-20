@@ -146,7 +146,7 @@ endif(NOT WIN32)
 
 message(${PROJECT_VERSION})
 
-configure_file("${PROJECT_SOURCE_DIR}/include/config.h.in" config.h @ONLY) 
+configure_file("${PROJECT_SOURCE_DIR}/include/DiscordBot/config.h.in" config.h @ONLY) 
 configure_file("${PROJECT_SOURCE_DIR}/docs/Doxyfile.in" Doxyfile @ONLY) 
 
 include_directories("${PROJECT_BINARY_DIR}"
@@ -174,15 +174,20 @@ set(SRCS
     "${PROJECT_SOURCE_DIR}/src/commands/RightsCommand.cpp"
     "${PROJECT_SOURCE_DIR}/src/commands/HelpCommand.cpp"
     "${PROJECT_SOURCE_DIR}/src/commands/PrefixCommand.cpp"
-    "${PROJECT_SOURCE_DIR}/src/models/channels/IChannel.cpp"
-    "${PROJECT_SOURCE_DIR}/src/models/channels/TextChannel.cpp"
-    "${PROJECT_SOURCE_DIR}/src/models/Message.cpp"
-    "${PROJECT_SOURCE_DIR}/src/models/User.cpp"
-    "${PROJECT_SOURCE_DIR}/src/models/Guild.cpp"
-    "${PROJECT_SOURCE_DIR}/src/models/DiscordObject.cpp"
-    "${PROJECT_SOURCE_DIR}/src/models/GuildMember.cpp"
-    "${PROJECT_SOURCE_DIR}/src/models/channels/VoiceChannel.cpp"
-    "${PROJECT_SOURCE_DIR}/src/helpers/Factory/ObjectFactory.cpp")
+    "${PROJECT_SOURCE_DIR}/src/helpers/Factory/ObjectFactory.cpp"
+    
+    # Channels
+    "${PROJECT_SOURCE_DIR}/src/Channels/IChannel.cpp"
+    "${PROJECT_SOURCE_DIR}/src/Channels/TextChannel.cpp"
+    "${PROJECT_SOURCE_DIR}/src/Channels/VoiceChannel.cpp"
+    
+    # Models
+    "${PROJECT_SOURCE_DIR}/src/Models/Message.cpp"
+    "${PROJECT_SOURCE_DIR}/src/Models/User.cpp"
+    "${PROJECT_SOURCE_DIR}/src/Models/Guild.cpp"
+    "${PROJECT_SOURCE_DIR}/src/Models/DiscordObject.cpp"
+    "${PROJECT_SOURCE_DIR}/src/Models/GuildMember.cpp"
+    )
 
 add_library(${PROJECT_NAME} SHARED ${SRCS})
 

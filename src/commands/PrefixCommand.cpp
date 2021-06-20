@@ -23,7 +23,7 @@
  */
 
 #include "PrefixCommand.hpp"
-#include <IDiscordClient.hpp>
+#include <DiscordBot/IDiscordClient.hpp>
 #include <algorithm>
 
 namespace DiscordBot

@@ -29,7 +29,7 @@
 
 #include "ISerializeFactory.hpp"
 #include <JSON.hpp>
-#include <models/Message.hpp>
+#include <DiscordBot/Models/Message.hpp>
 
 namespace DiscordBot
 {

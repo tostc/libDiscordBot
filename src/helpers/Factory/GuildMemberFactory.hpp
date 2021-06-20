@@ -27,7 +27,7 @@
 
 #include "../../controller/DiscordClient.hpp"
 #include "ISerializeFactory.hpp"
-#include <models/GuildMember.hpp>
+#include <DiscordBot/Models/GuildMember.hpp>
 #include <string>
 #include <vector>
 

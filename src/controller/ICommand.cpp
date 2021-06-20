@@ -22,7 +22,7 @@
  * SOFTWARE.
  */
 
-#include <controller/ICommand.hpp>
+#include <DiscordBot/Commands/ICommand.hpp>
 
 namespace DiscordBot
 {

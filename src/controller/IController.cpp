@@ -22,8 +22,8 @@
  * SOFTWARE.
  */
 
-#include <controller/IController.hpp>
-#include <IDiscordClient.hpp>
+#include <DiscordBot/Commands/IController.hpp>
+#include <DiscordBot/IDiscordClient.hpp>
 #include "../commands/HelpCommand.hpp"
 #include "../commands/RightsCommand.hpp"
 #include "../commands/PrefixCommand.hpp"

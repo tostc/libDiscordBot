@@ -22,7 +22,7 @@
  * SOFTWARE.
  */
 
-#include <controller/VoiceClient.hpp>
+#include <DiscordBot/Voice/VoiceClient.hpp>
 
 namespace DiscordBot
 {

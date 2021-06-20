@@ -25,8 +25,8 @@
 #ifndef HELPCOMMAND_HPP
 #define HELPCOMMAND_HPP
 
-#include <controller/ICommand.hpp>
-#include <controller/IController.hpp>
+#include <DiscordBot/Commands/ICommand.hpp>
+#include <DiscordBot/Commands/IController.hpp>
 
 namespace DiscordBot
 {

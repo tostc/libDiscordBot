@@ -25,7 +25,7 @@
 #ifndef MULTIPARTFORMDATA_HPP
 #define MULTIPARTFORMDATA_HPP
 
-#include <models/File.hpp>
+#include <DiscordBot/Models/File.hpp>
 #include <string>
 #include <map>
 

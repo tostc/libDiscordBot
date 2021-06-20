@@ -27,7 +27,7 @@
 
 #include "../../controller/DiscordClient.hpp"
 #include "ISerializeFactory.hpp"
-#include <models/Activity.hpp>
+#include <DiscordBot/Models/Activity.hpp>
 
 namespace DiscordBot
 {

@@ -26,7 +26,7 @@
 #define USERFACTORY_HPP
 
 #include "ISerializeFactory.hpp"
-#include <models/User.hpp>
+#include <DiscordBot/Models/User.hpp>
 #include "../../controller/DiscordClient.hpp"
 
 namespace DiscordBot

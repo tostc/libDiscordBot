@@ -1,4 +1,4 @@
-#include <IDiscordClient.hpp>
+#include <DiscordBot/IDiscordClient.hpp>
 #include <BotController.hpp>
 
 using namespace DiscordBot;

@@ -1,8 +1,8 @@
 #ifndef HELLOCOMMAND_HPP
 #define HELLOCOMMAND_HPP
 
-#include <controller/ICommand.hpp>
-#include <IDiscordClient.hpp>
+#include <DiscordBot/Commands/ICommand.hpp>
+#include <DiscordBot/IDiscordClient.hpp>
 
 using namespace DiscordBot;
 

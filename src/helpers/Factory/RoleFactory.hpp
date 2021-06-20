@@ -26,7 +26,7 @@
 #define ROLEFACTORY_HPP
 
 #include "ISerializeFactory.hpp"
-#include <models/Role.hpp>
+#include <DiscordBot/Models/Role.hpp>
 #include "../../controller/DiscordClient.hpp"
 
 namespace DiscordBot

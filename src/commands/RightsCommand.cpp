@@ -22,9 +22,9 @@
  * SOFTWARE.
  */
 
-#include <IDiscordClient.hpp>
-#include <models/Role.hpp>
-#include <models/Guild.hpp>
+#include <DiscordBot/IDiscordClient.hpp>
+#include <DiscordBot/Models/Role.hpp>
+#include <DiscordBot/Models/Guild.hpp>
 #include "RightsCommand.hpp"
 
 namespace DiscordBot

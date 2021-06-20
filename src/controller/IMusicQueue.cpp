@@ -22,7 +22,7 @@
  * SOFTWARE.
  */
 
-#include <controller/IMusicQueue.hpp>
+#include <DiscordBot/Voice/IMusicQueue.hpp>
 #include <algorithm>
 #include "../helpers/Helper.hpp"
 

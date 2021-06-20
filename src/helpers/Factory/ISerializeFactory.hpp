@@ -28,7 +28,7 @@
 #include <JSON.hpp>
 #include <string>
 #include <memory>
-#include <models/Guild.hpp>
+#include <DiscordBot/Models/Guild.hpp>
 namespace DiscordBot
 {
     class CDiscordClient;

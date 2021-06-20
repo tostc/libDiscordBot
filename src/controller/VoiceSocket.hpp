@@ -26,13 +26,13 @@
 #define VOICESOCKET_HPP
 
 #include <JSON.hpp>
-#include <controller/IAudioSource.hpp>
-#include <controller/IVoiceSocket.hpp>
+#include <DiscordBot/Voice/IAudioSource.hpp>
+#include <DiscordBot/Voice/IVoiceSocket.hpp>
 #include <ixwebsocket/IXWebSocket.h>
 #include <ixwebsocket/IXNetSystem.h>
 #include <ixwebsocket/IXUdpSocket.h>
 #include <atomic>
-#include <controller/Messages/MessageManager.hpp>
+#include <DiscordBot/Messages/MessageManager.hpp>
 
 namespace DiscordBot
 {    

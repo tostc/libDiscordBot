@@ -27,9 +27,9 @@
 
 #include "../../controller/DiscordClient.hpp"
 #include "ISerializeFactory.hpp"
-#include <models/channels/IChannel.hpp>
-#include <models/channels/TextChannel.hpp>
-#include <models/channels/VoiceChannel.hpp>
+#include <DiscordBot/Channels/IChannel.hpp>
+#include <DiscordBot/Channels/TextChannel.hpp>
+#include <DiscordBot/Channels/VoiceChannel.hpp>
 
 namespace DiscordBot
 {

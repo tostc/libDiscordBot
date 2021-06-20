@@ -23,7 +23,7 @@
  */
 
 #include "HelpCommand.hpp"
-#include <IDiscordClient.hpp>
+#include <DiscordBot/IDiscordClient.hpp>
 
 namespace DiscordBot
 {

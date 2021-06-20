@@ -23,7 +23,7 @@
  */
 
 #include "VoiceSocket.hpp"
-#include "../models/Payload.hpp"
+#include "../Models/Payload.hpp"
 #include <Log.hpp>
 #include <opus.h>
 #include <sodium.h>

@@ -25,8 +25,8 @@
 #ifndef GUILDADMIN_HPP
 #define GUILDADMIN_HPP
 
-#include <controller/IGuildAdmin.hpp>
-#include <models/Message.hpp>
+#include <Controller/IGuildAdmin.hpp>
+#include <DiscordBot/Models/Message.hpp>
 #include <mutex>
 #include <map>
 

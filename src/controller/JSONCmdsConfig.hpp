@@ -25,7 +25,7 @@
 #ifndef JSONCMDSCONFIG_HPP
 #define JSONCMDSCONFIG_HPP
 
-#include <controller/ICommandsConfig.hpp>
+#include <DiscordBot/Commands/ICommandsConfig.hpp>
 #include <JSON.hpp>
 
 namespace DiscordBot
